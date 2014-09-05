@@ -295,14 +295,19 @@ function test_relative_input_cwd(callback) {
 
   var origcwd = process.cwd();
   process.chdir(entrydir);
-  assert.equal(fs.realpathSync(entry), path.resolve(expected));
+  var resExpected = path.resolve(expected);
+  var resActual = fs.realpathSync(entry);
+  resActual = path.normalize(resActual); // Windows $%^$^@@@ !!!
+  assert.equal(resExpected, resActual);
   asynctest(fs.realpath, [entry], callback, function(err, result) {
+    if (err) throw err;
+    result = path.normalize(result); // Windows $%^$^@@@ !!!
     process.chdir(origcwd);
-    assert.equal(result, path.resolve(expected),
-        'got ' +
+    assert.equal(result, resExpected,
+        'fs.realpath(' + entry + ') - got ' +
         common.inspect(result) +
         ' expected ' +
-        common.inspect(path.resolve(expected)));
+        common.inspect(resExpected));
     return true;
   });
 }
@@ -384,17 +389,19 @@ function test_non_symlinks(callback) {
   });
 }
 
-var upone = path.join(process.cwd(), '..');
+var upOne = path.join(process.cwd(), '..');
 function test_escape_cwd(cb) {
   console.log('test_escape_cwd');
-  asynctest(fs.realpath, ['..'], cb, function(er, uponeActual) {
-    assert.equal(upone, uponeActual,
-        'realpath("..") expected: ' + path.resolve(upone) + ' actual:' + uponeActual);
+  asynctest(fs.realpath, ['..'], cb, function(er, upOneActual) {
+    upOneActual = path.normalize(upOneActual); // Windows $%^$^@@@ !!!
+    assert.equal(upOne, upOneActual,
+        'realpath("..") expected: ' + path.resolve(upOne) + ' actual:' + upOneActual);
   });
 }
-var uponeActual = fs.realpathSync('..');
-assert.equal(upone, uponeActual,
-    'realpathSync("..") expected: ' + path.resolve(upone) + ' actual:' + uponeActual);
+var upOneActual = fs.realpathSync('..');
+upOneActual = path.normalize(upOneActual); //Windows and uppercase/lowercase sh*t
+assert.equal(upOne, upOneActual,
+    'realpathSync("..") expected: ' + path.resolve(upOne) + ' actual:' + upOneActual);
 
 
 // going up with .. multiple times

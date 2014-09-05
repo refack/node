@@ -174,7 +174,7 @@ if (process.argv[2] === 'child') {
     assert.equal(disconnected, count);
     assert.equal(connected, count);
     assert.ok(closeEmitted);
-    assert.ok(timeElasped >= 190 && timeElasped <= 1000,
-              'timeElasped was not between 190 and 1000 ms');
+    assert.ok(timeElasped >= 190 && timeElasped <= 3000,
+              'timeElasped was not between 190 and 3000 ms');
   });
 }
