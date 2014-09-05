@@ -2031,16 +2031,6 @@ void Connection::Initialize(Environment* env, Handle<Object> target) {
 
   SSLWrap<Connection>::AddMethods(env, t);
 
-#ifdef OPENSSL_NPN_NEGOTIATED
-  NODE_SET_PROTOTYPE_METHOD(t,
-                            "getNegotiatedProtocol",
-                            Connection::GetNegotiatedProto);
-  NODE_SET_PROTOTYPE_METHOD(t,
-                            "setNPNProtocols",
-                            Connection::SetNPNProtocols);
-#endif
-
-
 #ifdef SSL_CTRL_SET_TLSEXT_SERVERNAME_CB
   NODE_SET_PROTOTYPE_METHOD(t, "getServername", Connection::GetServername);
   NODE_SET_PROTOTYPE_METHOD(t, "setSNICallback",  Connection::SetSNICallback);
