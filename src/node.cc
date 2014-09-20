@@ -1633,10 +1633,15 @@ static void Cwd(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowUVException(err, "uv_cwd");
   }
 
+#ifdef _WIN32
+  buf[0] = tolower(buf[0]);
+#endif
+
   Local<String> cwd = String::NewFromUtf8(env->isolate(),
                                           buf,
                                           String::kNormalString,
                                           cwd_len - 1);
+
   args.GetReturnValue().Set(cwd);
 }
 
