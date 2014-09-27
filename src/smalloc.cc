@@ -160,9 +160,9 @@ size_t ExternalArraySize(enum ExternalArrayType type) {
     case v8::kExternalUnsignedIntArray:
       return sizeof(uint32_t);
     case v8::kExternalFloatArray:
-      return sizeof(float);   // NOLINT(runtime/sizeof)
+      return sizeof(float);
     case v8::kExternalDoubleArray:
-      return sizeof(double);  // NOLINT(runtime/sizeof)
+      return sizeof(double);
     case v8::kExternalPixelArray:
       return sizeof(uint8_t);
   }

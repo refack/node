@@ -409,7 +409,7 @@ CPPLINT_EXCLUDE += src/v8abbr.h
 CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard src/*.cc src/*.h src/*.c))
 
 cpplint:
-	@$(PYTHON) tools/cpplint.py $(CPPLINT_FILES)
+	@$(PYTHON) tools/cpplint.py --filter=-build/include,-build/include_order,-whitespace/indent,-readability/braces,-runtime/int,-readability/namespace,-whitespace/blank_line,-runtime/references,-build/header_guard,-runtime/indentation_namespace $(CPPLINT_FILES)
 
 lint: jslint cpplint
 

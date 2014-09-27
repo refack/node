@@ -5,22 +5,29 @@ Node.js APIs.
 
 ## How to run tests
 
-There are two ways to run benchmark tests:
+There are four ways to run benchmark tests:
 
-1. Run all tests of a given type, for example, buffers
+1. ### Run all tests
+    ```sh
+node benchmark/common.js
+    ```
+    This will run all the test scripts in sub-directories of `/benchmark/`.
+    Each test is run multiple multiple times, according to it's configuration.
+    Each iteration results in two statistics: `outside` - the total time to run,
+    so a lower value is better. And the last number in each line `ops/sec`,
+    where `op` is dependent on the test code, but a larger value is better.
 
-```sh
+2. ### Run tests of a given type, for example, `buffers`
+    ```sh
 node benchmark/common.js buffers
-```
-
-The above command will find all scripts under `buffers` directory and require
-each of them as a module. When a test script is required, it creates an instance
-of `Benchmark` (a class defined in common.js). In the next tick, the `Benchmark`
-constructor iterates through the configuration object property values and run
-the test function with each of the combined arguments in spawned processes. For
-example, buffers/buffer-read.js has the following configuration:
-
-```js
+    ```
+    The above command will find all scripts under `buffers` directory and require
+    each of them as a module. When a test script is required, it creates an instance
+    of `Benchmark` (a class defined in common.js). In the next tick, the `Benchmark`
+    constructor iterates through the configuration object property values and run
+    the test function with each of the combined arguments in spawned processes. For
+    example, buffers/buffer-read.js has the following configuration:
+    ```js
 var bench = common.createBenchmark(main, {
     noAssert: [false, true],
     buffer: ['fast', 'slow'],
@@ -32,53 +39,66 @@ var bench = common.createBenchmark(main, {
         'DoubleLE', 'DoubleBE'],
         millions: [1]
 });
-```
-The runner takes one item from each of the property array value to build a list
-of arguments to run the main function. The main function will receive the conf
-object as follows:
+    ```
+    The runner takes one item from each of the property array value to build a list
+    of arguments to run the main function. The main function will receive the conf
+    object as follows:
+    - first run:
+        ```js
+{
+      noAssert: false,
+      buffer: 'fast',
+      type: 'UInt8',
+      millions: 1
+}
+        ```
+    - second run:
+        ```js
+{
+      noAssert: false,
+      buffer: 'fast',
+      type: 'UInt16LE',
+      millions: 1
+}
+        ```
+    - etc...
 
-- first run:
-```js
-    {   noAssert: false,
-        buffer: 'fast',
-        type: 'UInt8',
-        millions: 1
-    }
-```
-- second run:
-```js
-    {
-        noAssert: false,
-        buffer: 'fast',
-        type: 'UInt16LE',
-        millions: 1
-    }
-```
+  In this case, the main function will run 2*2*14*1 = 56 times. The console output
+  looks like the following:
+  ```
+buffers\buffer-read.js
+buffers\buffer-read.js noAssert=false   buffer=fast      type=UInt8       millions=1       :outside=0.015   : 260
+buffers\buffer-read.js noAssert=false   buffer=fast      type=UInt16LE    millions=1       :outside=0.016   : 188
+buffers\buffer-read.js noAssert=false   buffer=fast      type=UInt16BE    millions=1       :outside=0.016   : 199
+buffers\buffer-read.js noAssert=false   buffer=fast      type=UInt32LE    millions=1       :outside=0.017   : 182
 ...
+  ```
 
-In this case, the main function will run 2*2*14*1 = 56 times. The console output
-looks like the following:
+3. ### Run an individual test, for example, buffer-slice.js
 
-```
-buffers//buffer-read.js
-buffers/buffer-read.js noAssert=false buffer=fast type=UInt8 millions=1: 271.83
-buffers/buffer-read.js noAssert=false buffer=fast type=UInt16LE millions=1: 239.43
-buffers/buffer-read.js noAssert=false buffer=fast type=UInt16BE millions=1: 244.57
-...
-```
+    ```sh
+node benchmark/buffers/buffer-compare.js
+    ```
+    The output:
+    ```
+buffers\buffer-compare.js
+buffers\buffer-compare.js size=16          millions=1       :outside=0.052   : 24.0
+buffers\buffer-compare.js size=512         millions=1       :outside=0.141   : 7.67
+buffers\buffer-compare.js size=1024        millions=1       :outside=0.219   : 4.80
+buffers\buffer-compare.js size=4096        millions=1       :outside=0.691   : 1.47
+buffers\buffer-compare.js size=16386       millions=1       :outside=2.560   : 0.392
+    ```
 
-2. Run an individual test, for example, buffer-slice.js
+4. ### Compare two `node` binaries:
 
-```sh
-node benchmark/buffers/buffer-read.js
-```
-The output:
-```
-buffers/buffer-read.js noAssert=false buffer=fast type=UInt8 millions=1: 246.79
-buffers/buffer-read.js noAssert=false buffer=fast type=UInt16LE millions=1: 240.11
-buffers/buffer-read.js noAssert=false buffer=fast type=UInt16BE millions=1: 245.91
-...
-```
+    ```sh
+node benchmark/compare.js Release/node.exe Debug/node.exe
+    ```
+    This will run the entire suite twice, using each of the given executable
+    and will provide a comparison report. the report could be generated in
+    HTML with the `--html` flag.
+    ![bench1](https://cloud.githubusercontent.com/assets/96947/4088339/075ddcb6-2f5c-11e4-9427-c9f0f0ddbc64.png)
+
 
 ## How to write a benchmark test
 
