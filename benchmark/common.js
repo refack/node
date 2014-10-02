@@ -1,21 +1,43 @@
+'use strict'
+/*globals console */
+var outsideStart = process.hrtime();
 var assert = require('assert');
 var path = require('path');
+var fs = require('fs');
 var silent = +process.env.NODE_BENCH_SILENT;
+process.chdir(__dirname);
+exports.spawn = require('child_process').spawn;
+function spawnTest(testArgs) {
+  testArgs = (process.execArgv || []).concat(testArgs);
+  console.error(process.execPath, testArgs.join(' '));
+  return exports.spawn(process.execPath, testArgs,
+                       { stdio: ['ignore', process.stdout, process.stderr] });
+}
 
 exports.PORT = process.env.PORT || 12346;
+if (process.stdin && process.stdin._handle)
+  console.log("node version", process.version, process.arch, process.platform);
 
 // If this is the main module, then run the benchmarks
 if (module === require.main) {
   var type = process.argv[2];
-  if (!type) {
-    console.error('usage:\n ./node benchmark/common.js <type>');
-    process.exit(1);
-  }
+  var reps = Number(process.argv[3]) || 1;
 
-  var fs = require('fs');
-  var dir = path.join(__dirname, type);
-  var tests = fs.readdirSync(dir);
-  var spawn = require('child_process').spawn;
+  var dirs;
+  if (!type || type === 'all') {
+    var nodes = fs.readdirSync(__dirname);
+    dirs = nodes.filter(function (n) { return fs.statSync(n).isDirectory(); });
+  } else {
+    dirs = [type]
+  }
+  var files = dirs
+    .reduce(function (s, d) {
+      var files = fs.readdirSync(d).map(function (f) { return path.join(__dirname, d, f); });
+      return s = s.concat(files);
+    }, []);
+
+  var tests = [];
+  for (var i = 0; i < reps; ++i) tests = tests.concat(files);
 
   runBenchmarks();
 }
@@ -28,11 +50,9 @@ function runBenchmarks() {
   if (test.match(/^[\._]/))
     return process.nextTick(runBenchmarks);
 
-  console.error(type + '/' + test);
-  test = path.resolve(dir, test);
+  console.error("%s/%s", path.dirname(test), path.basename(test));
 
-  var a = (process.execArgv || []).concat(test);
-  var child = spawn(process.execPath, a, { stdio: 'inherit' });
+  var child = spawnTest(test);
   child.on('close', function(code) {
     if (code)
       process.exit(code);
@@ -65,13 +85,12 @@ Benchmark.prototype.http = function(p, args, cb) {
   var self = this;
   var wrk = path.resolve(__dirname, '..', 'tools', 'wrk', 'wrk');
   var regexp = /Requests\/sec:[ \t]+([0-9\.]+)/;
-  var spawn = require('child_process').spawn;
   var url = 'http://127.0.0.1:' + exports.PORT + p;
 
   args = args.concat(url);
 
   var out = '';
-  var child = spawn(wrk, args);
+  var child = exports.spawn(wrk, args);
 
   child.stdout.setEncoding('utf8');
 
@@ -124,22 +143,21 @@ Benchmark.prototype._run = function() {
     return newSet;
   }, [[main]]);
 
-  var spawn = require('child_process').spawn;
-  var node = process.execPath;
   var i = 0;
   function run() {
     var argv = queue[i++];
     if (!argv)
       return;
-    var child = spawn(node, argv, { stdio: 'inherit' });
+    var child = spawnTest(argv);
     child.on('close', function(code, signal) {
       if (code)
         console.error('child process exited with code ' + code);
-      else
-        run();
-    });
+      else {
+        run.call(this);
+      }
+    }.bind(this));
   }
-  run();
+  run.call(this);
 };
 
 function parseOpts(options) {
@@ -180,20 +198,24 @@ Benchmark.prototype.end = function(operations) {
   if (typeof operations !== 'number')
     throw new Error('called end() without specifying operation count');
   var time = elapsed[0] + elapsed[1]/1e9;
-  var rate = operations/time;
-  this.report(rate);
+  var tpo = operations/time;
+  this.report(tpo);
 };
 
 Benchmark.prototype.report = function(value) {
   var heading = this.getHeading();
+  var val = (value.toPrecision(3) + '     ').slice(0, 7);
   if (!silent)
-    console.log('%s: %s', heading, value.toPrecision(5));
+    console.log('%s : %s', heading, val);
   process.exit(0);
 };
 
 Benchmark.prototype.getHeading = function() {
   var conf = this.config;
-  return this._name + ' ' + Object.keys(conf).map(function(key) {
-    return key + '=' + conf[key];
-  }).join(' ');
+  var outsideRaw = process.hrtime(outsideStart);
+  conf[":outside"] = (outsideRaw[0] + outsideRaw[1]/1e9).toFixed(3);
+  return [this._name].concat(Object.keys(conf).map(function(key) {
+    var pair = (key + '=' + conf[key] + new Array(17).join(' ')).slice(0,16);
+    return pair;
+  })).join(' ');
 }

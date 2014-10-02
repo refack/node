@@ -27,7 +27,7 @@ assert(js() === cxx());
 
 var bench = common.createBenchmark(main, {
   type: ['js', 'cxx'],
-  millions: [1,10,50]
+  millions: [1,10,50,100,200,500,1000]
 });
 
 function main(conf) {

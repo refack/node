@@ -11,7 +11,9 @@ global.print = function(s) {
 };
 
 global.load = function (x) {
-  var source = fs.readFileSync(path.join(dir, x), 'utf8');
+  var srcPath = path.join(dir, x);
+  console.log(srcPath);
+  var source = fs.readFileSync(srcPath, 'utf8');
   vm.runInThisContext(source, x);
 }
 
