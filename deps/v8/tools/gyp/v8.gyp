@@ -1440,8 +1440,8 @@
             'python',
             '../../tools/js2c.py',
             '<(SHARED_INTERMEDIATE_DIR)/libraries.cc',
-            'CORE',
-            '<(v8_compress_startup_data)',
+            '--native_type=CORE',
+            '--compression_type=<(v8_compress_startup_data)',
             '<@(library_files)',
             '<@(i18n_library_files)',
           ],
@@ -1467,8 +1467,8 @@
             'python',
             '../../tools/js2c.py',
             '<(SHARED_INTERMEDIATE_DIR)/experimental-libraries.cc',
-            'EXPERIMENTAL',
-            '<(v8_compress_startup_data)',
+            '--native_type=EXPERIMENTAL',
+            '--compression_type=<(v8_compress_startup_data)',
             '<@(experimental_library_files)'
           ],
           'conditions': [

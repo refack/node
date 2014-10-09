@@ -71,7 +71,6 @@ if /i "%1"=="verbose"       set verbose=1&echo on&goto arg-ok
 echo Warning: ignoring invalid command line option `%1`.
 
 :arg-ok
-:arg-ok
 shift
 goto next-arg
 
@@ -89,6 +88,8 @@ if "%verbose%"=="1" set verbose_arg=--verbose
 if "%i18n_arg%"=="full-icu" set i18n_arg=--with-intl=full-icu
 if "%i18n_arg%"=="small-icu" set i18n_arg=--with-intl=small-icu
 
+set SLN_FILE="%~dp0out\node.sln"
+
 :project-gen
 @rem Skip project generation if requested.
 if defined noprojgen goto msbuild
@@ -100,7 +101,7 @@ SETLOCAL
   if defined VS100COMNTOOLS call "%VS100COMNTOOLS%\VCVarsQueryRegistry.bat"
   python configure %i18n_arg% %debug_arg% %nosnapshot_arg% %noetw_arg% %noperfctr_arg% %verbose_arg% --dest-cpu=%target_arch% --tag=%TAG%
   if errorlevel 1 goto create-msvs-files-failed
-  if not exist node.sln goto create-msvs-files-failed
+  if not exist %SLN_FILE% goto create-msvs-files-failed
   echo Project files generated.
 ENDLOCAL
 
@@ -140,7 +141,7 @@ goto run
 @rem Build the sln with msbuild.
 set msbuildargs=
 if not defined verbose set msbuildargs=/clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal /nologo
-msbuild node.sln /m /t:%target% /p:Configuration=%config% %msbuildargs%
+msbuild %SLN_FILE% /m /t:%target% /p:Configuration=%config% %msbuildargs%
 if errorlevel 1 goto exit
 
 :sign
@@ -171,7 +172,7 @@ msbuild "%~dp0tools\msvs\msi\nodemsi.sln" /m /t:Clean,Build /p:Configuration=%co
 if errorlevel 1 goto exit
 
 if defined nosign goto run
-signtool sign /a /d "Node.js" /t http://timestamp.globalsign.com/scripts/timestamp.dll Release\node-v%NODE_VERSION%-%msiplatform%.msi
+signtool sign /a /d "Node.js" /t http://timestamp.globalsign.com/scripts/timestamp.dll out\Release\node-v%NODE_VERSION%-%msiplatform%.msi
 if errorlevel 1 echo Failed to sign msi&goto exit
 
 :run

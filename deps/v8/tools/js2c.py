@@ -562,6 +562,10 @@ def main():
   parser = optparse.OptionParser()
   parser.add_option("--raw", action="store",
                     help="file to write the processed sources array to.")
+  parser.add_option("--native_type", action="store",
+                    help="the native template type.")
+  parser.add_option("--compression_type", action="store",
+                    help="the comression type.")
   parser.add_option("--startup_blob", action="store",
                     help="file to write the startup blob to.")
   parser.set_usage("""js2c out.cc type compression sources.js ...
@@ -571,7 +575,7 @@ def main():
       sources.js: JS internal sources or macros.py.""")
   (options, args) = parser.parse_args()
 
-  JS2C(args[3:], args[0], args[1], args[2], options.raw, options.startup_blob)
+  JS2C(args[3:], args[0], options.native_type, options.compression_type, options.raw, options.startup_blob)
 
 
 if __name__ == "__main__":

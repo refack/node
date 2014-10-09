@@ -7,9 +7,7 @@ import shlex
 import subprocess
 import sys
 
-print '***' + __file__ + '***'
 root_dir = os.path.dirname(__file__) or '.'
-print '***' + root_dir + '***'
 sys.path.insert(0, os.path.join(root_dir, 'tools', 'gyp', 'pylib'))
 import gyp
 from gyp.common import GetFlavor
@@ -225,6 +223,11 @@ parser.add_option('--v8-options',
     dest='v8_options',
     help='v8 options to pass, see `node --v8-options` for examples.')
 
+parser.add_option('--verbose',
+    action='store_true',
+    dest='is_verbose',
+    help='will output some more info')
+
 parser.add_option('--with-arm-float-abi',
     action='store',
     dest='arm_float_abi',
@@ -296,11 +299,6 @@ parser.add_option('--xcode',
     action='store_true',
     dest='use_xcode',
     help='generate build files for use with xcode')
-
-parser.add_option('--verbose',
-    action='store_true',
-    dest='is_verbose',
-    help='will output some more info')
 
 (options, args) = parser.parse_args()
 
@@ -937,7 +935,7 @@ if os.path.exists(options_fn):
 gyp_args.append('--depth=' + root_dir)
 
 # There's a bug with windows which doesn't allow this feature.
-if sys.platform != 'win32' and not options.use_ninja:
+if not options.use_ninja:
   # Tell gyp to write the Makefiles into output_dir
   gyp_args.extend(['--generator-output', output_dir])
 
