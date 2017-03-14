@@ -15,7 +15,6 @@ if /i "%1"=="/?" goto help
 set config=Release
 set target=Build
 set target_arch=x64
-set target_env=
 set noprojgen=
 set nobuild=
 set sign=
@@ -49,7 +48,6 @@ if /i "%1"=="clean"         set target=Clean&goto arg-ok
 if /i "%1"=="ia32"          set target_arch=x86&goto arg-ok
 if /i "%1"=="x86"           set target_arch=x86&goto arg-ok
 if /i "%1"=="x64"           set target_arch=x64&goto arg-ok
-if /i "%1"=="vc2015"        set target_env=vc2015&goto arg-ok
 if /i "%1"=="noprojgen"     set noprojgen=1&goto arg-ok
 if /i "%1"=="nobuild"       set nobuild=1&goto arg-ok
 if /i "%1"=="nosign"        set "sign="&echo Note: vcbuild no longer signs by default. "nosign" is redundant.&goto arg-ok
@@ -137,6 +135,36 @@ if defined noprojgen if defined nobuild if not defined sign if not defined msi g
 
 @rem Set environment for msbuild
 
+@rem Look for Visual Studio 2017
+echo Looking for Visual Studio 2017
+SET cl141cmd="%~dp0tools\vc141helper\cl141_path.cmd"
+for /F "tokens=*" %%A IN ('cmd /D /S /C "%cl141cmd% InstallationPath"') DO if NOT "_%%A_" == "__" (
+    CALL :getSDK
+    CALL :getMSBUILD
+    set VCINSTALLDIR=%%A
+    SET VCVARS_VER=141
+    set GYP_MSVS_VERSION=2017
+    set PLATFORM_TOOLSET=v141
+    goto msbuild-found
+)
+GOTO :find2015
+
+:getSDK
+for /F "tokens=*" %%A IN ('cmd /D /S /C "%cl141cmd% SDK"') DO if NOT "_%%A_" == "__" (
+    SET SDK2017=%%A
+    GOTO :eof
+)
+GOTO :eof
+
+:getMSBUILD
+for /F "tokens=*" %%A IN ('cmd /D /S /C "%cl141cmd% MSBuildToolsPath"') DO if NOT "_%%A_" == "__" (
+    SET "Path=%Path%;%%A"
+    GOTO :eof
+)
+GOTO :eof
+
+
+:find2015
 @rem Look for Visual Studio 2015
 echo Looking for Visual Studio 2015
 if not defined VS140COMNTOOLS goto msbuild-not-found

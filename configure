@@ -995,6 +995,11 @@ def configure_static(o):
       if options.enable_asan:
         o['libraries'] += ['-static-libasan']
 
+def config_vs2017(o):
+  if os.environ['GYP_MSVS_VERSION'] != '2017': return
+  o['msbuild_toolset'] = os.environ['PLATFORM_TOOLSET']
+  o['msvs_windows_target_platform_version'] = os.environ['SDK2017']
+
 
 def write(filename, data):
   filename = os.path.join(root_dir, filename)
@@ -1316,6 +1321,7 @@ configure_openssl(output)
 configure_intl(output)
 configure_static(output)
 configure_inspector(output)
+config_vs2017(output)
 
 # variables should be a root level element,
 # move everything else to target_defaults
