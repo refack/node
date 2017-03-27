@@ -218,159 +218,113 @@
       'target_name': 'icudata',
       'type': '<(library)',
       'toolsets': [ 'target' ],
+      'dependencies': [ 'genccode#host', 'icupkg#host', 'genrb#host',
+                        'iculslocs#host', 'icu_implementation', 'icustubdata',
+                        'icu_uconfig' ],
+      'include_dirs': ['<(icu_path)/source/common', ],
+      'export_dependent_settings': ['icustubdata'],
+
+      # ============== logic flow ===============
+      # so we have a 2x2 matrix: win/non-win vs. icu_small +/-
+      # 1 In case of icu_small, first we trim the pre-build dat '<(icu_locales)'
+      # 2 - For windows we run `genccode`
+      #   - For non-win we either use the trimmed or run `icupkg`
+
+      'variables': {
+        'icu_output_name_prefix': 'icudt<(icu_ver_major)',
+        'icudata_genccode_input_name': 'icudt<(icu_ver_major)<(icu_endianness).dat',
+        'icudata_genccode_output': '<(SHARED_INTERMEDIATE_DIR)/>(icudata_genccode_output_name)',
+      },
+      'sources': ['<(icudata_genccode_output)'],
+
       'conditions': [
-        [ 'OS == "win"', {
-          'conditions': [
-            [ 'icu_small == "false"', { # and OS=win
-              # full data - just build the full data file, then we are done.
-              'sources': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness)_dat.obj' ],
-              'dependencies': [ 'genccode#host' ],
+        ['icu_small == "true"',
+          {
+            'variables': { 'icu_symbol_name': 'icusmdt<(icu_ver_major)' },
+          }, {
+            'variables': { 'icu_symbol_name': 'icudt<(icu_ver_major)' },
+          }
+        ],
+        ['OS == "win"',
+          {
+            'variables': {
+              'icudata_genccode_output_name': '<(icu_output_name_prefix)<(icu_endianness)_dat.obj',
+              'icudata_genccode_extra_args': [ '-o', '-n', 'icudata' ],
+            }
+          }, {
+            'variables': {
+              'icudata_genccode_output_name': '>(icu_symbol_name)_dat.c',
+              'icudata_genccode_extra_args': [ '-f', '<(icu_output_name_prefix)_dat' ],
+            }
+          }
+        ],
+        ['OS == "win" and icu_small == "false"',
+          {
+            # for windows with full-icu, genccode runs directly on input
+            'variables': { 'icudata_genccode_input': '<(icu_data_in)' }
+          }, {
+            # inother cases intermediate is either trimmed or pkged
+            'variables': { 'icudata_genccode_input': '<(SHARED_INTERMEDIATE_DIR)/<(icudata_genccode_input_name)' }
+          }
+        ],
+        # if icu_small == "true" we trim
+        ['icu_small == "true"', {
               'actions': [
                 {
-                  'action_name': 'icudata',
-                  'msvs_quote_cmd': 0,
-                  'inputs': [ '<(icu_data_in)' ],
-                  'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness)_dat.obj' ],
-                  'action': [ '<(PRODUCT_DIR)/genccode',
-                              '-o',
-                              '-d', '<(SHARED_INTERMEDIATE_DIR)',
-                              '-n', 'icudata',
-                              '-e', 'icudt<(icu_ver_major)',
-                              '<@(_inputs)' ],
-                },
-              ],
-            }, { # icu_small == TRUE and OS == win
-              # link against stub data primarily
-              # then, use icupkg and genccode to rebuild data
-              'dependencies': [ 'icustubdata', 'genccode#host', 'icupkg#host', 'genrb#host', 'iculslocs#host' ],
-              'export_dependent_settings': [ 'icustubdata' ],
-              'actions': [
-                {
-                  # trim down ICU
-                  'action_name': 'icutrim',
+                  'action_name': 'icudata-trim',
                   'msvs_quote_cmd': 0,
                   'inputs': [ '<(icu_data_in)', 'icu_small.json' ],
-                  'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icutmp/icudt<(icu_ver_major)<(icu_endianness).dat' ],
-                  'action': [ 'python',
-                              'icutrim.py',
-                              '-P', '<(PRODUCT_DIR)/.', # '.' suffix is a workaround against GYP assumptions :(
+                  # icudata_genccode_input = SHARED_INTERMEDIATE_DIR (-T) + icudata_genccode_input_name (-O)
+                  'outputs': [ '>(icudata_genccode_input)' ],
+                  'action': [ 'python', 'icutrim.py',
                               '-D', '<(icu_data_in)',
-                              '--delete-tmp',
-                              '-T', '<(SHARED_INTERMEDIATE_DIR)/icutmp',
                               '-F', 'icu_small.json',
-                              '-O', 'icudt<(icu_ver_major)<(icu_endianness).dat',
+                              '-P', '<(PRODUCT_DIR)/.', # '.' suffix is a workaround against GYP assumptions :(
+                              '-T', '<(SHARED_INTERMEDIATE_DIR)',
+                              '-O', '<(icudata_genccode_input_name)',
+                              '--delete-tmp',
                               '-v',
                               '-L', '<(icu_locales)'],
-                },
-                {
-                  # build final .dat -> .obj
-                  'action_name': 'genccode',
-                  'msvs_quote_cmd': 0,
-                  'inputs': [ '<(SHARED_INTERMEDIATE_DIR)/icutmp/icudt<(icu_ver_major)<(icu_endianness).dat' ],
-                  'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness)_dat.obj' ],
-                  'action': [ '<(PRODUCT_DIR)/genccode',
-                              '-o',
-                              '-d', '<(SHARED_INTERMEDIATE_DIR)/',
-                              '-n', 'icudata',
-                              '-e', 'icusmdt<(icu_ver_major)',
-                              '<@(_inputs)' ],
-                },
+                }
               ],
-              # This file contains the small ICU data.
-              'sources': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness)_dat.obj' ],
-            } ] ], #end of OS==win and icu_small == true
-        }, { # OS != win
-          'conditions': [
-            [ 'icu_small == "false"', {
-              # full data - just build the full data file, then we are done.
-              'sources': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)_dat.c' ],
-              'dependencies': [ 'genccode#host', 'icupkg#host', 'icu_implementation#host', 'icu_uconfig' ],
-              'include_dirs': [
-                '<(icu_path)/source/common',
-              ],
+        }],
+        # non-win and full we pkg
+        [ 'OS != "win" and icu_small == "false"', {
               'actions': [
                 {
                    # Swap endianness (if needed), or at least copy the file
-                   'action_name': 'icupkg',
+                   'action_name': 'icudata-pkg',
                    'inputs': [ '<(icu_data_in)' ],
-                   'outputs':[ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness).dat' ],
+                   'outputs':[ '>(icudata_genccode_input)' ],
                    'action': [ '<(PRODUCT_DIR)/icupkg',
                                '-t<(icu_endianness)',
                                '<@(_inputs)',
-                               '<@(_outputs)',
-                             ],
-                },
-                {
-                   # Rename without the endianness marker
-                   'action_name': 'copy',
-                   'inputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)<(icu_endianness).dat' ],
-                   'outputs':[ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major).dat' ],
-                   'action': [ 'cp',
-                               '<@(_inputs)',
-                               '<@(_outputs)',
-                             ],
-                },
-                {
-                  'action_name': 'icudata',
-                  'inputs': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major).dat' ],
-                  'outputs':[ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)_dat.c' ],
-                  'action': [ '<(PRODUCT_DIR)/genccode',
-                              '-e', 'icudt<(icu_ver_major)',
-                              '-d', '<(SHARED_INTERMEDIATE_DIR)',
-                              '-f', 'icudt<(icu_ver_major)_dat',
-                              '<@(_inputs)' ],
-                },
-              ], # end actions
-            }, { # icu_small == true ( and OS != win )
-              # link against stub data (as primary data)
-              # then, use icupkg and genccode to rebuild small data
-              'dependencies': [ 'icustubdata', 'genccode#host', 'icupkg#host', 'genrb#host', 'iculslocs#host',
-                               'icu_implementation', 'icu_uconfig' ],
-              'export_dependent_settings': [ 'icustubdata' ],
+                               '<@(_outputs)' ],
+                }
+              ]
+            }
+        ],
+        [ '1==1', { # using '1' just for symmetry
+              # full data - just build the full data file, then we are done.
+              # depending on `icu_small` flag, we chose the naming, and the args
               'actions': [
                 {
-                  # trim down ICU
-                  'action_name': 'icutrim',
-                  'inputs': [ '<(icu_data_in)', 'icu_small.json' ],
-                  'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icutmp/icudt<(icu_ver_major)<(icu_endianness).dat' ],
-                  'action': [ 'python',
-                              'icutrim.py',
-                              '-P', '<(PRODUCT_DIR)',
-                              '-D', '<(icu_data_in)',
-                              '--delete-tmp',
-                              '-T', '<(SHARED_INTERMEDIATE_DIR)/icutmp',
-                              '-F', 'icu_small.json',
-                              '-O', 'icudt<(icu_ver_major)<(icu_endianness).dat',
-                              '-v',
-                              '-L', '<(icu_locales)'],
-                }, {
-                  # rename to get the final entrypoint name right
-                   'action_name': 'rename',
-                   'inputs': [ '<(SHARED_INTERMEDIATE_DIR)/icutmp/icudt<(icu_ver_major)<(icu_endianness).dat' ],
-                   'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icutmp/icusmdt<(icu_ver_major).dat' ],
-                   'action': [ 'cp',
-                               '<@(_inputs)',
-                               '<@(_outputs)',
-                             ],
-                }, {
-                  # build final .dat -> .obj
-                  'action_name': 'genccode',
-                  'inputs': [ '<(SHARED_INTERMEDIATE_DIR)/icutmp/icusmdt<(icu_ver_major).dat' ],
-                  'outputs': [ '<(SHARED_INTERMEDIATE_DIR)/icusmdt<(icu_ver_major)_dat.c' ],
+                  'action_name': 'icudata-genccode',
+                  'msvs_quote_cmd': 0,
+                  'inputs': [ '>(icudata_genccode_input)' ],
+                  'outputs':[ '<(icudata_genccode_output)' ],
                   'action': [ '<(PRODUCT_DIR)/genccode',
+                              '-e', '>(icu_symbol_name)',
                               '-d', '<(SHARED_INTERMEDIATE_DIR)',
+                              '>@(icudata_genccode_extra_args)',
                               '<@(_inputs)' ],
                 },
               ],
-              # This file contains the small ICU data
-              'sources': [ '<(SHARED_INTERMEDIATE_DIR)/icusmdt<(icu_ver_major)_dat.c' ],
-              # for umachine.h
-              'include_dirs': [
-                '<(icu_path)/source/common',
-              ],
-            }]], # end icu_small == true
-        }]], # end OS != win
-    }, # end icudata
+        } ],
+      ], # end conditions
+    }, # end target_name: icudata
+
+
     # icustubdata is a tiny (~1k) symbol with no ICU data in it.
     # tools must link against it as they are generating the full data.
     {
@@ -525,8 +479,13 @@
       },
       'export_dependent_settings': [ 'icu_uconfig' ],
     },
-    # This tool is needed to rebuild .res files from .txt,
-    # or to build index (res_index.txt) files for small-icu
+
+
+    # ====================================
+    # Helper tools
+    # ====================================
+
+    # rebuild .res files from .txt, or build index (res_index.txt) for small-icu
     {
       'target_name': 'genrb',
       'type': 'executable',
@@ -542,7 +501,8 @@
         'no-op.cc',
       ],
     },
-    # This tool is used to rebuild res_index.res manifests
+
+    # rebuild res_index.res manifests
     {
       'target_name': 'iculslocs',
       'toolsets': [ 'host' ],
@@ -553,8 +513,8 @@
         'no-op.cc',
       ],
     },
-    # This tool is used to package, unpackage, repackage .dat files
-    # and convert endianesses
+
+    # package, unpackage, repackage .dat files, and convert endianesses
     {
       'target_name': 'icupkg',
       'toolsets': [ 'host' ],
@@ -565,7 +525,8 @@
         'no-op.cc',
       ],
     },
-    # this is used to convert .dat directly into .obj
+
+    # convert .dat directly into .obj
     {
       'target_name': 'genccode',
       'toolsets': [ 'host' ],

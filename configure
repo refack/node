@@ -1024,6 +1024,7 @@ def glob_to_var(dir_base, dir_sub, patch_dir):
   return list
 
 def configure_intl(o):
+  config_vars = o['variables']
   icus = [
     {
       'url': 'https://ssl.icu-project.org/files/icu4c/58.2/icu4c-58_2-src.zip',
@@ -1068,7 +1069,7 @@ def configure_intl(o):
         pprint.pformat(icu_config, indent=2) + '\n')
 
   # always set icu_small, node.gyp depends on it being defined.
-  o['variables']['icu_small'] = b(False)
+  config_vars['icu_small'] = b(False)
 
   with_intl = options.with_intl
   with_icu_source = options.with_icu_source
@@ -1078,29 +1079,29 @@ def configure_intl(o):
     sys.exit(1)
   elif have_icu_path:
     # Chromium .gyp mode: --with-icu-path
-    o['variables']['v8_enable_i18n_support'] = 1
+    config_vars['v8_enable_i18n_support'] = 1
     # use the .gyp given
-    o['variables']['icu_gyp_path'] = options.with_icu_path
+    config_vars['icu_gyp_path'] = options.with_icu_path
     return
   # --with-intl=<with_intl>
   # set the default
   if with_intl in (None, 'none'):
-    o['variables']['v8_enable_i18n_support'] = 0
+    config_vars['v8_enable_i18n_support'] = 0
     return  # no Intl
   elif with_intl == 'small-icu':
     # small ICU (English only)
-    o['variables']['v8_enable_i18n_support'] = 1
-    o['variables']['icu_small'] = b(True)
+    config_vars['v8_enable_i18n_support'] = 1
+    config_vars['icu_small'] = b(True)
     locs = set(options.with_icu_locales.split(','))
     locs.add('root')  # must have root
-    o['variables']['icu_locales'] = string.join(locs,',')
+    config_vars['icu_locales'] = string.join(locs, ',')
     # We will check a bit later if we can use the canned deps/icu-small
   elif with_intl == 'full-icu':
     # full ICU
-    o['variables']['v8_enable_i18n_support'] = 1
+    config_vars['v8_enable_i18n_support'] = 1
   elif with_intl == 'system-icu':
     # ICU from pkg-config.
-    o['variables']['v8_enable_i18n_support'] = 1
+    config_vars['v8_enable_i18n_support'] = 1
     pkgicu = pkg_config('icu-i18n')
     if pkgicu[0] is None:
       print('Error: could not load pkg-config data for "icu-i18n".')
@@ -1115,7 +1116,7 @@ def configure_intl(o):
     if cflags:
       o['include_dirs'] += filter(None, map(str.strip, cflags.split('-I')))
     # use the "system" .gyp
-    o['variables']['icu_gyp_path'] = 'tools/icu/icu-system.gyp'
+    config_vars['icu_gyp_path'] = 'tools/icu/icu-system.gyp'
     return
 
   # this is just the 'deps' dir. Used for unpacking.
@@ -1149,7 +1150,7 @@ def configure_intl(o):
   # make sure the canned ICU really exists
   canned_icu_available = os.path.isdir(canned_icu_dir)
 
-  if (o['variables']['icu_small'] == b(True)) and using_default_locales and (not with_icu_source) and canned_icu_available:
+  if (config_vars['icu_small'] == b(True)) and using_default_locales and (not with_icu_source) and canned_icu_available:
     # OK- we can use the canned ICU.
     icu_config['variables']['icu_small_canned'] = 1
     icu_full_path = canned_icu_dir
@@ -1197,9 +1198,9 @@ def configure_intl(o):
         sys.exit(1)
 
   # ICU mode. (icu-generic.gyp)
-  o['variables']['icu_gyp_path'] = 'tools/icu/icu-generic.gyp'
+  config_vars['icu_gyp_path'] = 'tools/icu/icu-generic.gyp'
   # ICU source dir relative to tools/icu (for .gyp file)
-  o['variables']['icu_path'] = icu_full_path
+  config_vars['icu_path'] = icu_full_path
   if not os.path.isdir(icu_full_path):
     print('* ECMA-402 (Intl) support didn\'t find ICU in %s..' % icu_full_path)
     # can we download (or find) a zipfile?
@@ -1228,9 +1229,9 @@ def configure_intl(o):
   if not icu_ver_major:
     print(' Could not read U_ICU_VERSION_SHORT version from %s' % uvernum_h)
     sys.exit(1)
-  icu_endianness = sys.byteorder[0];
-  o['variables']['icu_ver_major'] = icu_ver_major
-  o['variables']['icu_endianness'] = icu_endianness
+  icu_endianness = sys.byteorder[0]
+  config_vars['icu_ver_major'] = icu_ver_major
+  config_vars['icu_endianness'] = icu_endianness
   icu_data_file_l = 'icudt%s%s.dat' % (icu_ver_major, 'l')
   icu_data_file = 'icudt%s%s.dat' % (icu_ver_major, icu_endianness)
   # relative to configure
@@ -1238,20 +1239,16 @@ def configure_intl(o):
                                'source/data/in',
                                icu_data_file_l)
   # relative to dep..
-  icu_data_in = os.path.join('..','..', icu_full_path, 'source/data/in', icu_data_file_l)
+  icu_in_path = os.path.join(icu_full_path, 'source', 'data', 'in')
+  icu_data_in = os.path.join('..', '..', icu_in_path, icu_data_file_l)
   if not os.path.isfile(icu_data_path) and icu_endianness != 'l':
     # use host endianness
-    icu_data_path = os.path.join(icu_full_path,
-                                 'source/data/in',
-                                 icu_data_file)
+    icu_data_path = os.path.join(icu_in_path, icu_data_file)
     # relative to dep..
-    icu_data_in = os.path.join('..', icu_full_path, 'source/data/in',
-                               icu_data_file)
+    icu_data_in = os.path.join('..', icu_data_path)
   # this is the input '.dat' file to use .. icudt*.dat
   # may be little-endian if from a icu-project.org tarball
-  o['variables']['icu_data_in'] = icu_data_in
-  # this is the icudt*.dat file which node will be using (platform endianness)
-  o['variables']['icu_data_file'] = icu_data_file
+  config_vars['icu_data_in'] = icu_data_in.replace('\\', '/') # for GYP
   if not os.path.isfile(icu_data_path):
     print(' Error: ICU prebuilt data file %s does not exist.' % icu_data_path)
     print(' See the README.md.')
