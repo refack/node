@@ -1,0 +1,1014 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="532058e0-5836-4d57-9be1-a5c7f438a0ae" name="Default" comment="" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CoverageDataManager">
+    <SUITE FILE_PATH="coverage/node$trim__1_.coverage" NAME="trim (1) Coverage Results" MODIFIED="1490671081589" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tools/icu" />
+    <SUITE FILE_PATH="coverage/no_de$trim.coverage" NAME="trim Coverage Results" MODIFIED="1490667395575" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tools/icu" />
+    <SUITE FILE_PATH="coverage/node$Unnamed.coverage" NAME="Unnamed Coverage Results" MODIFIED="1489708062413" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/node$trim.coverage" NAME="trim Coverage Results" MODIFIED="1490640919920" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tools/icu" />
+    <SUITE FILE_PATH="coverage/node$node_gyp.coverage" NAME="node-gyp Coverage Results" MODIFIED="1491072404650" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tools" />
+    <SUITE FILE_PATH="coverage/node$configure.coverage" NAME="configure Coverage Results" MODIFIED="1491080002864" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="icu-generic.gyp" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tools/icu/icu-generic.gyp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="172">
+              <caret line="222" column="37" lean-forward="false" selection-start-line="222" selection-start-column="37" selection-end-line="222" selection-end-column="37" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="node.gyp" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/node.gyp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="172">
+              <caret line="562" column="22" lean-forward="false" selection-start-line="562" selection-start-column="22" selection-end-line="562" selection-end-column="22" />
+              <folding>
+                <element signature="e#17#4181#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="all.gyp" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deps/v8/gypfiles/all.gyp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="121">
+              <caret line="10" column="25" lean-forward="false" selection-start-line="10" selection-start-column="16" selection-end-line="10" selection-end-column="25" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="configure" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/configure">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="226">
+              <caret line="1004" column="0" lean-forward="false" selection-start-line="1004" selection-start-column="0" selection-end-line="1004" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="MSVSVersion.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deps/npm/node_modules/node-gyp/gyp/pylib/gyp/MSVSVersion.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="255">
+              <caret line="21" column="0" lean-forward="false" selection-start-line="21" selection-start-column="0" selection-end-line="21" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="v8.gyp" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deps/v8/src/v8.gyp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="147">
+              <caret line="44" column="24" lean-forward="false" selection-start-line="44" selection-start-column="22" selection-end-line="44" selection-end-column="24" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="node.gypi" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/node.gypi">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="238">
+              <caret line="22" column="14" lean-forward="true" selection-start-line="22" selection-start-column="7" selection-end-line="22" selection-end-column="26" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="cctest.gyp" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/deps/v8/test/cctest/cctest.gyp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="181">
+              <caret line="444" column="45" lean-forward="false" selection-start-line="444" selection-start-column="45" selection-end-line="444" selection-end-column="45" />
+              <folding>
+                <element signature="e#1650#11447#0" expanded="false" />
+                <element signature="e#15092#15966#0" expanded="false" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="perf.gyp" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deps/v8/test/perf.gyp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="153">
+              <caret line="9" column="34" lean-forward="false" selection-start-line="9" selection-start-column="26" selection-end-line="9" selection-end-column="34" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="msvs.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/deps/npm/node_modules/node-gyp/gyp/pylib/gyp/generator/msvs.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="320">
+              <caret line="1917" column="0" lean-forward="false" selection-start-line="1917" selection-start-column="0" selection-end-line="1917" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>icudt\d+_dt\.c</find>
+      <find>icudt\d+_dat\.c</find>
+      <find>icudt\d+_dat\.</find>
+      <find>icudt</find>
+      <find>icu_data_file</find>
+      <find>icudata</find>
+      <find>icu</find>
+      <find>icuuc</find>
+      <find>icudata_genccode_output</find>
+      <find>\'ZZXYZ\'\: \'bogus\'\}\,\n         \'VCLinkerTool\'\: \{\n             \'AdditionalDependencies\'\: \'file1\;file2\'\,\n             \'AdditionalDependencies_excluded\'\: \'file3\'\,\n             \'AdditionalLibraryDirectories\'\: \'folder1\;folder2\'\,\n             \'AdditionalManifestDependencies\'\: \'file1\;file2\'\,\n             \'AdditionalOptions\'\: \'a string1\'\,\n             \'AddModuleNamesToAssembly\'\: \'file1\;file2\'\,\n             \'AllowIsolation\'\: \'true\'\,\n             \'AssemblyDebug\'\: \'2\'\,\n             \'AssemblyLinkResource\'\: \'file1\;file2\'\,\n             \'BaseAddress\'\: \'a string1\'\,\n             \'CLRImageType\'\: \'2\'\,\n             \'CLRThreadAttribute\'\: \'2\'\,\n             \'CLRUnmanagedCodeCheck\'\: \'true\'\,\n             \'DataExecutionPrevention\'\: \'2\'\,\n             \'DelayLoadDLLs\'\: \'file1\;file2\'\,\n             \'DelaySign\'\: \'true\'\,\n             \'Driver\'\: \'2\'\,\n             \'EmbedManagedResourceFile\'\: \'file1\;file2\'\,\n             \'EnableCOMDATFolding\'\: \'2\'\,\n             \'EnableUAC\'\: \'true\'\,\n             \'EntryPointSymbol\'\: \'a string1\'\,\n             \'ErrorReporting\'\: \'2\'\,\n             \'FixedBaseAddress\'\: \'2\'\,\n             \'ForceSymbolReferences\'\: \'file1\;file2\'\,\n             \'FunctionOrder\'\: \'a_file_name\'\,\n             \'GenerateDebugInformation\'\: \'true\'\,</find>
+      <find>GenerateDebugInformation</find>
+      <find>icu_output_name_prefix</find>
+      <find>SelectVisualStudioVersion</find>
+      <find>could not find a compatible SD</find>
+      <find>libraries.cc</find>
+      <find>node_js2c</find>
+      <find>dependencies</find>
+      <find>js2c</find>
+      <find>v8_nosnapshot</find>
+      <find>v8_maybe_snapshot</find>
+      <find>v8</find>
+      <find>:v8</find>
+      <find>:v8'</find>
+      <find>c</find>
+      <find>cc</find>
+      <find>cctest</find>
+      <find>cctest'</find>
+      <find>cctest_exe_run</find>
+      <find>perf_run</find>
+      <find>depen</find>
+    </findStrings>
+    <replaceStrings>
+      <replace>other_icu_output_file_name</replace>
+      <replace>icu_output_name_prefix</replace>
+      <replace>icudt_dat_file_name</replace>
+      <replace>other_inter_name_no_endiness</replace>
+      <replace>icu_trimmed_file_name</replace>
+      <replace>icudata_gencode_cmd</replace>
+      <replace>icudata_gencode_output_name</replace>
+      <replace>icudata_gencode_extra_args</replace>
+      <replace>icudata_gencode_output</replace>
+      <replace>icudata_gencode_input</replace>
+      <replace>icudata_gencode_input_name</replace>
+      <replace>genccode</replace>
+    </replaceStrings>
+    <dirStrings>
+      <dir>D:\code\node</dir>
+      <dir>D:\code\node\tools\gyp</dir>
+      <dir>D:\code\node\</dir>
+      <dir>D:\code\node\deps</dir>
+    </dirStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="vs2017" />
+      </map>
+    </option>
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/tools/vc141helper/GetKey.ps1" />
+        <option value="$PROJECT_DIR$/BUILDING.md" />
+        <option value="$PROJECT_DIR$/tools/icu/icutrim.py" />
+        <option value="$PROJECT_DIR$/tools/gyp/pylib/gyp/generator/msvs.py" />
+        <option value="$PROJECT_DIR$/build.log" />
+        <option value="$PROJECT_DIR$/common.gypi" />
+        <option value="$PROJECT_DIR$/tools/icu/icudata.vcxproj" />
+        <option value="$PROJECT_DIR$/vcbuild.bat" />
+        <option value="$PROJECT_DIR$/deps/npm/node_modules/node-gyp/gyp/pylib/gyp/__init__.py" />
+        <option value="$PROJECT_DIR$/tools/__init__.py" />
+        <option value="$PROJECT_DIR$/tools/gyp_node.py" />
+        <option value="$PROJECT_DIR$/tools/icu/icu-generic.gyp" />
+        <option value="$PROJECT_DIR$/node.gyp" />
+        <option value="$PROJECT_DIR$/configure" />
+      </list>
+    </option>
+  </component>
+  <component name="JsBuildToolGruntFileManager" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsBuildToolPackageJson" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsGulpfileManager">
+    <detection-done>true</detection-done>
+    <sorting>DEFINITION_ORDER</sorting>
+  </component>
+  <component name="NodeModulesDirectoryManager">
+    <handled-path value="$PROJECT_DIR$/deps/npm/node_modules" />
+    <handled-path value="$PROJECT_DIR$/test/fixtures/internal-modules/node_modules" />
+    <handled-path value="$PROJECT_DIR$/test/fixtures/module-require-symlink/node_modules" />
+    <handled-path value="$PROJECT_DIR$/test/fixtures/module-require/child/node_modules" />
+    <handled-path value="$PROJECT_DIR$/test/fixtures/module-require/not-found/node_modules" />
+    <handled-path value="$PROJECT_DIR$/test/fixtures/module-require/parent/node_modules" />
+    <handled-path value="$PROJECT_DIR$/test/fixtures/node_modules" />
+    <handled-path value="$PROJECT_DIR$/test/fixtures/test-module-loading-globalpaths/local-pkg/node_modules" />
+    <handled-path value="$PROJECT_DIR$/tools/doc/node_modules" />
+    <handled-path value="$PROJECT_DIR$/tools/eslint/node_modules" />
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1936" />
+    <option name="height" value="1096" />
+  </component>
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State>
+            <id />
+          </State>
+          <State>
+            <id>Python</id>
+          </State>
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>PyCompatibilityInspection</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+      <manualOrder />
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="node" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="node" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="node" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="node" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="tools" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="Scratches" />
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/tools/gyp_node.py" />
+    <property name="editorconfig.notification" value="ignore" />
+    <property name="settings.editor.selected.configurable" value="PyConsoleConfigurable.Python Console" />
+    <property name="Git.Branch.Popup.ShowAllRemotes" value="true" />
+    <property name="restartRequiresConfirmation" value="false" />
+  </component>
+  <component name="PyConsoleOptionsProvider">
+    <option name="myPythonConsoleState">
+      <console-settings custom-start-script="import sys&#10;print('Python %s on %s' % (sys.version, sys.platform))&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS, 'D:/code/node/deps/npm/node_modules/node-gyp/gyp/pylib'])&#10;" module-name="node" is-module-sdk="true">
+        <option name="myCustomStartScript" value="import sys&#10;print('Python %s on %s' % (sys.version, sys.platform))&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS, 'D:/code/node/deps/npm/node_modules/node-gyp/gyp/pylib'])&#10;" />
+        <option name="myUseModuleSdk" value="true" />
+        <option name="myModuleName" value="node" />
+        <option name="myAddContentRoots" value="false" />
+      </console-settings>
+    </option>
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager" selected="Python.configure">
+    <configuration default="true" type="CompoundRunConfigurationType" factoryName="Compound Run Configuration">
+      <method />
+    </configuration>
+    <configuration default="true" type="DjangoTestsConfigurationType" factoryName="Django tests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="node" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="TARGET" value="" />
+      <option name="SETTINGS_FILE" value="" />
+      <option name="CUSTOM_SETTINGS" value="false" />
+      <option name="USE_OPTIONS" value="false" />
+      <option name="OPTIONS" value="" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavaScriptTestRunnerJest" factoryName="Jest">
+      <node-interpreter value="project" />
+      <working-dir value="" />
+      <envs />
+      <scope-kind value="ALL" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavaScriptTestRunnerProtractor" factoryName="Protractor">
+      <config-file value="" />
+      <node-interpreter value="project" />
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug">
+      <method />
+    </configuration>
+    <configuration default="true" type="MAKEFILE_TARGET_RUN_CONFIGURATION" factoryName="Makefile">
+      <makefile filename="" target="">
+        <envs />
+      </makefile>
+      <method />
+    </configuration>
+    <configuration default="true" type="NodeJSConfigurationType" factoryName="Node.js" path-to-node="project" working-dir="">
+      <method />
+    </configuration>
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="node" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="Tox" factoryName="Tox">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <module name="node" />
+      <method />
+    </configuration>
+    <configuration default="true" type="js.build_tools.gulp" factoryName="Gulp.js">
+      <node-interpreter>project</node-interpreter>
+      <node-options />
+      <gulpfile />
+      <tasks />
+      <arguments />
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="js.build_tools.npm" factoryName="npm">
+      <command value="run" />
+      <scripts />
+      <node-interpreter value="project" />
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="mocha-javascript-test-runner" factoryName="Mocha">
+      <node-interpreter>project</node-interpreter>
+      <node-options />
+      <working-directory />
+      <pass-parent-env>true</pass-parent-env>
+      <envs />
+      <ui />
+      <extra-mocha-options />
+      <test-kind>DIRECTORY</test-kind>
+      <test-directory />
+      <recursive>false</recursive>
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Doctests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="node" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Nosetests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="node" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="_new_regexPattern" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;.&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method />
+    </configuration>
+    <configuration default="false" name="trim" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\bin\dev\python27\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tools/icu" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="node" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <EXTENSION ID="net.ashald.envfile">
+        <option name="IS_ENABLED" value="false" />
+        <ENTRIES />
+      </EXTENSION>
+      <option name="SCRIPT_NAME" value="icutrim.py" />
+      <option name="PARAMETERS" value="&quot;-P&quot; &quot;D:\code\no de\Release\&quot; &quot;--input-file&quot; &quot;..\..\deps\icu-small\source\data\in\icudt58l.dat&quot; &quot;--delete-tmp&quot; &quot;-T&quot; &quot;D:\code\no de\Release\obj\global_intermediate\icutmp&quot; &quot;-F&quot; &quot;icu_small.json&quot; &quot;-O&quot; &quot;icudt58l.dat&quot; &quot;-v&quot; &quot;-L&quot; &quot;en,root&quot;" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <method />
+    </configuration>
+    <list size="3">
+      <item index="0" class="java.lang.String" itemvalue="Python.trim" />
+      <item index="1" class="java.lang.String" itemvalue="Python.configure" />
+      <item index="2" class="java.lang.String" itemvalue="Python.node-gyp" />
+    </list>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false">
+    <option name="remove_strategy" value="false" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="-8" y="-8" width="1936" height="1096" extended-state="6" />
+    <editor active="true" />
+    <layout>
+      <window_info id="Project" active="false" anchor="right" auto_hide="true" internal_type="SLIDING" type="SLIDING" visible="false" show_stripe_button="true" weight="0.24520256" sideWeight="0.5" order="3" side_tool="false" content_ui="combo" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" show_stripe_button="true" weight="0.32977587" sideWeight="0.5" order="8" side_tool="true" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3628602" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.32870865" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32977587" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.42377397" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="right" auto_hide="true" internal_type="SLIDING" type="SLIDING" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.27748132" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.48134327" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Data View" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Run Dashboard" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32995737" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="processedProjectFiles" value="true" />
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$" />
+    </ignored-roots>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tools/gyp/pylib/gyp/generator/msvs.py</url>
+          <line>357</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tools/icu/icutrim.py</url>
+          <line>75</line>
+          <option name="timeStamp" value="9" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tools/gyp/pylib/gyp/generator/msvs.py</url>
+          <line>4</line>
+          <option name="timeStamp" value="10" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/deps/npm/node_modules/node-gyp/gyp/pylib/gyp/generator/msvs.py</url>
+          <line>1916</line>
+          <option name="timeStamp" value="16" />
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="20" />
+    </breakpoint-manager>
+    <watches-manager />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/configure">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17051">
+          <caret line="1003" column="3" lean-forward="false" selection-start-line="1003" selection-start-column="3" selection-end-line="1003" selection-end-column="3" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/vcbuild.bat">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/vc141helper/GetKey.ps1" />
+    <entry file="file://$PROJECT_DIR$/BUILDING.md" />
+    <entry file="file://$PROJECT_DIR$/deps/openssl/openssl.gyp" />
+    <entry file="file://$PROJECT_DIR$/tools/vc141helper/get_key_helper.cmd" />
+    <entry file="file://$PROJECT_DIR$/icu_config.gypi" />
+    <entry file="file://$PROJECT_DIR$/deps/icu-small/source/common/wintz.h" />
+    <entry file="file://$PROJECT_DIR$/deps/icu-small/source/common/wintz.c" />
+    <entry file="file://$PROJECT_DIR$/src/node_os.cc" />
+    <entry file="file://$PROJECT_DIR$/node.sln" />
+    <entry file="file://$PROJECT_DIR$/tools/icu/icutrim.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2329">
+          <caret line="137" column="14" lean-forward="false" selection-start-line="137" selection-start-column="14" selection-end-line="137" selection-end-column="14" />
+          <folding>
+            <element signature="e#318#328#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/gyp/pylib/gyp/generator/msvs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="272">
+          <caret line="16" column="15" lean-forward="false" selection-start-line="16" selection-start-column="15" selection-end-line="16" selection-end-column="15" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/gyp/pylib/gyp/common.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="344" column="54" lean-forward="true" selection-start-line="344" selection-start-column="54" selection-end-line="344" selection-end-column="54" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/gyp/pylib/gyp/MSVSProject.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/icu/shrink-icu-src.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1496">
+          <caret line="92" column="45" lean-forward="false" selection-start-line="92" selection-start-column="45" selection-end-line="92" selection-end-column="45" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/node_i18n.cc">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1275">
+          <caret line="75" column="31" lean-forward="false" selection-start-line="75" selection-start-column="31" selection-end-line="75" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/configure.d/nodedownload.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="323">
+          <caret line="25" column="14" lean-forward="false" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="14" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/npm/package.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/src/v8_base_1.vcxproj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8636">
+          <caret line="508" column="50" lean-forward="false" selection-start-line="508" selection-start-column="50" selection-end-line="508" selection-end-column="50" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/tools/presubmit.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="257">
+          <caret line="355" column="24" lean-forward="false" selection-start-line="355" selection-start-column="24" selection-end-line="355" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/src/inspector/v8-inspector-impl.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-272">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/src/inspector/inspector.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1156">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/build.log">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="334">
+          <caret line="17280" column="11" lean-forward="false" selection-start-line="17280" selection-start-column="2" selection-end-line="17280" selection-end-column="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/temp/icu-generic.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="207">
+          <caret line="230" column="44" lean-forward="false" selection-start-line="230" selection-start-column="33" selection-end-line="230" selection-end-column="44" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/src/d8.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="181">
+          <caret line="97" column="29" lean-forward="false" selection-start-line="97" selection-start-column="29" selection-end-line="97" selection-end-column="29" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/samples/samples.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="62">
+          <caret line="46" column="25" lean-forward="false" selection-start-line="46" selection-start-column="25" selection-end-line="46" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/gyp/pylib/gyp/MSVSSettings_test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17">
+          <caret line="135" column="48" lean-forward="false" selection-start-line="108" selection-start-column="10" selection-end-line="135" selection-end-column="48" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config.gypi">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="357">
+          <caret line="21" column="42" lean-forward="false" selection-start-line="21" selection-start-column="35" selection-end-line="21" selection-end-column="42" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/common.gypi">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="170">
+          <caret line="10" column="28" lean-forward="false" selection-start-line="10" selection-start-column="5" selection-end-line="10" selection-end-column="28" />
+          <folding>
+            <marker date="1491080530040" expanded="true" signature="7890:13914" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="7898:8158" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="7928:8157" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="7949:8056" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8168:8672" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8198:8671" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8226:8493" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8255:8404" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8435:8482" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8526:8662" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8538:8651" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8566:8650" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8682:9249" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8698:9248" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8795:9239" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8825:8914" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="8963:9032" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9259:9384" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9306:9383" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9394:11635" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9449:11634" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9657:9943" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9740:9842" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9786:9841" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9856:9932" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9874:9931" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9969:11625" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="9981:10087" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10006:10086" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10101:10208" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10125:10207" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10222:10327" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10246:10326" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10341:10460" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10379:10459" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10474:10592" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10514:10591" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10606:10742" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10631:10741" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10756:10893" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10782:10892" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10907:11096" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="10926:11095" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11110:11528" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11125:11527" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11153:11430" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11169:11272" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11193:11271" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11290:11415" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11316:11414" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11542:11614" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11567:11613" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11645:11852" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11663:11851" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11694:11842" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11706:11831" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11729:11830" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11862:13708" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11876:13707" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="11955:12923" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="12122:12219" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="12716:12763" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="12795:12912" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="12956:13190" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="12968:13179" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="12996:13178" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13028:13165" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13061:13150" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13216:13698" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13228:13315" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13252:13314" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13329:13417" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13352:13416" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13431:13687" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13444:13686" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13476:13673" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13718:13806" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13764:13805" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13816:13908" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13834:13907" ph="..." />
+            <marker date="1491080530040" expanded="true" signature="13855:13898" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/icu/genrb.vcxproj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="63" column="9" lean-forward="false" selection-start-line="63" selection-start-column="5" selection-end-line="63" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/icu/genccode.vcxproj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1989">
+          <caret line="117" column="0" lean-forward="false" selection-start-line="117" selection-start-column="0" selection-end-line="117" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/gyp/pylib/gyp/msvs_emulation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="34">
+          <caret line="401" column="37" lean-forward="true" selection-start-line="401" selection-start-column="37" selection-end-line="401" selection-end-column="37" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/gyp/pylib/gyp/MSVSUtil.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="339">
+          <caret line="244" column="45" lean-forward="false" selection-start-line="244" selection-start-column="32" selection-end-line="244" selection-end-column="45" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/gyp/pylib/gyp/MSVSSettings.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17">
+          <caret line="745" column="14" lean-forward="false" selection-start-line="745" selection-start-column="14" selection-end-line="745" selection-end-column="14" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/icu/icudata.vcxproj">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17">
+          <caret line="107" column="41" lean-forward="false" selection-start-line="107" selection-start-column="41" selection-end-line="107" selection-end-column="41" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/npm/node_modules/node-gyp/gyp/pylib/gyp/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-80">
+          <caret line="309" column="50" lean-forward="false" selection-start-line="309" selection-start-column="30" selection-end-line="309" selection-end-column="50" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/vcbuild.bat">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="209">
+          <caret line="215" column="132" lean-forward="false" selection-start-line="215" selection-start-column="132" selection-end-line="215" selection-end-column="132" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/gyp_node.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="351">
+          <caret line="50" column="0" lean-forward="false" selection-start-line="50" selection-start-column="0" selection-end-line="50" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/npm/node_modules/node-gyp/lib/configure.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="459">
+          <caret line="159" column="0" lean-forward="false" selection-start-line="157" selection-start-column="0" selection-end-line="159" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/npm/node_modules/node-gyp/gyp/pylib/gyp/generator/msvs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="320">
+          <caret line="1917" column="0" lean-forward="false" selection-start-line="1917" selection-start-column="0" selection-end-line="1917" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/npm/node_modules/node-gyp/gyp/pylib/gyp/MSVSVersion.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="21" column="0" lean-forward="false" selection-start-line="21" selection-start-column="0" selection-end-line="21" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/gypfiles/all.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="121">
+          <caret line="10" column="25" lean-forward="false" selection-start-line="10" selection-start-column="16" selection-end-line="10" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/icu/icu-generic.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="172">
+          <caret line="222" column="37" lean-forward="false" selection-start-line="222" selection-start-column="37" selection-end-line="222" selection-end-column="37" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/configure">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="226">
+          <caret line="1004" column="0" lean-forward="false" selection-start-line="1004" selection-start-column="0" selection-end-line="1004" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/src/v8.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="44" column="24" lean-forward="false" selection-start-line="44" selection-start-column="22" selection-end-line="44" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/node.gypi">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="238">
+          <caret line="22" column="14" lean-forward="true" selection-start-line="22" selection-start-column="7" selection-end-line="22" selection-end-column="26" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/test/perf.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="153">
+          <caret line="9" column="34" lean-forward="false" selection-start-line="9" selection-start-column="26" selection-end-line="9" selection-end-column="34" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/node.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="172">
+          <caret line="562" column="22" lean-forward="false" selection-start-line="562" selection-start-column="22" selection-end-line="562" selection-end-column="22" />
+          <folding>
+            <element signature="e#17#4181#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/deps/v8/test/cctest/cctest.gyp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="181">
+          <caret line="444" column="45" lean-forward="false" selection-start-line="444" selection-start-column="45" selection-end-line="444" selection-end-column="45" />
+          <folding>
+            <element signature="e#1650#11447#0" expanded="false" />
+            <element signature="e#15092#15966#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

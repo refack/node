@@ -1,0 +1,43 @@
+ tools/icu/icu-generic.gyp | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/tools/icu/icu-generic.gyp b/tools/icu/icu-generic.gyp
+index 1df3da253a..f06ac167f5 100644
+--- a/tools/icu/icu-generic.gyp
++++ b/tools/icu/icu-generic.gyp
+@@ -6,6 +6,18 @@
+ 
+ 
+ {
++  'target_defaults': {
++    'msvs_settings': {
++      'VCLinkerTool': {
++        'GenerateDebugInformation': 0,
++        'GenerateMapFile': 0,
++        'LinkTimeCodeGeneration': 0,
++        'MapExports': 0,
++        'OptimizeReferences': 0,
++        'RandomizedBaseAddress': 0,
++      }
++    }
++  },
+   'variables': {
+     'icu_src_derb': [
+       '<(icu_path)/source/tools/genrb/derb.c',
+@@ -536,6 +548,16 @@
+         '<@(icu_src_genccode)',
+         'no-op.cc',
+       ],
++      'msvs_settings': {
++        'VCLinkerTool': {
++          'GenerateDebugInformation': 'false',
++          'GenerateMapFile': 'false',
++          'LinkTimeCodeGeneration': 0,
++          'MapExports': 'false',
++          'OptimizeReferences': 0,
++          'RandomizedBaseAddress': 0,
++        }
++      }
+     },
+   ],
+ }

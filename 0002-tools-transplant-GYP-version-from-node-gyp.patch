@@ -1,0 +1,2676 @@
+From ddb8f1137cfef0a784781f76f809ad982ece6730 Mon Sep 17 00:00:00 2001
+From: Refael Ackermann <refack@gmail.com>
+Date: Tue, 14 Mar 2017 18:12:22 -0400
+Subject: [PATCH 2/4] tools: transplant `GYP` version from `node-gyp`
+
+for more information on changes from upstream `GYP` look at https://github.com/nodejs/node-gyp/commits/ec5fc36a/gyp
+
++ reversion form nodejs/node-gyp#1153
+---
+ tools/gyp/AUTHORS                         |    8 +-
+ tools/gyp/PRESUBMIT.py                    |   26 +-
+ tools/gyp/buildbot/aosp_manifest.xml      |  466 ++++++++++++
+ tools/gyp/pylib/gyp/common.py             |    2 +
+ tools/gyp/pylib/gyp/easy_xml.py           |    5 +
+ tools/gyp/pylib/gyp/generator/analyzer.py |  293 +++++---
+ tools/gyp/pylib/gyp/generator/android.py  | 1095 +++++++++++++++++++++++++++++
+ tools/gyp/pylib/gyp/generator/cmake.py    |   14 +-
+ tools/gyp/pylib/gyp/generator/make.py     |   38 +-
+ tools/gyp/pylib/gyp/generator/msvs.py     |   41 ++
+ tools/gyp/pylib/gyp/generator/ninja.py    |   18 +-
+ tools/gyp/pylib/gyp/generator/xcode.py    |   48 +-
+ tools/gyp/pylib/gyp/input.py              |   25 +-
+ tools/gyp/pylib/gyp/xcode_emulation.py    |    1 +
+ tools/gyp/pylib/gyp/xcodeproj_file.py     |    5 +-
+ 15 files changed, 1942 insertions(+), 143 deletions(-)
+ create mode 100644 tools/gyp/buildbot/aosp_manifest.xml
+ create mode 100644 tools/gyp/pylib/gyp/generator/android.py
+
+diff --git tools/gyp/AUTHORS tools/gyp/AUTHORS
+index dcd231ceb2..fecf84a1c4 100644
+--- tools/gyp/AUTHORS
++++ tools/gyp/AUTHORS
+@@ -1,12 +1,12 @@
+ # Names should be added to this file like so:
+ # Name or Organization <email address>
+ 
+-Google Inc. <*@google.com>
+-Bloomberg Finance L.P. <*@bloomberg.net>
+-IBM Inc. <*@*.ibm.com>
+-Yandex LLC <*@yandex-team.ru>
++Google Inc.
++Bloomberg Finance L.P.
++Yandex LLC
+ 
+ Steven Knight <knight@baldmt.com>
+ Ryan Norton <rnorton10@gmail.com>
+ David J. Sankel <david@sankelsoftware.com>
+ Eric N. Vander Weele <ericvw@gmail.com>
++Tom Freudenberg <th.freudenberg@gmail.com>
+diff --git tools/gyp/PRESUBMIT.py tools/gyp/PRESUBMIT.py
+index f6c8a357af..dde025383c 100644
+--- tools/gyp/PRESUBMIT.py
++++ tools/gyp/PRESUBMIT.py
+@@ -73,15 +73,23 @@ PYLINT_DISABLED_WARNINGS = [
+ ]
+ 
+ 
+-def _LicenseHeader(input_api):
++def CheckChangeOnUpload(input_api, output_api):
++  report = []
++  report.extend(input_api.canned_checks.PanProjectChecks(
++      input_api, output_api))
++  return report
++
++
++def CheckChangeOnCommit(input_api, output_api):
++  report = []
++
+   # Accept any year number from 2009 to the current year.
+   current_year = int(input_api.time.strftime('%Y'))
+   allowed_years = (str(s) for s in reversed(xrange(2009, current_year + 1)))
+-
+   years_re = '(' + '|'.join(allowed_years) + ')'
+ 
+   # The (c) is deprecated, but tolerate it until it's removed from all files.
+-  return (
++  license = (
+       r'.*? Copyright (\(c\) )?%(year)s Google Inc\. All rights reserved\.\n'
+       r'.*? Use of this source code is governed by a BSD-style license that '
+         r'can be\n'
+@@ -90,18 +98,8 @@ def _LicenseHeader(input_api):
+       'year': years_re,
+   }
+ 
+-def CheckChangeOnUpload(input_api, output_api):
+-  report = []
+-  report.extend(input_api.canned_checks.PanProjectChecks(
+-      input_api, output_api, license_header=_LicenseHeader(input_api)))
+-  return report
+-
+-
+-def CheckChangeOnCommit(input_api, output_api):
+-  report = []
+-
+   report.extend(input_api.canned_checks.PanProjectChecks(
+-      input_api, output_api, license_header=_LicenseHeader(input_api)))
++      input_api, output_api, license_header=license))
+   report.extend(input_api.canned_checks.CheckTreeIsOpen(
+       input_api, output_api,
+       'http://gyp-status.appspot.com/status',
+diff --git tools/gyp/buildbot/aosp_manifest.xml tools/gyp/buildbot/aosp_manifest.xml
+new file mode 100644
+index 0000000000..bd73b303c6
+--- /dev/null
++++ tools/gyp/buildbot/aosp_manifest.xml
+@@ -0,0 +1,466 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<manifest>
++  <remote  name="aosp"
++           fetch=".."
++           review="https://android-review.googlesource.com/" />
++  <default revision="master"
++           remote="aosp"
++           sync-j="4" />
++
++  <project groups="device,flo" name="device/asus/deb" revision="0ce3a783d549d023ddc553a04fed717ffb2ff533" />
++  <project groups="device,flo" name="device/asus/flo" revision="55ea79b11f9f82b2aa03f44a3429112fc5c06d07" />
++  <project groups="device,flo" name="device/asus/flo-kernel" revision="6d74123947016999ae62d9c3067ae97782fdba21" />
++  <project groups="device,grouper" name="device/asus/grouper" revision="78fe48f44e90ef3a7eceab5465dbad63cd16ce88" />
++  <project groups="device,grouper" name="device/asus/tilapia" revision="e5033bc80764067cbb1c9dc3970f0718e35ae8c7" />
++  <project name="device/common" revision="6a2995683de147791e516aae2ccb31fdfbe2ad30" />
++  <project groups="pdk" name="device/generic/armv7-a-neon" revision="8bcf4b7a6380b26c2b42dae00dd8443de2a8e12c" />
++  <project groups="pdk" name="device/generic/common" revision="11c092a6cbfcf6207f07a9a8e3398e747e7f5461" />
++  <project groups="pdk" name="device/generic/goldfish" revision="638ee524f83053613c47ddea22c4bf98a0175c2f" />
++  <project groups="pdk" name="device/generic/mini-emulator-armv7-a-neon" revision="2a7ade61377b7906187ab46b5859c896baa0ab0e" />
++  <project groups="pdk" name="device/generic/mini-emulator-mips" revision="2ff06dda649ba43507a911057f7854a3373ef7d6" />
++  <project groups="pdk" name="device/generic/mini-emulator-x86" revision="a2f05b8c5259c232be5b029b2d5e721ba3f70917" />
++  <project groups="pdk" name="device/generic/mips" revision="dd06e7883227cc68bb1206584c8e3a768e49d02d" />
++  <project name="device/generic/qemu" revision="bd2543e810f3fa56e9dcfe301b893832534c85db" />
++  <project groups="pdk" name="device/generic/x86" revision="f111878fb41e2bdf4eb092d1edf0eb53cc5d0153" />
++  <project groups="device" name="device/google/accessory/arduino" revision="abc5159a3ca9dbb5c7e364a1eab99901a4440ac5" />
++  <project groups="device" name="device/google/accessory/demokit" revision="7dfe7f89a3b174709c773fe319531006e46440d9" />
++  <project groups="device,hammerhead" name="device/lge/hammerhead" revision="ec229bf178b891cc18552833f2de743acf390a7c" />
++  <project groups="device,hammerhead" name="device/lge/hammerhead-kernel" revision="a1dc58be96e7a71496e3e89079ac704930f982f2" />
++  <project groups="device,mako" name="device/lge/mako" revision="7e5f0f313819ffa3b45cd4208ab552f446c33936" />
++  <project groups="device,mako" name="device/lge/mako-kernel" revision="b7de901b8cb86036e9b92b3b6f188b45a524b125" />
++  <project groups="pdk" name="device/sample" revision="096f9eb5763fd2766fcbbe4f6b9da51c87f61797" />
++  <project groups="device,manta" name="device/samsung/manta" revision="78fe248ddb214aca2215df46be83882dc50c9283" />
++  <project groups="pdk" name="platform/abi/cpp" path="abi/cpp" revision="a0f99286d0909f7a30b0bee742bec2a0b62c4dd0" />
++  <project name="platform/art" path="art" revision="36b111c7d3d635e262114dabde4c26952c7dcbe6" />
++  <project groups="pdk" name="platform/bionic" path="bionic" revision="36bacd237de931c48714d1a8aa4aa9522283e407" />
++  <project name="platform/bootable/bootloader/legacy" path="bootable/bootloader/legacy" revision="3c491d6efb8ff2534a6934702760a6273f197918" />
++  <project name="platform/bootable/diskinstaller" path="bootable/diskinstaller" revision="ca40959a8caafa0df6a5c3d845e2afe6b252093f" />
++  <project groups="pdk" name="platform/bootable/recovery" path="bootable/recovery" revision="974fe112ae6df95ca6d49688d6e3e459d87e16de" />
++  <project groups="pdk" name="platform/build" path="build" revision="d23798bfdc9bb34909177c3c5f06f0c97cc9897e" >
++    <copyfile dest="Makefile" src="core/root.mk"/>
++  </project>
++  <project groups="cts" name="platform/cts" path="cts" revision="e15e8f846e19816e18ee3293c5b99f78463be28e" />
++  <project name="platform/dalvik" path="dalvik" revision="fb5b0d5bc46bce9c8ed6b1150498d6e145811a7d" />
++  <project name="platform/developers/build" path="developers/build" revision="75c5c41b06f045c3304b1b19d8250f04a8da8f10" />
++  <project name="platform/developers/demos" path="developers/demos" revision="64526120cd8da89bcb9a48acf95307d2c172a6e8" />
++  <project name="platform/developers/docs" path="developers/docs" revision="c0b835ddd9acc27176dc9a0f7d1aa2faf5d51806" />
++  <project name="platform/developers/samples/android" path="developers/samples/android" revision="dea82fa23f038d66bd9cfdff2afb8ef22add1c4f" />
++  <project name="platform/development" path="development" revision="0efeb2c66bff9b36feecd9315d14d2afb46e4669" />
++  <project name="platform/docs/source.android.com" path="docs/source.android.com" revision="c4795fa0df2c5fb4832ae65482944e8e5400e4f6" />
++  <project groups="pdk" name="platform/external/aac" path="external/aac" revision="35f30c5ab8089f38681d2fdd416c00aebef5a7ff" />
++  <project name="platform/external/android-clat" path="external/android-clat" revision="18921713780edb45ceef327d5fcf3387818300f3" />
++  <project name="platform/external/android-mock" path="external/android-mock" revision="4fe497660c2e939300dc5b743d662aef458b1726" />
++  <project name="platform/external/ant-glob" path="external/ant-glob" revision="0f189400fd2a36bf11bfb058e7f3917eb7ed163a" />
++  <project name="platform/external/antlr" path="external/antlr" revision="47997265eeb7d954a32ece693bbe6dab740872dd" />
++  <project name="platform/external/apache-harmony" path="external/apache-harmony" revision="6942e08fdbbd8402c9deabb0f60c8c871194b244" />
++  <project name="platform/external/apache-http" path="external/apache-http" revision="85ed0e10781c3c57343300a02556dd5131c450aa" />
++  <project name="platform/external/apache-qp" path="external/apache-qp" revision="64ea622b23e6612eb8e7dcae6bfd4314beb022a8" />
++  <project name="platform/external/apache-xml" path="external/apache-xml" revision="00ee83ff1bd827a852065986ed0da7a3ded57a55" />
++  <project name="platform/external/arduino" path="external/arduino" revision="d06daf9bbc46838400461eb8e15842974e38d82a" />
++  <project groups="pdk" name="platform/external/bison" path="external/bison" revision="c2418b886165add7f5a31fc5609f0ce2d004a90e" />
++  <project name="platform/external/blktrace" path="external/blktrace" revision="d345431f16b8f76f30a58193ff2b26d5853e1109" />
++  <project groups="pdk" name="platform/external/bluetooth/bluedroid" path="external/bluetooth/bluedroid" revision="3b4040093ddf0e0025d0dd034aa65078bb695514" />
++  <project name="platform/external/bouncycastle" path="external/bouncycastle" revision="234720ebe66540a53cff98b2448dddbc884bd09f" />
++  <project groups="pdk" name="platform/external/bsdiff" path="external/bsdiff" revision="6f503758fad2cbcf8359e8f0af32e4d79a2a48ae" />
++  <project groups="pdk" name="platform/external/bzip2" path="external/bzip2" revision="1cb636bd8e9e5cdfd5d5b2909a122f6e80db62de" />
++  <project name="platform/external/ceres-solver" path="external/ceres-solver" revision="399f7d09e0c45af54b77b4ab9508d6f23759b927" />
++  <project groups="pdk" name="platform/external/checkpolicy" path="external/checkpolicy" revision="c66ac590eebc731f6021f267ebea208e87d8f04f" />
++  <project name="platform/external/chromium" path="external/chromium" revision="f294081d501ad98b7d7f50bc73f291063caf2c5f" />
++  <project name="platform/external/chromium-libpac" path="external/chromium-libpac" revision="09cf45bf5a650fe1abd50b9d61c2670a62f62767" />
++  <project groups="pdk" name="platform/external/chromium-trace" path="external/chromium-trace" revision="8252ae6b83ea65cf871e7981e981da07379f5a0f" />
++  <project name="platform/external/chromium_org" path="external/chromium_org" revision="43165a58c6167882aabb62f470c4e4d21f807d79" />
++  <project name="platform/external/chromium_org/sdch/open-vcdiff" path="external/chromium_org/sdch/open-vcdiff" revision="6d634da5463d9bc5fc88f86aec1d2ac4fe6f612e" />
++  <project name="platform/external/chromium_org/testing/gtest" path="external/chromium_org/testing/gtest" revision="65df883d09205766c521f2e6c126f4070a423141" />
++  <project name="platform/external/chromium_org/third_party/WebKit" path="external/chromium_org/third_party/WebKit" revision="a25b4978c2c50d573391a6d56a0e8ad35f52ffc8" />
++  <project name="platform/external/chromium_org/third_party/angle" path="external/chromium_org/third_party/angle" revision="8b77c2b2231f7d895979f6341e1ad1964a654ce4" />
++  <project name="platform/external/chromium_org/third_party/boringssl/src" path="external/chromium_org/third_party/boringssl/src" revision="85fb7432d3c851200342dd982b211f8dac860687" />
++  <project name="platform/external/chromium_org/third_party/brotli/src" path="external/chromium_org/third_party/brotli/src" revision="96f298ac43a9216b251d6c3264d8f5ada89e107f" />
++  <project name="platform/external/chromium_org/third_party/eyesfree/src/android/java/src/com/googlecode/eyesfree/braille" path="external/chromium_org/third_party/eyesfree/src/android/java/src/com/googlecode/eyesfree/braille" revision="bb4c72f1deb0b8b2b0468b0bf1050462ebcf6135" />
++  <project name="platform/external/chromium_org/third_party/freetype" path="external/chromium_org/third_party/freetype" revision="dc263f2ee2786739da036911ed8b29c07a639ab9" />
++  <project name="platform/external/chromium_org/third_party/icu" path="external/chromium_org/third_party/icu" revision="85e5871666cade1bb4b53f0cebfae53bc7d8d1f2" />
++  <project name="platform/external/chromium_org/third_party/leveldatabase/src" path="external/chromium_org/third_party/leveldatabase/src" revision="d4e10f2a91f5de7bd17adcdbd80c54b19ab336fe" />
++  <project name="platform/external/chromium_org/third_party/libaddressinput/src" path="external/chromium_org/third_party/libaddressinput/src" revision="7127f6844fac19d7610e34f4f7e03398fcd95531" />
++  <project name="platform/external/chromium_org/third_party/libjingle/source/talk" path="external/chromium_org/third_party/libjingle/source/talk" revision="8fd7b6a4d9e6757c5e1ff50147e6089979bf6701" />
++  <project name="platform/external/chromium_org/third_party/libphonenumber/src/phonenumbers" path="external/chromium_org/third_party/libphonenumber/src/phonenumbers" revision="de6af28b9f9f34a31ffb7772b7510fd215a0814e" />
++  <project name="platform/external/chromium_org/third_party/libphonenumber/src/resources" path="external/chromium_org/third_party/libphonenumber/src/resources" revision="8f194ead1ebd76ebb28b7e2dfc0a7baddc62bb22" />
++  <project name="platform/external/chromium_org/third_party/libsrtp" path="external/chromium_org/third_party/libsrtp" revision="5eddd5b3436aa8b2c7eb1f3c6db154281c6b91c5" />
++  <project name="platform/external/chromium_org/third_party/libvpx" path="external/chromium_org/third_party/libvpx" revision="c20d6540c47e427470c5a56b35fea3c5e9098748" />
++  <project name="platform/external/chromium_org/third_party/libyuv" path="external/chromium_org/third_party/libyuv" revision="6e77b766a9eb7889c1a10cab978705ffe03ff3e7" />
++  <project name="platform/external/chromium_org/third_party/mesa/src" path="external/chromium_org/third_party/mesa/src" revision="e70a8ff30d20e1bf6bb5c06b5cd7bd4ea9ae20e1" />
++  <project name="platform/external/chromium_org/third_party/openmax_dl" path="external/chromium_org/third_party/openmax_dl" revision="83d0254a412b93e81b06a354b90fb627408b4ec8" />
++  <project name="platform/external/chromium_org/third_party/openssl" path="external/chromium_org/third_party/openssl" revision="c2a9402712e13e15fcae2b17ec0cbecb816ef52e" />
++  <project name="platform/external/chromium_org/third_party/opus/src" path="external/chromium_org/third_party/opus/src" revision="e383b38591b010ab08ebddf1fd8d821796bd961a" />
++  <project name="platform/external/chromium_org/third_party/ots" path="external/chromium_org/third_party/ots" revision="4d6e4ddc4b0db2023b1380236c33aa04a7e9e927" />
++  <project name="platform/external/chromium_org/third_party/sfntly/cpp/src" path="external/chromium_org/third_party/sfntly/cpp/src" revision="2bac2ec7167835b214bfe42e762cd2ce6cf8cf1a" />
++  <project name="platform/external/chromium_org/third_party/skia" path="external/chromium_org/third_party/skia" revision="2d75d0865c7bac54bf5e234855609d0f628388b7" />
++  <project name="platform/external/chromium_org/third_party/smhasher/src" path="external/chromium_org/third_party/smhasher/src" revision="09e3094b8ab52bb1ad9ab8c8351d99df50327b67" />
++  <project name="platform/external/chromium_org/third_party/usrsctp/usrsctplib" path="external/chromium_org/third_party/usrsctp/usrsctplib" revision="ed9a6fb519aa7606cab965b2c4218756e849ddb6" />
++  <project name="platform/external/chromium_org/third_party/webrtc" path="external/chromium_org/third_party/webrtc" revision="8b45a80ec9c21b148a5674d3a23ca5fa70981f71" />
++  <project name="platform/external/chromium_org/third_party/yasm/source/patched-yasm" path="external/chromium_org/third_party/yasm/source/patched-yasm" revision="0f308c9bc9aa3258a0e90285b9d4e69bbb5b0a73" />
++  <project name="platform/external/chromium_org/tools/grit" path="external/chromium_org/tools/grit" revision="4ad93ed16c8ae7742fd7c34c83036b8d03c21fb9" />
++  <project name="platform/external/chromium_org/tools/gyp" path="external/chromium_org/tools/gyp" revision="9c42a79388ce87185ad04cb02047c1e56ac5e066" />
++  <project name="platform/external/chromium_org/v8" path="external/chromium_org/v8" revision="db865e6839e98cc9d07609bf81bb6610117ba6ff" />
++  <project groups="pdk" name="platform/external/clang" path="external/clang" revision="070ed154a0a8bc2c0fd4fb9b8a86a0f1218e6dfa" />
++  <project groups="pdk" name="platform/external/compiler-rt" path="external/compiler-rt" revision="c185902e393cd71823258016ead1b315ed062b24" />
++  <project name="platform/external/conscrypt" path="external/conscrypt" revision="26163c268a6d2625384b87e907afad8ef19f9a47" />
++  <project name="platform/external/dexmaker" path="external/dexmaker" revision="2b528c4b156f2de5c641875b98e59e0b09ebaccd" />
++  <project name="platform/external/dhcpcd" path="external/dhcpcd" revision="03baf5eab896198b5060d287af3fd60d360bf48f" />
++  <project groups="pdk" name="platform/external/dnsmasq" path="external/dnsmasq" revision="7674911bc9d10adf57c2c2d15d0c641b48e4afe6" />
++  <project name="platform/external/doclava" path="external/doclava" revision="b9d279d8f9c29a3044d13482846efb21f27b5df4" />
++  <project groups="pdk" name="platform/external/e2fsprogs" path="external/e2fsprogs" revision="721f3bc56989b5f4101e646a02d598ddb4a7ff6e" />
++  <project name="platform/external/easymock" path="external/easymock" revision="c9a234086537e5fd820b110bbd99e3cdc695004c" />
++  <project name="platform/external/eclipse-basebuilder" path="external/eclipse-basebuilder" revision="6134da6347cc997e0cf2921aaadfb46f21c05d85" />
++  <project name="platform/external/eclipse-windowbuilder" path="external/eclipse-windowbuilder" revision="a5f3ee137e94737538ec3bdf9b3716765d178c17" />
++  <project name="platform/external/eigen" path="external/eigen" revision="b015e75e8c7ba1ab4ddb91e9372a57e76f3fd159" />
++  <project name="platform/external/elfutils" path="external/elfutils" revision="38ecac0276825a9463803485440646582e477e78" />
++  <project name="platform/external/embunit" path="external/embunit" revision="336b7c65098af0d1be69f2db55f4e75342d73b3f" />
++  <project name="platform/external/emma" path="external/emma" revision="daacd02a6b9f7a3e82bdf1cc5b84db85ed59edb1" />
++  <project name="platform/external/esd" path="external/esd" revision="224a67f2683a7ee997179fc5dd16115e39987b0f" />
++  <project groups="pdk" name="platform/external/expat" path="external/expat" revision="907ec055718996baf36961e7f47f8447e49b3865" />
++  <project name="platform/external/eyes-free" path="external/eyes-free" revision="16bd4c7a4d1bfe229068b637614dad7c48dd2ceb" />
++  <project name="platform/external/f2fs-tools" path="external/f2fs-tools" revision="00dc8a1c6c87acf687e64e66cfc2fd7ca28e646e" />
++  <project name="platform/external/fdlibm" path="external/fdlibm" revision="c831c726067e0d8a05362e710e2405f0eff81e07" />
++  <project name="platform/external/fio" path="external/fio" revision="6f4e805b805f1ab3025482e471147bb51efa99bd" />
++  <project groups="pdk" name="platform/external/flac" path="external/flac" revision="7f32dd57579bdff88e46e1e403154be0b99165da" />
++  <project groups="pdk" name="platform/external/freetype" path="external/freetype" revision="899c67b6cfcd2010784fbf08c5415af16c526e0c" />
++  <project name="platform/external/fsck_msdos" path="external/fsck_msdos" revision="17a1471db8c528cd9d44ec4385d2eb3614138856" />
++  <project name="platform/external/ganymed-ssh2" path="external/ganymed-ssh2" revision="d3724dabc1cfbacd105fe6c422b4dcba80e4fb2d" />
++  <project groups="pdk" name="platform/external/gcc-demangle" path="external/gcc-demangle" revision="9241386b62c353302c2f9eccda0672685b252b4d" />
++  <project name="platform/external/genext2fs" path="external/genext2fs" revision="e11a9c7fe6f1cef99aad2f25afaea37b72fe9f93" />
++  <project name="platform/external/giflib" path="external/giflib" revision="621696a283c0ce34956417f760f1005fadcd12ae" />
++  <project name="platform/external/google-diff-match-patch" path="external/google-diff-match-patch" revision="cecbe12841337860291c2d6a5728b681ec5fca2a" />
++  <project name="platform/external/google-fonts/carrois-gothic-sc" path="external/google-fonts/carrois-gothic-sc" revision="0062a10458d4c357f3082d66bcb129d11913aaae" />
++  <project name="platform/external/google-fonts/coming-soon" path="external/google-fonts/coming-soon" revision="2c5cb418c690815545bbb0316eae5fd33b9fc859" />
++  <project name="platform/external/google-fonts/dancing-script" path="external/google-fonts/dancing-script" revision="7b6623bd54cee3e48ae8a4f477f616366643cc78" />
++  <project name="platform/external/grub" path="external/grub" revision="33a4e7e4cfa81dc21d37091515891859ef3ab934" />
++  <project groups="pdk" name="platform/external/gtest" path="external/gtest" revision="fa3c26b862ca17c0d2db67606226b49d1648b4bf" />
++  <project name="platform/external/guava" path="external/guava" revision="5e6db342fc75b1945298142530f2d1d1861bce73" />
++  <project name="platform/external/hamcrest" path="external/hamcrest" revision="ba28ac1e0386f26d9a45be5ed16fc9c598b27e70" />
++  <project name="platform/external/harfbuzz" path="external/harfbuzz" revision="7a08026033b424da3b7022ebcce35f033949df8b" />
++  <project name="platform/external/harfbuzz_ng" path="external/harfbuzz_ng" revision="3e537b48a7b56c742ecf3c2ed24ff15fcb73f575" />
++  <project name="platform/external/hyphenation" path="external/hyphenation" revision="bfa84834dfeb7fe8d058c2e7e07b5981451ddf82" />
++  <project name="platform/external/icu" path="external/icu" revision="3c09e2ebbdae6000f3bd471c34d055bc1913f7e4" />
++  <project groups="pdk" name="platform/external/icu4c" path="external/icu4c" revision="e5311394ca22b280da41cd17059288dab3fb1ea6" />
++  <project groups="pdk" name="platform/external/iproute2" path="external/iproute2" revision="5d4c86892885ae1bc12e0e157b35ef44e8ba81bd" />
++  <project name="platform/external/ipsec-tools" path="external/ipsec-tools" revision="f4cb1ee4b00abbfb6f968dc25818c23b4b47e584" />
++  <project name="platform/external/iptables" path="external/iptables" revision="e3928b77f18db0fdc615693017c6c15eb71bf4e0" />
++  <project name="platform/external/iputils" path="external/iputils" revision="1c7c426ab377c3a005a36d612ebbb16de86fb7d4" />
++  <project name="platform/external/jack" path="external/jack" revision="5ceb2025ac5d25ed48183ac2d3dac4691fe761fb" />
++  <project name="platform/external/javasqlite" path="external/javasqlite" revision="b8501bdeb0b7e39a0d82f2a96ad382c05a763b22" />
++  <project name="platform/external/javassist" path="external/javassist" revision="9566207cff5871c672fac1f0d4332d93292036d7" />
++  <project name="platform/external/jdiff" path="external/jdiff" revision="e4694302d6a3786c64d954e0b3cf42786283bd3c" />
++  <project name="platform/external/jemalloc" path="external/jemalloc" revision="615fe54259e545c33275753a316c2bfd1198b4f0" />
++  <project groups="pdk" name="platform/external/jhead" path="external/jhead" revision="871af5c305ce1d3087e58fae091c60c359f5fa45" />
++  <project name="platform/external/jmdns" path="external/jmdns" revision="f4eb7466d5c09098f9dc54137ed3235e3c43fc9f" />
++  <project name="platform/external/jmonkeyengine" path="external/jmonkeyengine" revision="a6b44658eb1c55295f132a36233a11aa2bd8f9cf" />
++  <project groups="pdk" name="platform/external/jpeg" path="external/jpeg" revision="213197252c8c4825f6572c651126c22067025fe9" />
++  <project name="platform/external/jsilver" path="external/jsilver" revision="739060b01245f1dc5f1800949b3c30c291253cff" />
++  <project name="platform/external/jsr305" path="external/jsr305" revision="a82868820d6350811b9ddfde4bf8ed5016084269" />
++  <project name="platform/external/junit" path="external/junit" revision="8f312e0c3d6dff30d015d2c85fdaae0a39220fd6" />
++  <project name="platform/external/kernel-headers" path="external/kernel-headers" revision="8b663ef01dcaadfe1dec7ba826e5cd1cf0bb2c91" />
++  <project name="platform/external/libcap-ng" path="external/libcap-ng" revision="1d1011a3c5049a7f9eef99d22f3704e4367579cc" />
++  <project name="platform/external/libcxx" path="external/libcxx" revision="a9aa30b5d18422fce29a42ce1a704bc5f28febde" />
++  <project name="platform/external/libcxxabi" path="external/libcxxabi" revision="87a9be28aceed80250cd1d1a47eb8afa0ee67b51" />
++  <project name="platform/external/libcxxrt" path="external/libcxxrt" revision="d1ee2b2a4946a073596514462d7629373d22fb27" />
++  <project name="platform/external/libexif" path="external/libexif" revision="25d371312cee1452a2adcf8b7f6cad6267bda32d" />
++  <project name="platform/external/libffi" path="external/libffi" revision="385ba8b006b9995456d3c9283fd20dded90809cc" />
++  <project groups="pdk" name="platform/external/libgsm" path="external/libgsm" revision="50761abed8f4734970874165b386cfd4d9599db4" />
++  <project groups="pdk" name="platform/external/liblzf" path="external/liblzf" revision="6946aa575b0949d045722794850896099d937cbb" />
++  <project name="platform/external/libmtp" path="external/libmtp" revision="7075348937f6a8c9d9211942fcb6c376f4227776" />
++  <project groups="pdk" name="platform/external/libnfc-nci" path="external/libnfc-nci" revision="46abb3dcf960058e48d1444b6a11cc7e84912339" />
++  <project groups="pdk" name="platform/external/libnfc-nxp" path="external/libnfc-nxp" revision="15d81f71a668b3092549c6b7f83694bf680d9c49" />
++  <project name="platform/external/libnl" path="external/libnl" revision="99debfa4c01b49c9b470884cc56f81fcdee0fa1f" />
++  <project groups="pdk" name="platform/external/libnl-headers" path="external/libnl-headers" revision="52c926a9de955fa2d987bf8c5d4a1304b5a2a611" />
++  <project name="platform/external/libogg" path="external/libogg" revision="ec0b24fb1468abe37be4164a6feb16568e036bde" />
++  <project name="platform/external/libpcap" path="external/libpcap" revision="9dab0cd7430a4d23e0a7752fb13b941692171c3d" />
++  <project name="platform/external/libphonenumber" path="external/libphonenumber" revision="485e6d5c6e48a1fc43cc0a090e687c723dac056c" />
++  <project groups="pdk" name="platform/external/libpng" path="external/libpng" revision="48b7ba25a15a9eae83d366c02475539725d035d0" />
++  <project name="platform/external/libppp" path="external/libppp" revision="706e567fc5ff6b79738a5f470e5aa7b2cae76459" />
++  <project name="platform/external/libseccomp-helper" path="external/libseccomp-helper" revision="e87019943a8b5a7cd0880910f671c37b240d5754" />
++  <project groups="pdk" name="platform/external/libselinux" path="external/libselinux" revision="da4208c8808e6a62fcfe848343abd3e2f3b339cc" />
++  <project groups="pdk" name="platform/external/libsepol" path="external/libsepol" revision="d26204e7d0a3be178a97d4920b82007e05a2a632" />
++  <project name="platform/external/libssh2" path="external/libssh2" revision="2bb40f2445cab3ba588efb29e1835cdba2b27248" />
++  <project name="platform/external/libunwind" path="external/libunwind" revision="b3436a3feed4dcb22dafc8f7818b742cacaddd1d" />
++  <project name="platform/external/libusb" path="external/libusb" revision="2801917fe150393d4f4a354165fe89550ae22613" />
++  <project name="platform/external/libusb-compat" path="external/libusb-compat" revision="94867ba54eb7faa8efca81cf2214d00bb9143d27" />
++  <project name="platform/external/libvorbis" path="external/libvorbis" revision="de559619fd4dd0d2d9608436696fd44bdf74eba8" />
++  <project groups="pdk" name="platform/external/libvpx" path="external/libvpx" revision="d64f247f64fbb814c9ecf06a56bcb0948bfca21f" />
++  <project name="platform/external/libxml2" path="external/libxml2" revision="399e808f940777d18efe377bd34f738dc84729e0" />
++  <project name="platform/external/libxslt" path="external/libxslt" revision="98f5140c33273d3bd67ca03566f8417406001016" />
++  <project groups="libyuv" name="platform/external/libyuv" path="external/libyuv" revision="482a582884351288fb701532359652970b1ba7c0" />
++  <project name="platform/external/linux-tools-perf" path="external/linux-tools-perf" revision="3e1937964f6c183eb6a0000e2dca27fc3a419ca2" />
++  <project name="platform/external/littlemock" path="external/littlemock" revision="328b01eada8965cd38feea884d4080c31e3763b0" />
++  <project groups="pdk" name="platform/external/llvm" path="external/llvm" revision="c4c1f81ae1b07138df50e0459631abf3082bda9c" />
++  <project name="platform/external/ltrace" path="external/ltrace" revision="82ae18484c7b6a8af05354caf6de3a7f1ac5fcf9" />
++  <project name="platform/external/lzma" path="external/lzma" revision="19cf4f773361c09e47a2ffe1613d66cbf632227f" />
++  <project name="platform/external/marisa-trie" path="external/marisa-trie" revision="629ed059b1e85cd8e4de363d8b3dc53c15c3e08a" />
++  <project name="platform/external/markdown" path="external/markdown" revision="6f2e3554ae38cc90518d32e02cb57d05988270a6" />
++  <project groups="pdk" name="platform/external/mdnsresponder" path="external/mdnsresponder" revision="b25c2507ecc3f674e3b4f0a770acf9ad8fd874d0" />
++  <project name="platform/external/mesa3d" path="external/mesa3d" revision="97d3f36a59ea448fa77e47a90bf04f1254670542" />
++  <project name="platform/external/messageformat" path="external/messageformat" revision="180a28770171075aa484729a69d14c7cf0c93fcf" />
++  <project groups="pdk" name="platform/external/mksh" path="external/mksh" revision="2a54bce0ae98f53f0b867e949b26d081691e1493" />
++  <project name="platform/external/mockito" path="external/mockito" revision="4d0dcd53b27a243baf72ee0b127b188a058b318d" />
++  <project name="platform/external/mockwebserver" path="external/mockwebserver" revision="2f7659c426de53122ee7922b0981058a900124a7" />
++  <project name="platform/external/mp4parser" path="external/mp4parser" revision="16051e950485c6b62127c0446a760111de1a0cb9" />
++  <project name="platform/external/mtpd" path="external/mtpd" revision="5ea8006691664b7e6d46d6a6dc889eac91b7fe37" />
++  <project name="platform/external/naver-fonts" path="external/naver-fonts" revision="3bba7d2430bc3ec8105678a27f03fb080f0f8384" />
++  <project name="platform/external/netcat" path="external/netcat" revision="444644cfa9a2f3002863caa168fb2d6b34dfd1e8" />
++  <project name="platform/external/netperf" path="external/netperf" revision="38e47cd883738cb84bdb47a7d263f14f14062d7b" />
++  <project name="platform/external/neven" path="external/neven" revision="504ee5ccaabd8bce4da3430b0f4e9714ac2a8e6c" />
++  <project name="platform/external/nfacct" path="external/nfacct" revision="6f7aae0264821b44e9fe80fb5596c525d3e2f475" />
++  <project name="platform/external/nist-pkits" path="external/nist-pkits" revision="b7a53ad5a587926cb880d9bb6f3d51657596474c" />
++  <project name="platform/external/nist-sip" path="external/nist-sip" revision="b23dbfce7ea84c39cea75b612868a5832cb9af2b" />
++  <project name="platform/external/noto-fonts" path="external/noto-fonts" revision="90372d894b5d9c9f2a111315d2eb3b8de1979ee4" />
++  <project name="platform/external/oauth" path="external/oauth" revision="bc170f58de82000ed6460f111686a850a1890c07" />
++  <project name="platform/external/objenesis" path="external/objenesis" revision="2a7655c0d503fcf5989098f65bf89eae78c32e5a" />
++  <project name="platform/external/okhttp" path="external/okhttp" revision="4909663c795d974d0d4b0e2d1ebd6e179486c897" />
++  <project name="platform/external/open-vcdiff" path="external/open-vcdiff" revision="6d29f2f083baf8250db94ed0b4807e513a84163d" />
++  <project name="platform/external/opencv" path="external/opencv" revision="4a99e243b42afcb885d036bb451eb3c2739275b6" />
++  <project name="platform/external/openfst" path="external/openfst" revision="b7434caa51427a0f5ab5c807e1a92d6ca2af8884" />
++  <project name="platform/external/openssh" path="external/openssh" revision="3c335c9fb9c12375ad62748fa1d1e5ebe4710c94" />
++  <project groups="pdk" name="platform/external/openssl" path="external/openssl" revision="cfe73257599ae4baae3ffb50c2c841d9249d2d16" />
++  <project name="platform/external/oprofile" path="external/oprofile" revision="3722f1053f4cab90c4daf61451713a2d61d79c71" />
++  <project name="platform/external/owasp/sanitizer" path="external/owasp/sanitizer" revision="6a304233f9f2010821a5a1dd40e2832b68353a3c" />
++  <project name="platform/external/pcre" path="external/pcre" revision="993a14b71c8e7af03eb929d44a444137393a5324" />
++  <project name="platform/external/pixman" path="external/pixman" revision="afd5bbd8074cedec8544d07920fa06786d5a4f08" />
++  <project name="platform/external/ppp" path="external/ppp" revision="8b58d9bd02e2c55f547fafbe9ba55b1160665761" />
++  <project groups="pdk-java" name="platform/external/proguard" path="external/proguard" revision="3fd19dba2bdc0c4b64afda4d75836e1dcf7abf97" />
++  <project groups="pdk" name="platform/external/protobuf" path="external/protobuf" revision="95d99df4574c28debcf9646056a0350ff44bc7c9" />
++  <project name="platform/external/qemu" path="external/qemu" revision="539e1f25ecbfe80814dba2ea77feb22087b9d53b" />
++  <project name="platform/external/qemu-pc-bios" path="external/qemu-pc-bios" revision="20349dae98d7de09a7e390d4a706c64f1db6edc2" />
++  <project name="platform/external/regex-re2" path="external/regex-re2" revision="0d4c52358a1af421705c54bd8a9fdd8a30558a2e" />
++  <project name="platform/external/replicaisland" path="external/replicaisland" revision="99e2e54c5d036048caf09bb05eea0969de093104" />
++  <project name="platform/external/robolectric" path="external/robolectric" revision="6bf395c984ed3f69711663b006aeffbb0f7e8a90" />
++  <project groups="pdk" name="platform/external/safe-iop" path="external/safe-iop" revision="aa0725fb1da35e47676b6da30009322eb5ed59be" />
++  <project groups="pdk" name="platform/external/scrypt" path="external/scrypt" revision="dde037b82e5cd6215244e3240dbaad417928eafa" />
++  <project groups="pdk" name="platform/external/sepolicy" path="external/sepolicy" revision="21ada26daea538397029396099dce865267bae2f" />
++  <project name="platform/external/sfntly" path="external/sfntly" revision="6723e5241a45c6de224c96384a595a1bf5bc5449" />
++  <project name="platform/external/sil-fonts" path="external/sil-fonts" revision="795a2f4339f8a82d6cff187e2a77bb01d5911aac" />
++  <project name="platform/external/skia" path="external/skia" revision="d6f2c76fdb9b0469261fa2db0b29ed48c7ac38b5" />
++  <project name="platform/external/smack" path="external/smack" revision="d7955ce24d294fb2014c59d11fca184471056f44" />
++  <project name="platform/external/smali" path="external/smali" revision="5fd395796e215a80c722815bf180728948868f18" />
++  <project groups="pdk" name="platform/external/sonivox" path="external/sonivox" revision="c0723d864b10fbd6c5cbbfa65e886c5e9eb3aafd" />
++  <project groups="pdk" name="platform/external/speex" path="external/speex" revision="eaa4765b8cc6a6dd5ee0d26dc1b61a1044817f32" />
++  <project groups="pdk" name="platform/external/sqlite" path="external/sqlite" revision="50af37d784661b2d54c8e043de52ffc4f02a1a50" />
++  <project name="platform/external/srec" path="external/srec" revision="540e7ee8dbf1d7ee72ef45c92efbebcb89bf6d1a" />
++  <project name="platform/external/srtp" path="external/srtp" revision="98bd63b48a31b4633cdfdc8138577dfa6d8dd2a6" />
++  <project groups="pdk" name="platform/external/stlport" path="external/stlport" revision="dc05ca5be2319f74b41cb429ea50f30fceff4ace" />
++  <project name="platform/external/strace" path="external/strace" revision="a2adbed6e2d3ce85ebb167e16ae370681a8b5188" />
++  <project name="platform/external/stressapptest" path="external/stressapptest" revision="0956427aa995561acb4471764158ae057a36dad5" />
++  <project name="platform/external/svox" path="external/svox" revision="ad0a55bd0e13a27ed11034346eee9c47e3684ef2" />
++  <project name="platform/external/syspatch" path="external/syspatch" revision="358a4f86b8c2cb3d3f879a37f6773dd09d4b77b0" />
++  <project name="platform/external/tagsoup" path="external/tagsoup" revision="a97828cb3f8f3a1af8470e55d3c5cd62d6a7cb4c" />
++  <project name="platform/external/tcpdump" path="external/tcpdump" revision="de49cdcfddf36f2b41ef3278e98a8a550a189952" />
++  <project name="platform/external/timezonepicker-support" path="external/timezonepicker-support" revision="99e91a76fd74bad10266623d67cdb98d011f709e" />
++  <project groups="pdk" name="platform/external/tinyalsa" path="external/tinyalsa" revision="653e7a4015341c87b4d55ec9a94ec7bdee044f6f" />
++  <project groups="pdk" name="platform/external/tinycompress" path="external/tinycompress" revision="aeee2c6a19b9d3765f72bc79555005786a424233" />
++  <project groups="pdk" name="platform/external/tinyxml" path="external/tinyxml" revision="f065a8058659c0e6c5a5ccddcdb4faf0fe645cd0" />
++  <project groups="pdk" name="platform/external/tinyxml2" path="external/tinyxml2" revision="c74b546f5af36968ffa56d7fd4529f4273b96f48" />
++  <project groups="pdk" name="platform/external/tremolo" path="external/tremolo" revision="0fec2aefa8143c83df43752bb0218dfa371cc57e" />
++  <project groups="pdk" name="platform/external/valgrind" path="external/valgrind" revision="893257d6c86a18cc5cf6c92528b7027f327dca70" />
++  <project name="platform/external/vixl" path="external/vixl" revision="e1ab25cde167109efb28fa6a86d5c2c80b762d58" />
++  <project name="platform/external/webp" path="external/webp" revision="0db01fc3411621bec473d50db0071fd2a225962e" />
++  <project groups="pdk" name="platform/external/webrtc" path="external/webrtc" revision="d62aeac391d16d4953a12120c0ff614ccde02a30" />
++  <project groups="pdk" name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="88ef20ce4facae68a3e6b05429bb9f3f73a93996" />
++  <project name="platform/external/xdelta3" path="external/xdelta3" revision="52d9c642e6a307c43881f20a4ed1c10e947234ba" />
++  <project name="platform/external/xmlwriter" path="external/xmlwriter" revision="e95d92246ee35273dde2bee8b00485cc14c12be5" />
++  <project name="platform/external/xmp_toolkit" path="external/xmp_toolkit" revision="42ea4dc6d1fc2206a7778029070ed9213e3b0fbf" />
++  <project groups="pdk" name="platform/external/yaffs2" path="external/yaffs2" revision="a2cff2275e1b501ff478b03757d6e4f05fddc2db" />
++  <project groups="pdk" name="platform/external/zlib" path="external/zlib" revision="8d977782c1cfe9d75cc9a464439c2ff1e27e1665" />
++  <project name="platform/external/zxing" path="external/zxing" revision="7620644768ffc235607b3a94671e49518c18686f" />
++  <project groups="pdk" name="platform/frameworks/av" path="frameworks/av" revision="a018cd4926460f8f5ab30a9a11df9775572d8620" />
++  <project name="platform/frameworks/base" path="frameworks/base" revision="6a58309e734086a21580dd8d9175ac1817ca3ab2" />
++  <project groups="pdk" name="platform/frameworks/compile/libbcc" path="frameworks/compile/libbcc" revision="3fc91521640692f844aece8b1743c4df702d1c66" />
++  <project groups="pdk" name="platform/frameworks/compile/mclinker" path="frameworks/compile/mclinker" revision="e673be8f0526f9cbc83093fb579c0f76de9e4e3c" />
++  <project groups="pdk" name="platform/frameworks/compile/slang" path="frameworks/compile/slang" revision="c957dd47b0a0705a686896b26cd1859d25824552" />
++  <project name="platform/frameworks/ex" path="frameworks/ex" revision="3696df848aa7c574f913c97c3bf415b634934048" />
++  <project name="platform/frameworks/mff" path="frameworks/mff" revision="b9669b8540a1e5c953374d53b115514335e23c27" />
++  <project name="platform/frameworks/ml" path="frameworks/ml" revision="b020ad88ca28ada76a596b5dcc7e6c2854fcc132" />
++  <project name="platform/frameworks/multidex" path="frameworks/multidex" revision="590a07e63868f0a1da311ff22b4a9f35eb48a865" />
++  <project groups="pdk" name="platform/frameworks/native" path="frameworks/native" revision="e8878921db4a51ff5d4e75d9c8958d889a048603" />
++  <project name="platform/frameworks/opt/calendar" path="frameworks/opt/calendar" revision="03b18577f8f8f799e87a62b8e03889ddacf6daa2" />
++  <project name="platform/frameworks/opt/carddav" path="frameworks/opt/carddav" revision="f08aa2df132dd8dc32a0013d3750137d9dd9280a" />
++  <project name="platform/frameworks/opt/colorpicker" path="frameworks/opt/colorpicker" revision="720a40ae24d526268b3c0f2dd8497b5df2cc6f23" />
++  <project name="platform/frameworks/opt/datetimepicker" path="frameworks/opt/datetimepicker" revision="8a1c55baaf5ced7a98b196c689ccdd59238f6e58" />
++  <project name="platform/frameworks/opt/emoji" path="frameworks/opt/emoji" revision="709f713ebcd62c61defc270d945810efca179621" />
++  <project name="platform/frameworks/opt/inputmethodcommon" path="frameworks/opt/inputmethodcommon" revision="df9dd39c2047992a43b64e13bb0fc348a1630f3b" />
++  <project name="platform/frameworks/opt/mailcommon" path="frameworks/opt/mailcommon" revision="1537812900e59f875cfea0483f0ae261b16d3e4b" />
++  <project name="platform/frameworks/opt/mms" path="frameworks/opt/mms" revision="64817e848552fd0a429a3e026b7b1562103c56bb" />
++  <project name="platform/frameworks/opt/net/voip" path="frameworks/opt/net/voip" revision="0f722c7f09ce67e058eb1cfaabf1d85f1abdf797" />
++  <project name="platform/frameworks/opt/photoviewer" path="frameworks/opt/photoviewer" revision="8c32972911bf73babdb01d30267f57255e242d78" />
++  <project groups="pdk" name="platform/frameworks/opt/telephony" path="frameworks/opt/telephony" revision="93faaed9056491c551ef7046e9e1de7d6397e95c" />
++  <project name="platform/frameworks/opt/timezonepicker" path="frameworks/opt/timezonepicker" revision="3820b87bfbc86d066e9093e78254e1f3728ad77d" />
++  <project name="platform/frameworks/opt/vcard" path="frameworks/opt/vcard" revision="5907243e6cf0603adf266ebfa7ee5ee465b9c596" />
++  <project name="platform/frameworks/opt/widget" path="frameworks/opt/widget" revision="466e0e0307b3f6aa4f4be3d9419b5996bd389da5" />
++  <project groups="pdk" name="platform/frameworks/rs" path="frameworks/rs" revision="ad0544fdf918e64cec05d1c98588880f10b09220" />
++  <project name="platform/frameworks/support" path="frameworks/support" revision="f05c07d3528765076adc16337a1f68f1700955dc" />
++  <project name="platform/frameworks/testing" path="frameworks/testing" revision="5c8e0271db889518f5969b142a37faa01a4ee54d" />
++  <project name="platform/frameworks/volley" path="frameworks/volley" revision="0e406003b5d434d8f16d7d6ad97d446060b788e6" />
++  <project name="platform/frameworks/webview" path="frameworks/webview" revision="6ed700e171cb2ee3303c08a1db2abc0e56fd307a" />
++  <project name="platform/frameworks/wilhelm" path="frameworks/wilhelm" revision="a62c3572e60ae0446632de15418a65089cccf551" />
++  <project name="platform/hardware/akm" path="hardware/akm" revision="32838ef838d1341aa8b77022869b801fb0bbb26c" />
++  <project groups="pdk" name="platform/hardware/broadcom/libbt" path="hardware/broadcom/libbt" revision="55ddd0cce019e88829f92b2fe4e17d5869daa9b9" />
++  <project groups="broadcom_wlan" name="platform/hardware/broadcom/wlan" path="hardware/broadcom/wlan" revision="47a3b8f496e6d2a836ac6b7268e5626c969542ec" />
++  <project groups="invensense" name="platform/hardware/invensense" path="hardware/invensense" revision="0f5bc7cd710fac85377621a8b9a4c364af80605f" />
++  <project groups="pdk" name="platform/hardware/libhardware" path="hardware/libhardware" revision="3e618a6aa10c783d1536f20edfc3347939cfa18e" />
++  <project groups="pdk" name="platform/hardware/libhardware_legacy" path="hardware/libhardware_legacy" revision="4c20a09e8684657448f0bc97a2da4e56c94d484e" />
++  <project groups="qcom" name="platform/hardware/qcom/audio" path="hardware/qcom/audio" revision="d47ff224c7b24933c701acae8d5e4c98a1bc80af" />
++  <project groups="qcom" name="platform/hardware/qcom/bt" path="hardware/qcom/bt" revision="cf314a462ba06f4bd3352d5d4630edcf6edbbe97" />
++  <project groups="qcom" name="platform/hardware/qcom/camera" path="hardware/qcom/camera" revision="fbf72e519ec5fe2f2720b1a3d119e2d69e172e34" />
++  <project groups="qcom" name="platform/hardware/qcom/display" path="hardware/qcom/display" revision="0a611c6ae11b65fec5ada5ecaa0893541db34156" />
++  <project groups="qcom" name="platform/hardware/qcom/keymaster" path="hardware/qcom/keymaster" revision="70d36107318e1d3f7abf62a56279b3f9da3ff000" />
++  <project groups="qcom" name="platform/hardware/qcom/media" path="hardware/qcom/media" revision="1208a868bcb0ffaa650a7e68b51031254c775d39" />
++  <project groups="qcom_msm8960" name="platform/hardware/qcom/msm8960" path="hardware/qcom/msm8960" revision="ca38ed098b05a79d20e852348f27d7c40a53f801" />
++  <project groups="qcom_msm8x74" name="platform/hardware/qcom/msm8x74" path="hardware/qcom/msm8x74" revision="0c6844ea9ee14fd7bbfd6af0bcc6b6b682f46d1c" />
++  <project groups="qcom" name="platform/hardware/qcom/power" path="hardware/qcom/power" revision="ff9f4538c09399030fa73e3e65a167852cb91e8f" />
++  <project groups="qcom" name="platform/hardware/qcom/sensors" path="hardware/qcom/sensors" revision="07c5bcdb36158e22d33bac02eecd83d4ff1fb2f8" />
++  <project groups="qcom_wlan" name="platform/hardware/qcom/wlan" path="hardware/qcom/wlan" revision="daa321b0ad8c10b454dc28d7e6dadc72196a8c7a" />
++  <project groups="pdk" name="platform/hardware/ril" path="hardware/ril" revision="eb2a93458204a928edfe36f043ddb48cf5575143" />
++  <project groups="exynos5" name="platform/hardware/samsung_slsi/exynos5" path="hardware/samsung_slsi/exynos5" revision="d7bd354358ecfb1e52afb3da4fc586c0822c696a" />
++  <project name="platform/hardware/ti/omap3" path="hardware/ti/omap3" revision="949aad363a9cc794f9ac8fd42338ae1678e50bc1" />
++  <project groups="omap4" name="platform/hardware/ti/omap4xxx" path="hardware/ti/omap4xxx" revision="c32caab84ff9edc1489ed6c8079c7d252caafc4d" />
++  <project name="platform/libcore" path="libcore" revision="d343e35535a99bad32eea0defc8a3e9c23c9967f" />
++  <project groups="pdk-java" name="platform/libnativehelper" path="libnativehelper" revision="b37e11d07dec2d49b576709ae8e0568a9daabd07" />
++  <project name="platform/ndk" path="ndk" revision="f584f76882baf374166cf12b99cd5f3dbdf3b6b9" />
++  <project name="platform/packages/apps/BasicSmsReceiver" path="packages/apps/BasicSmsReceiver" revision="80327793c4b4ebf4a6a53b72e46c477afe18f135" />
++  <project name="platform/packages/apps/Bluetooth" path="packages/apps/Bluetooth" revision="7efa9db2129c99475684a2e44c4fb89cce3134bc" />
++  <project name="platform/packages/apps/Browser" path="packages/apps/Browser" revision="fe4083510dc773911651456f150bf5432f81a6c0" />
++  <project name="platform/packages/apps/Calculator" path="packages/apps/Calculator" revision="6c7521bb685c9b7b7c36f2077612d4b1a0e808d4" />
++  <project name="platform/packages/apps/Calendar" path="packages/apps/Calendar" revision="2d72f6bed6a0eeaddbda08393063fe873c1c7922" />
++  <project name="platform/packages/apps/Camera" path="packages/apps/Camera" revision="b0e357d548fb8d10896200add2b932199a96a2ea" />
++  <project name="platform/packages/apps/Camera2" path="packages/apps/Camera2" revision="ece4866dc575b956801f6dab2d6c4923e272c5fa" />
++  <project name="platform/packages/apps/CellBroadcastReceiver" path="packages/apps/CellBroadcastReceiver" revision="21d8baf492007cc01545905de33ecefe5d947843" />
++  <project name="platform/packages/apps/CertInstaller" path="packages/apps/CertInstaller" revision="483a188feda6e9d311aef437d28f30e1fb6afeb0" />
++  <project name="platform/packages/apps/Contacts" path="packages/apps/Contacts" revision="24a4f48dc5c768188143648e267889477e4185e8" />
++  <project name="platform/packages/apps/ContactsCommon" path="packages/apps/ContactsCommon" revision="6ce4a3bc083a7dbcc7ffa2bebff242638d7f8e61" />
++  <project name="platform/packages/apps/DeskClock" path="packages/apps/DeskClock" revision="d3bfe9223f3e70271813f48b8ef5500c3a90c0b3" />
++  <project name="platform/packages/apps/Dialer" path="packages/apps/Dialer" revision="5cb300ef50e9942eef746319dd1b1b6e7c2c05e2" />
++  <project name="platform/packages/apps/Email" path="packages/apps/Email" revision="22766dcf6a44416b2972c053739472317017257d" />
++  <project name="platform/packages/apps/Exchange" path="packages/apps/Exchange" revision="ab03a7f9b197b6ffcc390dd5fb589067a5161148" />
++  <project name="platform/packages/apps/Gallery" path="packages/apps/Gallery" revision="9595006a3347c08e6b8e31d679903bb8f77a343d" />
++  <project name="platform/packages/apps/Gallery2" path="packages/apps/Gallery2" revision="9cde04ed08f3a5201a007d78b3c89f43fb3003e0" />
++  <project name="platform/packages/apps/HTMLViewer" path="packages/apps/HTMLViewer" revision="7498890092c388dc59ca932e09ec79dd568b1a19" />
++  <project name="platform/packages/apps/InCallUI" path="packages/apps/InCallUI" revision="d968d1a28dae45229b1be9f05bef8df13821e94d" />
++  <project name="platform/packages/apps/KeyChain" path="packages/apps/KeyChain" revision="e6243f79f3ce6daeb2d8d879e6e1a684ffc1b2fc" />
++  <project name="platform/packages/apps/Launcher2" path="packages/apps/Launcher2" revision="31569f6dbd44d443ff54c460b733e62fc37d2319" />
++  <project name="platform/packages/apps/Launcher3" path="packages/apps/Launcher3" revision="3a9f3a7806a0153865415d6207c6812915d3f6b1" />
++  <project name="platform/packages/apps/LegacyCamera" path="packages/apps/LegacyCamera" revision="d9b5d8941d1ec47ff391da2b8cc8ec90f902062f" />
++  <project name="platform/packages/apps/Mms" path="packages/apps/Mms" revision="e770738ea4389afddb0b4e6c69749f9456ed0f48" />
++  <project name="platform/packages/apps/Music" path="packages/apps/Music" revision="bfca689bb6605cfcd1e0c1781c707735efb7444e" />
++  <project name="platform/packages/apps/MusicFX" path="packages/apps/MusicFX" revision="aaa2f99caac6f088b23de55fe2eb1e8ee305b1fb" />
++  <project name="platform/packages/apps/Nfc" path="packages/apps/Nfc" revision="f62a9a00a13ba333e88cb9e8ce2553d6acf708ad" />
++  <project name="platform/packages/apps/OneTimeInitializer" path="packages/apps/OneTimeInitializer" revision="01e429c08e51291315890de9677151a7e0b6ad35" />
++  <project name="platform/packages/apps/PackageInstaller" path="packages/apps/PackageInstaller" revision="212398024b4491276ef00cf7fcd829c89200b6ba" />
++  <project name="platform/packages/apps/Phone" path="packages/apps/Phone" revision="bf4ec5b1258628bfa6a82aa0d80f348a77bbf194" />
++  <project name="platform/packages/apps/PhoneCommon" path="packages/apps/PhoneCommon" revision="16f62c5ab5c21981e63d678187ad4b44e686332b" />
++  <project name="platform/packages/apps/Protips" path="packages/apps/Protips" revision="325232e344b257a3c236ead2adc60c7378f226c0" />
++  <project name="platform/packages/apps/Provision" path="packages/apps/Provision" revision="78ca0db658fe6253d506916e36319e620476f809" />
++  <project name="platform/packages/apps/QuickSearchBox" path="packages/apps/QuickSearchBox" revision="cfb7af6652a7fbcc0f86341edfe14dc316c9ff37" />
++  <project name="platform/packages/apps/Settings" path="packages/apps/Settings" revision="2abbacb7d46657e5863eb2ef0035521ffc41a0a8" />
++  <project name="platform/packages/apps/SmartCardService" path="packages/apps/SmartCardService" revision="29eae320a4bd222b5ff1c092f84f1aebba88d0b7" />
++  <project name="platform/packages/apps/SoundRecorder" path="packages/apps/SoundRecorder" revision="b0e671faf142fa0b933b4f1cd7d186b1f37ebe46" />
++  <project name="platform/packages/apps/SpareParts" path="packages/apps/SpareParts" revision="4db997871e3f4c3f84660815096e5276b47c5c91" />
++  <project name="platform/packages/apps/SpeechRecorder" path="packages/apps/SpeechRecorder" revision="536aa74ff3a77186bef29dc9333a34688fa59d13" />
++  <project name="platform/packages/apps/Stk" path="packages/apps/Stk" revision="115b75461f8e1fb432fe1a892549ca1c96cef497" />
++  <project name="platform/packages/apps/Tag" path="packages/apps/Tag" revision="f830b07335bd2dd794b84507b5390f7d893fe428" />
++  <project name="platform/packages/apps/TvSettings" path="packages/apps/TvSettings" revision="24e45eaf3b4badaf02e449e7f6d07c72e743f521" />
++  <project name="platform/packages/apps/UnifiedEmail" path="packages/apps/UnifiedEmail" revision="d4537c907920f4470b70e91c187ef7a0b31632db" />
++  <project name="platform/packages/apps/VideoEditor" path="packages/apps/VideoEditor" revision="a49ea28e1628f507ae3a564215664c29c5fa1215" />
++  <project name="platform/packages/apps/VoiceDialer" path="packages/apps/VoiceDialer" revision="72df4532dfca9a82e8aef55fcdfce3026d3d3312" />
++  <project name="platform/packages/experimental" path="packages/experimental" revision="588c7cda9c62fb77d23bc089a63cba8a96bc9ffb" />
++  <project name="platform/packages/inputmethods/LatinIME" path="packages/inputmethods/LatinIME" revision="159474f2ae5d13308ca1b92b8a5ccd809ec6a450" />
++  <project name="platform/packages/inputmethods/OpenWnn" path="packages/inputmethods/OpenWnn" revision="59aefa242169b7a51c2381daee58ff22fd1834ce" />
++  <project name="platform/packages/inputmethods/PinyinIME" path="packages/inputmethods/PinyinIME" revision="49aebad1c1cfbbcaa9288ffed5161e79e57c3679" />
++  <project name="platform/packages/providers/ApplicationsProvider" path="packages/providers/ApplicationsProvider" revision="3347f31bd268ca3153abe5def9361f625bd73efd" />
++  <project name="platform/packages/providers/CalendarProvider" path="packages/providers/CalendarProvider" revision="20360f2fdd7ad2de1234b7ed61e3ea120f0dc635" />
++  <project name="platform/packages/providers/ContactsProvider" path="packages/providers/ContactsProvider" revision="6ac2395324c0e7539434b7c68ec738f867d7ed37" />
++  <project name="platform/packages/providers/DownloadProvider" path="packages/providers/DownloadProvider" revision="90e7485d68095b5fc5044dd1bc6cd4dfc485eaa3" />
++  <project name="platform/packages/providers/MediaProvider" path="packages/providers/MediaProvider" revision="501b93fb00db86fe4fb53dc000f6f11587afe4b0" />
++  <project name="platform/packages/providers/PartnerBookmarksProvider" path="packages/providers/PartnerBookmarksProvider" revision="96d0a80af45923767baf449fc8c735c2f71d64ae" />
++  <project name="platform/packages/providers/TelephonyProvider" path="packages/providers/TelephonyProvider" revision="91e705bc7662192ea33f2bac6b0a6c79fc9bc7ab" />
++  <project name="platform/packages/providers/UserDictionaryProvider" path="packages/providers/UserDictionaryProvider" revision="361f35b7b1fe758d93e0952536a298b2ed045a89" />
++  <project name="platform/packages/screensavers/Basic" path="packages/screensavers/Basic" revision="4b5d9d8bea733c4e5876541831f27bf40588b516" />
++  <project name="platform/packages/screensavers/PhotoTable" path="packages/screensavers/PhotoTable" revision="a5e0fee8e923cfc8682eb4431bc3997ed15f649a" />
++  <project name="platform/packages/screensavers/WebView" path="packages/screensavers/WebView" revision="6e0a80f6faed6191acc8ce1b6c79eada09e9e042" />
++  <project name="platform/packages/services/Telephony" path="packages/services/Telephony" revision="aa156251eb0414b8c6546c98769789dc28b38140" />
++  <project name="platform/packages/wallpapers/Basic" path="packages/wallpapers/Basic" revision="2e1d8404b87caf13cde644959f28213f2db09843" />
++  <project name="platform/packages/wallpapers/Galaxy4" path="packages/wallpapers/Galaxy4" revision="34b31b45e75b2e73a770fef1a2f9a862b10f1a57" />
++  <project name="platform/packages/wallpapers/HoloSpiral" path="packages/wallpapers/HoloSpiral" revision="63b75996a7cfb713a6a6feb5c774ba4b46c7d6eb" />
++  <project name="platform/packages/wallpapers/LivePicker" path="packages/wallpapers/LivePicker" revision="8082f92e76774607d62412e8e1191dd940f055ba" />
++  <project name="platform/packages/wallpapers/MagicSmoke" path="packages/wallpapers/MagicSmoke" revision="f01ea4c07914010d52a42130acb7e67d4306fbda" />
++  <project name="platform/packages/wallpapers/MusicVisualization" path="packages/wallpapers/MusicVisualization" revision="72fbcf3a8e4ebee42c36a5887432ca823ef0e4e5" />
++  <project name="platform/packages/wallpapers/NoiseField" path="packages/wallpapers/NoiseField" revision="7d3e52a18a1255baffd7c0675a465f1b85b99f56" />
++  <project name="platform/packages/wallpapers/PhaseBeam" path="packages/wallpapers/PhaseBeam" revision="0da76f35378677f1102e0be218ce1993c0e528b6" />
++  <project groups="pdk" name="platform/pdk" path="pdk" revision="d440d4219412981df7ef90bed65acf29b2e7ea6a" />
++  <project name="platform/prebuilts/android-emulator" path="prebuilts/android-emulator" revision="d6a246c24accff42eb433f5e39d14cb24faf1e58" />
++  <project groups="pdk,darwin" name="platform/prebuilts/clang/darwin-x86/3.1" path="prebuilts/clang/darwin-x86/3.1" revision="426233405bef3c7c825095ab14256c3773894b9b" />
++  <project groups="pdk,darwin" name="platform/prebuilts/clang/darwin-x86/3.2" path="prebuilts/clang/darwin-x86/3.2" revision="af856d77b3cbb1f6afccdc531bee991403c28907" />
++  <project groups="darwin,arm" name="platform/prebuilts/clang/darwin-x86/arm/3.3" path="prebuilts/clang/darwin-x86/arm/3.3" revision="54acc51e28850485e380b55916868a4e1ff17998" />
++  <project groups="pdk,darwin" name="platform/prebuilts/clang/darwin-x86/host/3.4" path="prebuilts/clang/darwin-x86/host/3.4" revision="a798fe00dbd92ad4e5f7123a2e2bc1d805db04f6" />
++  <project groups="pdk,darwin" name="platform/prebuilts/clang/darwin-x86/host/3.5" path="prebuilts/clang/darwin-x86/host/3.5" revision="ce812d27fb78972e71482e93241b9770ca54845d" />
++  <project groups="darwin,mips" name="platform/prebuilts/clang/darwin-x86/mips/3.3" path="prebuilts/clang/darwin-x86/mips/3.3" revision="da3dad928542362835082b2eda44e4dc315d65bb" />
++  <project groups="darwin,x86" name="platform/prebuilts/clang/darwin-x86/x86/3.3" path="prebuilts/clang/darwin-x86/x86/3.3" revision="f67a83f35e30f92b312fbee852184c3f6dc38f34" />
++  <project groups="pdk,linux" name="platform/prebuilts/clang/linux-x86/3.1" path="prebuilts/clang/linux-x86/3.1" revision="e95b4ce22c825da44d14299e1190ea39a5260bde" />
++  <project groups="pdk,linux" name="platform/prebuilts/clang/linux-x86/3.2" path="prebuilts/clang/linux-x86/3.2" revision="471afab478649078ad7c75ec6b252481a59e19b8" />
++  <project groups="linux,arm" name="platform/prebuilts/clang/linux-x86/arm/3.3" path="prebuilts/clang/linux-x86/arm/3.3" revision="2f6d2db9e2af3507d132cf5d286a42fe1d47f7bc" />
++  <project groups="pdk,linux" name="platform/prebuilts/clang/linux-x86/host/3.4" path="prebuilts/clang/linux-x86/host/3.4" revision="fae26a039f79d780ddedcad07f164d9e6c05fc87" />
++  <project groups="pdk,linux" name="platform/prebuilts/clang/linux-x86/host/3.5" path="prebuilts/clang/linux-x86/host/3.5" revision="485ffdc99707f81f4201e85bbbb937f23e1e04aa" />
++  <project groups="linux,mips" name="platform/prebuilts/clang/linux-x86/mips/3.3" path="prebuilts/clang/linux-x86/mips/3.3" revision="51f8e2760628588fe268438d612d942c30d13fb2" />
++  <project groups="linux,x86" name="platform/prebuilts/clang/linux-x86/x86/3.3" path="prebuilts/clang/linux-x86/x86/3.3" revision="017a8a67f92a66b29ab17772e50642a7b9d0f8e6" />
++  <project name="platform/prebuilts/devtools" path="prebuilts/devtools" revision="be724be535ea50585d8c625b768ccb63aacd2926" />
++  <project groups="pdk" name="platform/prebuilts/eclipse" path="prebuilts/eclipse" revision="cf9f78f8cf41b16edf9f712598a42743d5cea4af" />
++  <project groups="notdefault,eclipse" name="platform/prebuilts/eclipse-build-deps" path="prebuilts/eclipse-build-deps" revision="ceb739d6a7c10f5fb5a6cf6e1f702453b1361ad3" />
++  <project groups="notdefault,eclipse" name="platform/prebuilts/eclipse-build-deps-sources" path="prebuilts/eclipse-build-deps-sources" revision="8b7d8f6033ffe2d22905d10cf6d57d5bdcbe519b" />
++  <project groups="pdk,darwin,arm" name="platform/prebuilts/gcc/darwin-x86/aarch64/aarch64-linux-android-4.8" path="prebuilts/gcc/darwin-x86/aarch64/aarch64-linux-android-4.8" revision="a261d38eaebb7ff406a6bb60237b36fc61714d46" />
++  <project groups="pdk,darwin,arm" name="platform/prebuilts/gcc/darwin-x86/aarch64/aarch64-linux-android-4.9" path="prebuilts/gcc/darwin-x86/aarch64/aarch64-linux-android-4.9" revision="32d722d66d7a935a8b6f8e6ab2d5d8bf0e9e0986" />
++  <project groups="pdk,darwin,arm" name="platform/prebuilts/gcc/darwin-x86/arm/arm-eabi-4.8" path="prebuilts/gcc/darwin-x86/arm/arm-eabi-4.8" revision="6d08ca9f45ff685648fd13c75bf5cac4b11c19bb" />
++  <project groups="pdk,darwin,arm" name="platform/prebuilts/gcc/darwin-x86/arm/arm-linux-androideabi-4.8" path="prebuilts/gcc/darwin-x86/arm/arm-linux-androideabi-4.8" revision="264394c23b2686ce52cd4ffb116ced127aa7f8fc" />
++  <project groups="pdk,darwin" name="platform/prebuilts/gcc/darwin-x86/host/headers" path="prebuilts/gcc/darwin-x86/host/headers" revision="4ac4f7cc41cf3c9e36fc3d6cf37fd1cfa9587a68" />
++  <project groups="pdk,darwin" name="platform/prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1" path="prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1" revision="8834958755acc291d126ba7ee38ac731d04f9c9e" />
++  <project groups="pdk,darwin,mips" name="platform/prebuilts/gcc/darwin-x86/mips/mips64el-linux-android-4.8" path="prebuilts/gcc/darwin-x86/mips/mips64el-linux-android-4.8" revision="3b5bef47de8017ff39ef5bfbe801e3fa6b272fab" />
++  <project name="platform/prebuilts/gcc/darwin-x86/mips/mips64el-linux-android-4.9" path="prebuilts/gcc/darwin-x86/mips/mips64el-linux-android-4.9" revision="367a6529b0cc9f5ac5ca69226f583420563fd473" />
++  <project groups="pdk,darwin,mips" name="platform/prebuilts/gcc/darwin-x86/mips/mipsel-linux-android-4.8" path="prebuilts/gcc/darwin-x86/mips/mipsel-linux-android-4.8" revision="ba97180acd4251d3acf08530faa4a724af74abd3" />
++  <project groups="pdk,darwin,x86" name="platform/prebuilts/gcc/darwin-x86/x86/x86_64-linux-android-4.8" path="prebuilts/gcc/darwin-x86/x86/x86_64-linux-android-4.8" revision="c3c37a54f07d51a50e17d63dbf1d92da343f45ce" />
++  <project name="platform/prebuilts/gcc/darwin-x86/x86/x86_64-linux-android-4.9" path="prebuilts/gcc/darwin-x86/x86/x86_64-linux-android-4.9" revision="a7c5a1df753fd3a24494d5e1fe00211048be5c1d" />
++  <project groups="pdk,linux,arm" name="platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.8" path="prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.8" revision="7334f0a7a872700d0aaf00bea75917c077c45530" />
++  <project groups="pdk,linux,arm" name="platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9" path="prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9" revision="a3f0180676c6b6cd9c664704f86855d3404ae4dd" />
++  <project groups="pdk,linux,arm" name="platform/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8" path="prebuilts/gcc/linux-x86/arm/arm-eabi-4.8" revision="26e93f6af47f7bd3a9beb5c102a5f45e19bfa38a" />
++  <project groups="pdk,linux,arm" name="platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.8" path="prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.8" revision="d9735fc81434f2af2c44d86ca57740c673c8d9bc" />
++  <project groups="pdk,linux" name="platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6" path="prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.6" revision="eb5c9f0ae36bf964f6855bde54e1b387e2c26bb6" />
++  <project groups="pdk,linux" name="platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.8" path="prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.8" revision="1b0544da652fda90a41a1f69889d6b137ce20fb9" />
++  <project name="platform/prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8" path="prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8" revision="2725a175a32032fb9a63e247c176ecc3d448ea27" />
++  <project groups="pdk,linux,mips" name="platform/prebuilts/gcc/linux-x86/mips/mips64el-linux-android-4.8" path="prebuilts/gcc/linux-x86/mips/mips64el-linux-android-4.8" revision="38586de6b44714b4adcf21119fe6b267e33f3ca6" />
++  <project name="platform/prebuilts/gcc/linux-x86/mips/mips64el-linux-android-4.9" path="prebuilts/gcc/linux-x86/mips/mips64el-linux-android-4.9" revision="eabc7ae8ed527ee3d4517196732fa3f3e8939a28" />
++  <project groups="pdk,linux,mips" name="platform/prebuilts/gcc/linux-x86/mips/mipsel-linux-android-4.8" path="prebuilts/gcc/linux-x86/mips/mipsel-linux-android-4.8" revision="c06b9b305c365163c99d4ffba49ac37ce2716024" />
++  <project groups="pdk,linux,x86" name="platform/prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.8" path="prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.8" revision="e08fa7e57a573a9baa5ccd8d4b8d73cc871f9b48" />
++  <project name="platform/prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9" path="prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9" revision="e99278016e6285363bc20d1b35d4b9b5c4e8b0a0" />
++  <project name="platform/prebuilts/gradle-plugin" path="prebuilts/gradle-plugin" revision="e7814a3cbb96742ff74505a1fc152cb534fbf2f9" />
++  <project name="platform/prebuilts/maven_repo/android" path="prebuilts/maven_repo/android" revision="0dbe3df0f057de9e83e599b9be2ca866c673130d" />
++  <project groups="pdk" name="platform/prebuilts/misc" path="prebuilts/misc" revision="3cc2e316acf9da501479bbfd85159407239994d2" />
++  <project groups="pdk" name="platform/prebuilts/ndk" path="prebuilts/ndk" revision="7a8bc5c36d519c41de61765ff94245f56c4bed7a" />
++  <project groups="darwin" name="platform/prebuilts/python/darwin-x86/2.7.5" path="prebuilts/python/darwin-x86/2.7.5" revision="2bdd4fd418614c7c0101147d02199d0e47c4980e" />
++  <project groups="linux" name="platform/prebuilts/python/linux-x86/2.7.5" path="prebuilts/python/linux-x86/2.7.5" revision="6fbc8802b3b68d24a4ee83f164b22490cf702ff2" />
++  <project groups="pdk" name="platform/prebuilts/qemu-kernel" path="prebuilts/qemu-kernel" revision="5f91f38eac40a8465f3a7e4aa298a75afcf2936a" />
++  <project name="platform/prebuilts/runtime" path="prebuilts/runtime" revision="56e663b8ec9cd0df9ce5afdc7b7d56460faf44c8" />
++  <project groups="pdk" name="platform/prebuilts/sdk" path="prebuilts/sdk" revision="52043ca65e06bc84779dd8d3e55e72ad04bcef59" />
++  <project groups="pdk,tools" name="platform/prebuilts/tools" path="prebuilts/tools" revision="130c3d0a1a484d617531d75ddd50714f68213cbb" />
++  <project name="platform/sdk" path="sdk" revision="1af9ef83f5f6c6fd9202d5bdd8d4248a4eb855aa" />
++  <project groups="pdk" name="platform/system/core" path="system/core" revision="cddc97cb3a927d179a42e0fec77f0d267fcd74d1" />
++  <project groups="pdk" name="platform/system/extras" path="system/extras" revision="97ed949ec7bef088ca3d06fb7b5f3bdad9a5103c" />
++  <project name="platform/system/keymaster" path="system/keymaster" revision="7a70abbf29293b30bb1e7ed3a58deb40f8774a53" />
++  <project groups="pdk" name="platform/system/media" path="system/media" revision="77f0f32b32adc5ba1134e7a68e4d907c4f695eb6" />
++  <project groups="pdk" name="platform/system/netd" path="system/netd" revision="f5d949ef0991737af9daa7ba702cc2ec638e435b" />
++  <project groups="pdk" name="platform/system/security" path="system/security" revision="0387a7fd23021b904612101b727a2060847f6169" />
++  <project groups="pdk" name="platform/system/vold" path="system/vold" revision="c0c2867518eed4539444434c95fad8185a6ac08e" />
++  <project groups="notdefault,tools" name="platform/tools/adt/eclipse" path="tools/adt/eclipse" revision="ede2ed86419bb4c78428f1ac09825b1a247d8e24" />
++  <project groups="notdefault,tools" name="platform/tools/adt/idea" path="tools/adt/idea" revision="50a5da1af3e851df7aff37c291541000685bcad4" />
++  <project groups="notdefault,tools" name="platform/tools/base" path="tools/base" revision="4dc06057ba77596807e2d28c715719f240f71549" />
++  <project groups="notdefault,tools" name="platform/tools/build" path="tools/build" revision="69c4b95102b4b9862bfba68b3eaf5b7537a705ee" />
++  <project groups="notdefault,tools" name="platform/tools/emulator" path="tools/emulator" revision="c427e5d5227ba9413307670a5d758d9ced394a7e" />
++  <project groups="tools" name="platform/tools/external/fat32lib" path="tools/external/fat32lib" revision="3880776e41ff7def06e351720f2d162f88b58a03" />
++  <project groups="tools" name="platform/tools/external/gradle" path="tools/external/gradle" revision="842b7a27df8606faa29b0875a13270701eb78dd8" />
++  <project groups="notdefault,tools" name="platform/tools/idea" path="tools/idea" revision="12356153d01fcde14dd3a06948cfded92c20d068" />
++  <project groups="notdefault,motodev" name="platform/tools/motodev" path="tools/motodev" revision="69989786cefbde82527960a1e100ec9afba46a98" />
++  <project groups="notdefault,tools" name="platform/tools/studio/cloud" path="tools/studio/cloud" revision="839eb097c5fc73f91a722f1457a2e8e11eb4e1a5" />
++  <project groups="notdefault,tools" name="platform/tools/swt" path="tools/swt" revision="aaf3131b0e4b15d39156a6e94e5da06b0183d61d" />
++</manifest>
+diff --git tools/gyp/pylib/gyp/common.py tools/gyp/pylib/gyp/common.py
+index d482a20df3..256e3f3a6b 100644
+--- tools/gyp/pylib/gyp/common.py
++++ tools/gyp/pylib/gyp/common.py
+@@ -425,6 +425,8 @@ def GetFlavor(params):
+     return 'freebsd'
+   if sys.platform.startswith('openbsd'):
+     return 'openbsd'
++  if sys.platform.startswith('netbsd'):
++    return 'netbsd'
+   if sys.platform.startswith('aix'):
+     return 'aix'
+ 
+diff --git tools/gyp/pylib/gyp/easy_xml.py tools/gyp/pylib/gyp/easy_xml.py
+index bf949b6ac9..2b0bb60cb4 100644
+--- tools/gyp/pylib/gyp/easy_xml.py
++++ tools/gyp/pylib/gyp/easy_xml.py
+@@ -115,6 +115,11 @@ def WriteXmlIfChanged(content, path, encoding='utf-8', pretty=False,
+   xml_string = XmlToString(content, encoding, pretty)
+   if win32 and os.linesep != '\r\n':
+     xml_string = xml_string.replace('\n', '\r\n')
++    
++  try:
++    xml_string = xml_string.encode(encoding)
++  except Exception:
++    xml_string = unicode(xml_string, 'latin-1').encode(encoding)
+ 
+   # Get the old content
+   try:
+diff --git tools/gyp/pylib/gyp/generator/analyzer.py tools/gyp/pylib/gyp/generator/analyzer.py
+index f403d4e266..921c1a6b71 100644
+--- tools/gyp/pylib/gyp/generator/analyzer.py
++++ tools/gyp/pylib/gyp/generator/analyzer.py
+@@ -7,23 +7,59 @@ This script is intended for use as a GYP_GENERATOR. It takes as input (by way of
+ the generator flag config_path) the path of a json file that dictates the files
+ and targets to search for. The following keys are supported:
+ files: list of paths (relative) of the files to search for.
+-targets: list of targets to search for. The target names are unqualified.
++test_targets: unqualified target names to search for. Any target in this list
++that depends upon a file in |files| is output regardless of the type of target
++or chain of dependencies.
++additional_compile_targets: Unqualified targets to search for in addition to
++test_targets. Targets in the combined list that depend upon a file in |files|
++are not necessarily output. For example, if the target is of type none then the
++target is not output (but one of the descendants of the target will be).
+ 
+ The following is output:
+ error: only supplied if there is an error.
+-targets: the set of targets passed in via targets that either directly or
+-  indirectly depend upon the set of paths supplied in files.
+-build_targets: minimal set of targets that directly depend on the changed
+-  files and need to be built. The expectation is this set of targets is passed
+-  into a build step.
++compile_targets: minimal set of targets that directly or indirectly (for
++  targets of type none) depend on the files in |files| and is one of the
++  supplied targets or a target that one of the supplied targets depends on.
++  The expectation is this set of targets is passed into a build step. This list
++  always contains the output of test_targets as well.
++test_targets: set of targets from the supplied |test_targets| that either
++  directly or indirectly depend upon a file in |files|. This list if useful
++  if additional processing needs to be done for certain targets after the
++  build, such as running tests.
+ status: outputs one of three values: none of the supplied files were found,
+   one of the include files changed so that it should be assumed everything
+-  changed (in this case targets and build_targets are not output) or at
++  changed (in this case test_targets and compile_targets are not output) or at
+   least one file was found.
+-invalid_targets: list of supplied targets thare were not found.
++invalid_targets: list of supplied targets that were not found.
++
++Example:
++Consider a graph like the following:
++  A     D
++ / \
++B   C
++A depends upon both B and C, A is of type none and B and C are executables.
++D is an executable, has no dependencies and nothing depends on it.
++If |additional_compile_targets| = ["A"], |test_targets| = ["B", "C"] and
++files = ["b.cc", "d.cc"] (B depends upon b.cc and D depends upon d.cc), then
++the following is output:
++|compile_targets| = ["B"] B must built as it depends upon the changed file b.cc
++and the supplied target A depends upon it. A is not output as a build_target
++as it is of type none with no rules and actions.
++|test_targets| = ["B"] B directly depends upon the change file b.cc.
++
++Even though the file d.cc, which D depends upon, has changed D is not output
++as it was not supplied by way of |additional_compile_targets| or |test_targets|.
+ 
+ If the generator flag analyzer_output_path is specified, output is written
+ there. Otherwise output is written to stdout.
++
++In Gyp the "all" target is shorthand for the root targets in the files passed
++to gyp. For example, if file "a.gyp" contains targets "a1" and
++"a2", and file "b.gyp" contains targets "b1" and "b2" and "a2" has a dependency
++on "b2" and gyp is supplied "a.gyp" then "all" consists of "a1" and "a2".
++Notice that "b1" and "b2" are not in the "all" target as "b.gyp" was not
++directly supplied to gyp. OTOH if both "a.gyp" and "b.gyp" are supplied to gyp
++then the "all" target includes "b1" and "b2".
+ """
+ 
+ import gyp.common
+@@ -210,6 +246,8 @@ class Config(object):
+   def __init__(self):
+     self.files = []
+     self.targets = set()
++    self.additional_compile_target_names = set()
++    self.test_target_names = set()
+ 
+   def Init(self, params):
+     """Initializes Config. This is a separate method as it raises an exception
+@@ -229,7 +267,9 @@ class Config(object):
+     if not isinstance(config, dict):
+       raise Exception('config_path must be a JSON file containing a dictionary')
+     self.files = config.get('files', [])
+-    self.targets = set(config.get('targets', []))
++    self.additional_compile_target_names = set(
++      config.get('additional_compile_targets', []))
++    self.test_target_names = set(config.get('test_targets', []))
+ 
+ 
+ def _WasBuildFileModified(build_file, data, files, toplevel_dir):
+@@ -280,12 +320,13 @@ def _GenerateTargets(data, target_list, target_dicts, toplevel_dir, files,
+   """Returns a tuple of the following:
+   . A dictionary mapping from fully qualified name to Target.
+   . A list of the targets that have a source file in |files|.
+-  . Set of root Targets reachable from the the files |build_files|.
++  . Targets that constitute the 'all' target. See description at top of file
++    for details on the 'all' target.
+   This sets the |match_status| of the targets that contain any of the source
+   files in |files| to MATCH_STATUS_MATCHES.
+   |toplevel_dir| is the root of the source tree."""
+   # Maps from target name to Target.
+-  targets = {}
++  name_to_target = {}
+ 
+   # Targets that matched.
+   matching_targets = []
+@@ -305,7 +346,8 @@ def _GenerateTargets(data, target_list, target_dicts, toplevel_dir, files,
+ 
+   while len(targets_to_visit) > 0:
+     target_name = targets_to_visit.pop()
+-    created_target, target = _GetOrCreateTargetByName(targets, target_name)
++    created_target, target = _GetOrCreateTargetByName(name_to_target,
++                                                      target_name)
+     if created_target:
+       roots.add(target)
+     elif target.visited:
+@@ -348,22 +390,25 @@ def _GenerateTargets(data, target_list, target_dicts, toplevel_dir, files,
+     for dep in target_dicts[target_name].get('dependencies', []):
+       targets_to_visit.append(dep)
+ 
+-      created_dep_target, dep_target = _GetOrCreateTargetByName(targets, dep)
++      created_dep_target, dep_target = _GetOrCreateTargetByName(name_to_target,
++                                                                dep)
+       if not created_dep_target:
+         roots.discard(dep_target)
+ 
+       target.deps.add(dep_target)
+       dep_target.back_deps.add(target)
+ 
+-  return targets, matching_targets, roots & build_file_targets
++  return name_to_target, matching_targets, roots & build_file_targets
+ 
+ 
+ def _GetUnqualifiedToTargetMapping(all_targets, to_find):
+-  """Returns a mapping (dictionary) from unqualified name to Target for all the
+-  Targets in |to_find|."""
++  """Returns a tuple of the following:
++  . mapping (dictionary) from unqualified name to Target for all the
++    Targets in |to_find|.
++  . any target names not found. If this is empty all targets were found."""
+   result = {}
+   if not to_find:
+-    return result
++    return {}, []
+   to_find = set(to_find)
+   for target_name in all_targets.keys():
+     extracted = gyp.common.ParseQualifiedTarget(target_name)
+@@ -371,13 +416,14 @@ def _GetUnqualifiedToTargetMapping(all_targets, to_find):
+       to_find.remove(extracted[1])
+       result[extracted[1]] = all_targets[target_name]
+       if not to_find:
+-        return result
+-  return result
++        return result, []
++  return result, [x for x in to_find]
+ 
+ 
+-def _DoesTargetDependOn(target):
+-  """Returns true if |target| or any of its dependencies matches the supplied
+-  set of paths. This updates |matches| of the Targets as it recurses.
++def _DoesTargetDependOnMatchingTargets(target):
++  """Returns true if |target| or any of its dependencies is one of the
++  targets containing the files supplied as input to analyzer. This updates
++  |matches| of the Targets as it recurses.
+   target: the Target to look for."""
+   if target.match_status == MATCH_STATUS_DOESNT_MATCH:
+     return False
+@@ -385,7 +431,7 @@ def _DoesTargetDependOn(target):
+       target.match_status == MATCH_STATUS_MATCHES_BY_DEPENDENCY:
+     return True
+   for dep in target.deps:
+-    if _DoesTargetDependOn(dep):
++    if _DoesTargetDependOnMatchingTargets(dep):
+       target.match_status = MATCH_STATUS_MATCHES_BY_DEPENDENCY
+       print '\t', target.name, 'matches by dep', dep.name
+       return True
+@@ -393,19 +439,20 @@ def _DoesTargetDependOn(target):
+   return False
+ 
+ 
+-def _GetTargetsDependingOn(possible_targets):
++def _GetTargetsDependingOnMatchingTargets(possible_targets):
+   """Returns the list of Targets in |possible_targets| that depend (either
+-  directly on indirectly) on the matched targets.
++  directly on indirectly) on at least one of the targets containing the files
++  supplied as input to analyzer.
+   possible_targets: targets to search from."""
+   found = []
+   print 'Targets that matched by dependency:'
+   for target in possible_targets:
+-    if _DoesTargetDependOn(target):
++    if _DoesTargetDependOnMatchingTargets(target):
+       found.append(target)
+   return found
+ 
+ 
+-def _AddBuildTargets(target, roots, add_if_no_ancestor, result):
++def _AddCompileTargets(target, roots, add_if_no_ancestor, result):
+   """Recurses through all targets that depend on |target|, adding all targets
+   that need to be built (and are in |roots|) to |result|.
+   roots: set of root targets.
+@@ -416,10 +463,10 @@ def _AddBuildTargets(target, roots, add_if_no_ancestor, result):
+     return
+ 
+   target.visited = True
+-  target.in_roots = not target.back_deps and target in roots
++  target.in_roots = target in roots
+ 
+   for back_dep_target in target.back_deps:
+-    _AddBuildTargets(back_dep_target, roots, False, result)
++    _AddCompileTargets(back_dep_target, roots, False, result)
+     target.added_to_compile_targets |= back_dep_target.added_to_compile_targets
+     target.in_roots |= back_dep_target.in_roots
+     target.is_or_has_linked_ancestor |= (
+@@ -437,7 +484,7 @@ def _AddBuildTargets(target, roots, add_if_no_ancestor, result):
+           (add_if_no_ancestor or target.requires_build)) or
+          (target.is_static_library and add_if_no_ancestor and
+           not target.is_or_has_linked_ancestor)):
+-    print '\t\tadding to build targets', target.name, 'executable', \
++    print '\t\tadding to compile targets', target.name, 'executable', \
+            target.is_executable, 'added_to_compile_targets', \
+            target.added_to_compile_targets, 'add_if_no_ancestor', \
+            add_if_no_ancestor, 'requires_build', target.requires_build, \
+@@ -447,14 +494,14 @@ def _AddBuildTargets(target, roots, add_if_no_ancestor, result):
+     target.added_to_compile_targets = True
+ 
+ 
+-def _GetBuildTargets(matching_targets, roots):
++def _GetCompileTargets(matching_targets, supplied_targets):
+   """Returns the set of Targets that require a build.
+   matching_targets: targets that changed and need to be built.
+-  roots: set of root targets in the build files to search from."""
++  supplied_targets: set of targets supplied to analyzer to search from."""
+   result = set()
+   for target in matching_targets:
+-    print '\tfinding build targets for match', target.name
+-    _AddBuildTargets(target, roots, True, result)
++    print 'finding compile targets for match', target.name
++    _AddCompileTargets(target, supplied_targets, True, result)
+   return result
+ 
+ 
+@@ -479,6 +526,16 @@ def _WriteOutput(params, **values):
+     print 'Targets that require a build:'
+     for target in values['build_targets']:
+       print '\t', target
++  if 'compile_targets' in values:
++    values['compile_targets'].sort()
++    print 'Targets that need to be built:'
++    for target in values['compile_targets']:
++      print '\t', target
++  if 'test_targets' in values:
++    values['test_targets'].sort()
++    print 'Test targets:'
++    for target in values['test_targets']:
++      print '\t', target
+ 
+   output_path = params.get('generator_flags', {}).get(
+       'analyzer_output_path', None)
+@@ -538,11 +595,104 @@ def CalculateVariables(default_variables, params):
+     default_variables.setdefault('OS', operating_system)
+ 
+ 
++class TargetCalculator(object):
++  """Calculates the matching test_targets and matching compile_targets."""
++  def __init__(self, files, additional_compile_target_names, test_target_names,
++               data, target_list, target_dicts, toplevel_dir, build_files):
++    self._additional_compile_target_names = set(additional_compile_target_names)
++    self._test_target_names = set(test_target_names)
++    self._name_to_target, self._changed_targets, self._root_targets = (
++      _GenerateTargets(data, target_list, target_dicts, toplevel_dir,
++                       frozenset(files), build_files))
++    self._unqualified_mapping, self.invalid_targets = (
++      _GetUnqualifiedToTargetMapping(self._name_to_target,
++                                     self._supplied_target_names_no_all()))
++
++  def _supplied_target_names(self):
++    return self._additional_compile_target_names | self._test_target_names
++
++  def _supplied_target_names_no_all(self):
++    """Returns the supplied test targets without 'all'."""
++    result = self._supplied_target_names();
++    result.discard('all')
++    return result
++
++  def is_build_impacted(self):
++    """Returns true if the supplied files impact the build at all."""
++    return self._changed_targets
++
++  def find_matching_test_target_names(self):
++    """Returns the set of output test targets."""
++    assert self.is_build_impacted()
++    # Find the test targets first. 'all' is special cased to mean all the
++    # root targets. To deal with all the supplied |test_targets| are expanded
++    # to include the root targets during lookup. If any of the root targets
++    # match, we remove it and replace it with 'all'.
++    test_target_names_no_all = set(self._test_target_names)
++    test_target_names_no_all.discard('all')
++    test_targets_no_all = _LookupTargets(test_target_names_no_all,
++                                         self._unqualified_mapping)
++    test_target_names_contains_all = 'all' in self._test_target_names
++    if test_target_names_contains_all:
++      test_targets = [x for x in (set(test_targets_no_all) |
++                                  set(self._root_targets))]
++    else:
++      test_targets = [x for x in test_targets_no_all]
++    print 'supplied test_targets'
++    for target_name in self._test_target_names:
++      print '\t', target_name
++    print 'found test_targets'
++    for target in test_targets:
++      print '\t', target.name
++    print 'searching for matching test targets'
++    matching_test_targets = _GetTargetsDependingOnMatchingTargets(test_targets)
++    matching_test_targets_contains_all = (test_target_names_contains_all and
++                                          set(matching_test_targets) &
++                                          set(self._root_targets))
++    if matching_test_targets_contains_all:
++      # Remove any of the targets for all that were not explicitly supplied,
++      # 'all' is subsequentely added to the matching names below.
++      matching_test_targets = [x for x in (set(matching_test_targets) &
++                                           set(test_targets_no_all))]
++    print 'matched test_targets'
++    for target in matching_test_targets:
++      print '\t', target.name
++    matching_target_names = [gyp.common.ParseQualifiedTarget(target.name)[1]
++                             for target in matching_test_targets]
++    if matching_test_targets_contains_all:
++      matching_target_names.append('all')
++      print '\tall'
++    return matching_target_names
++
++  def find_matching_compile_target_names(self):
++    """Returns the set of output compile targets."""
++    assert self.is_build_impacted();
++    # Compile targets are found by searching up from changed targets.
++    # Reset the visited status for _GetBuildTargets.
++    for target in self._name_to_target.itervalues():
++      target.visited = False
++
++    supplied_targets = _LookupTargets(self._supplied_target_names_no_all(),
++                                      self._unqualified_mapping)
++    if 'all' in self._supplied_target_names():
++      supplied_targets = [x for x in (set(supplied_targets) |
++                                      set(self._root_targets))]
++    print 'Supplied test_targets & compile_targets'
++    for target in supplied_targets:
++      print '\t', target.name
++    print 'Finding compile targets'
++    compile_targets = _GetCompileTargets(self._changed_targets,
++                                         supplied_targets)
++    return [gyp.common.ParseQualifiedTarget(target.name)[1]
++            for target in compile_targets]
++
++
+ def GenerateOutput(target_list, target_dicts, data, params):
+   """Called by gyp as the final stage. Outputs results."""
+   config = Config()
+   try:
+     config.Init(params)
++
+     if not config.files:
+       raise Exception('Must specify files to analyze via config_path generator '
+                       'flag')
+@@ -553,55 +703,38 @@ def GenerateOutput(target_list, target_dicts, data, params):
+ 
+     if _WasGypIncludeFileModified(params, config.files):
+       result_dict = { 'status': all_changed_string,
+-                      'targets': list(config.targets) }
++                      'test_targets': list(config.test_target_names),
++                      'compile_targets': list(
++                        config.additional_compile_target_names |
++                        config.test_target_names) }
+       _WriteOutput(params, **result_dict)
+       return
+ 
+-    all_targets, matching_targets, roots = _GenerateTargets(
+-      data, target_list, target_dicts, toplevel_dir, frozenset(config.files),
+-      params['build_files'])
+-
+-    print 'roots:'
+-    for root in roots:
+-      print '\t', root.name
+-
+-    unqualified_mapping = _GetUnqualifiedToTargetMapping(all_targets,
+-                                                         config.targets)
+-    invalid_targets = None
+-    if len(unqualified_mapping) != len(config.targets):
+-      invalid_targets = _NamesNotIn(config.targets, unqualified_mapping)
+-
+-    if matching_targets:
+-      search_targets = _LookupTargets(config.targets, unqualified_mapping)
+-      print 'supplied targets'
+-      for target in config.targets:
+-        print '\t', target
+-      print 'expanded supplied targets'
+-      for target in search_targets:
+-        print '\t', target.name
+-      matched_search_targets = _GetTargetsDependingOn(search_targets)
+-      print 'raw matched search targets:'
+-      for target in matched_search_targets:
+-        print '\t', target.name
+-      # Reset the visited status for _GetBuildTargets.
+-      for target in all_targets.itervalues():
+-        target.visited = False
+-      print 'Finding build targets'
+-      build_targets = _GetBuildTargets(matching_targets, roots)
+-      matched_search_targets = [gyp.common.ParseQualifiedTarget(target.name)[1]
+-                                for target in matched_search_targets]
+-      build_targets = [gyp.common.ParseQualifiedTarget(target.name)[1]
+-                       for target in build_targets]
+-    else:
+-      matched_search_targets = []
+-      build_targets = []
+-
+-    result_dict = { 'targets': matched_search_targets,
+-                    'status': found_dependency_string if matching_targets else
+-                              no_dependency_string,
+-                    'build_targets': build_targets}
+-    if invalid_targets:
+-      result_dict['invalid_targets'] = invalid_targets
++    calculator = TargetCalculator(config.files,
++                                  config.additional_compile_target_names,
++                                  config.test_target_names, data,
++                                  target_list, target_dicts, toplevel_dir,
++                                  params['build_files'])
++    if not calculator.is_build_impacted():
++      result_dict = { 'status': no_dependency_string,
++                      'test_targets': [],
++                      'compile_targets': [] }
++      if calculator.invalid_targets:
++        result_dict['invalid_targets'] = calculator.invalid_targets
++      _WriteOutput(params, **result_dict)
++      return
++
++    test_target_names = calculator.find_matching_test_target_names()
++    compile_target_names = calculator.find_matching_compile_target_names()
++    found_at_least_one_target = compile_target_names or test_target_names
++    result_dict = { 'test_targets': test_target_names,
++                    'status': found_dependency_string if
++                        found_at_least_one_target else no_dependency_string,
++                    'compile_targets': list(
++                        set(compile_target_names) |
++                        set(test_target_names)) }
++    if calculator.invalid_targets:
++      result_dict['invalid_targets'] = calculator.invalid_targets
+     _WriteOutput(params, **result_dict)
+ 
+   except Exception as e:
+diff --git tools/gyp/pylib/gyp/generator/android.py tools/gyp/pylib/gyp/generator/android.py
+new file mode 100644
+index 0000000000..5b26cc785a
+--- /dev/null
++++ tools/gyp/pylib/gyp/generator/android.py
+@@ -0,0 +1,1095 @@
++# Copyright (c) 2012 Google Inc. All rights reserved.
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++# Notes:
++#
++# This generates makefiles suitable for inclusion into the Android build system
++# via an Android.mk file. It is based on make.py, the standard makefile
++# generator.
++#
++# The code below generates a separate .mk file for each target, but
++# all are sourced by the top-level GypAndroid.mk.  This means that all
++# variables in .mk-files clobber one another, and furthermore that any
++# variables set potentially clash with other Android build system variables.
++# Try to avoid setting global variables where possible.
++
++import gyp
++import gyp.common
++import gyp.generator.make as make  # Reuse global functions from make backend.
++import os
++import re
++import subprocess
++
++generator_default_variables = {
++  'OS': 'android',
++  'EXECUTABLE_PREFIX': '',
++  'EXECUTABLE_SUFFIX': '',
++  'STATIC_LIB_PREFIX': 'lib',
++  'SHARED_LIB_PREFIX': 'lib',
++  'STATIC_LIB_SUFFIX': '.a',
++  'SHARED_LIB_SUFFIX': '.so',
++  'INTERMEDIATE_DIR': '$(gyp_intermediate_dir)',
++  'SHARED_INTERMEDIATE_DIR': '$(gyp_shared_intermediate_dir)',
++  'PRODUCT_DIR': '$(gyp_shared_intermediate_dir)',
++  'SHARED_LIB_DIR': '$(builddir)/lib.$(TOOLSET)',
++  'LIB_DIR': '$(obj).$(TOOLSET)',
++  'RULE_INPUT_ROOT': '%(INPUT_ROOT)s',  # This gets expanded by Python.
++  'RULE_INPUT_DIRNAME': '%(INPUT_DIRNAME)s',  # This gets expanded by Python.
++  'RULE_INPUT_PATH': '$(RULE_SOURCES)',
++  'RULE_INPUT_EXT': '$(suffix $<)',
++  'RULE_INPUT_NAME': '$(notdir $<)',
++  'CONFIGURATION_NAME': '$(GYP_CONFIGURATION)',
++}
++
++# Make supports multiple toolsets
++generator_supports_multiple_toolsets = True
++
++
++# Generator-specific gyp specs.
++generator_additional_non_configuration_keys = [
++    # Boolean to declare that this target does not want its name mangled.
++    'android_unmangled_name',
++    # Map of android build system variables to set.
++    'aosp_build_settings',
++]
++generator_additional_path_sections = []
++generator_extra_sources_for_rules = []
++
++
++ALL_MODULES_FOOTER = """\
++# "gyp_all_modules" is a concatenation of the "gyp_all_modules" targets from
++# all the included sub-makefiles. This is just here to clarify.
++gyp_all_modules:
++"""
++
++header = """\
++# This file is generated by gyp; do not edit.
++
++"""
++
++# Map gyp target types to Android module classes.
++MODULE_CLASSES = {
++    'static_library': 'STATIC_LIBRARIES',
++    'shared_library': 'SHARED_LIBRARIES',
++    'executable': 'EXECUTABLES',
++}
++
++
++def IsCPPExtension(ext):
++  return make.COMPILABLE_EXTENSIONS.get(ext) == 'cxx'
++
++
++def Sourceify(path):
++  """Convert a path to its source directory form. The Android backend does not
++     support options.generator_output, so this function is a noop."""
++  return path
++
++
++# Map from qualified target to path to output.
++# For Android, the target of these maps is a tuple ('static', 'modulename'),
++# ('dynamic', 'modulename'), or ('path', 'some/path') instead of a string,
++# since we link by module.
++target_outputs = {}
++# Map from qualified target to any linkable output.  A subset
++# of target_outputs.  E.g. when mybinary depends on liba, we want to
++# include liba in the linker line; when otherbinary depends on
++# mybinary, we just want to build mybinary first.
++target_link_deps = {}
++
++
++class AndroidMkWriter(object):
++  """AndroidMkWriter packages up the writing of one target-specific Android.mk.
++
++  Its only real entry point is Write(), and is mostly used for namespacing.
++  """
++
++  def __init__(self, android_top_dir):
++    self.android_top_dir = android_top_dir
++
++  def Write(self, qualified_target, relative_target, base_path, output_filename,
++            spec, configs, part_of_all, write_alias_target, sdk_version):
++    """The main entry point: writes a .mk file for a single target.
++
++    Arguments:
++      qualified_target: target we're generating
++      relative_target: qualified target name relative to the root
++      base_path: path relative to source root we're building in, used to resolve
++                 target-relative paths
++      output_filename: output .mk file name to write
++      spec, configs: gyp info
++      part_of_all: flag indicating this target is part of 'all'
++      write_alias_target: flag indicating whether to create short aliases for
++                          this target
++      sdk_version: what to emit for LOCAL_SDK_VERSION in output
++    """
++    gyp.common.EnsureDirExists(output_filename)
++
++    self.fp = open(output_filename, 'w')
++
++    self.fp.write(header)
++
++    self.qualified_target = qualified_target
++    self.relative_target = relative_target
++    self.path = base_path
++    self.target = spec['target_name']
++    self.type = spec['type']
++    self.toolset = spec['toolset']
++
++    deps, link_deps = self.ComputeDeps(spec)
++
++    # Some of the generation below can add extra output, sources, or
++    # link dependencies.  All of the out params of the functions that
++    # follow use names like extra_foo.
++    extra_outputs = []
++    extra_sources = []
++
++    self.android_class = MODULE_CLASSES.get(self.type, 'GYP')
++    self.android_module = self.ComputeAndroidModule(spec)
++    (self.android_stem, self.android_suffix) = self.ComputeOutputParts(spec)
++    self.output = self.output_binary = self.ComputeOutput(spec)
++
++    # Standard header.
++    self.WriteLn('include $(CLEAR_VARS)\n')
++
++    # Module class and name.
++    self.WriteLn('LOCAL_MODULE_CLASS := ' + self.android_class)
++    self.WriteLn('LOCAL_MODULE := ' + self.android_module)
++    # Only emit LOCAL_MODULE_STEM if it's different to LOCAL_MODULE.
++    # The library module classes fail if the stem is set. ComputeOutputParts
++    # makes sure that stem == modulename in these cases.
++    if self.android_stem != self.android_module:
++      self.WriteLn('LOCAL_MODULE_STEM := ' + self.android_stem)
++    self.WriteLn('LOCAL_MODULE_SUFFIX := ' + self.android_suffix)
++    if self.toolset == 'host':
++      self.WriteLn('LOCAL_IS_HOST_MODULE := true')
++      self.WriteLn('LOCAL_MULTILIB := $(GYP_HOST_MULTILIB)')
++    elif sdk_version > 0:
++      self.WriteLn('LOCAL_MODULE_TARGET_ARCH := '
++                   '$(TARGET_$(GYP_VAR_PREFIX)ARCH)')
++      self.WriteLn('LOCAL_SDK_VERSION := %s' % sdk_version)
++
++    # Grab output directories; needed for Actions and Rules.
++    if self.toolset == 'host':
++      self.WriteLn('gyp_intermediate_dir := '
++                   '$(call local-intermediates-dir,,$(GYP_HOST_VAR_PREFIX))')
++    else:
++      self.WriteLn('gyp_intermediate_dir := '
++                   '$(call local-intermediates-dir,,$(GYP_VAR_PREFIX))')
++    self.WriteLn('gyp_shared_intermediate_dir := '
++                 '$(call intermediates-dir-for,GYP,shared,,,$(GYP_VAR_PREFIX))')
++    self.WriteLn()
++
++    # List files this target depends on so that actions/rules/copies/sources
++    # can depend on the list.
++    # TODO: doesn't pull in things through transitive link deps; needed?
++    target_dependencies = [x[1] for x in deps if x[0] == 'path']
++    self.WriteLn('# Make sure our deps are built first.')
++    self.WriteList(target_dependencies, 'GYP_TARGET_DEPENDENCIES',
++                   local_pathify=True)
++
++    # Actions must come first, since they can generate more OBJs for use below.
++    if 'actions' in spec:
++      self.WriteActions(spec['actions'], extra_sources, extra_outputs)
++
++    # Rules must be early like actions.
++    if 'rules' in spec:
++      self.WriteRules(spec['rules'], extra_sources, extra_outputs)
++
++    if 'copies' in spec:
++      self.WriteCopies(spec['copies'], extra_outputs)
++
++    # GYP generated outputs.
++    self.WriteList(extra_outputs, 'GYP_GENERATED_OUTPUTS', local_pathify=True)
++
++    # Set LOCAL_ADDITIONAL_DEPENDENCIES so that Android's build rules depend
++    # on both our dependency targets and our generated files.
++    self.WriteLn('# Make sure our deps and generated files are built first.')
++    self.WriteLn('LOCAL_ADDITIONAL_DEPENDENCIES := $(GYP_TARGET_DEPENDENCIES) '
++                 '$(GYP_GENERATED_OUTPUTS)')
++    self.WriteLn()
++
++    # Sources.
++    if spec.get('sources', []) or extra_sources:
++      self.WriteSources(spec, configs, extra_sources)
++
++    self.WriteTarget(spec, configs, deps, link_deps, part_of_all,
++                     write_alias_target)
++
++    # Update global list of target outputs, used in dependency tracking.
++    target_outputs[qualified_target] = ('path', self.output_binary)
++
++    # Update global list of link dependencies.
++    if self.type == 'static_library':
++      target_link_deps[qualified_target] = ('static', self.android_module)
++    elif self.type == 'shared_library':
++      target_link_deps[qualified_target] = ('shared', self.android_module)
++
++    self.fp.close()
++    return self.android_module
++
++
++  def WriteActions(self, actions, extra_sources, extra_outputs):
++    """Write Makefile code for any 'actions' from the gyp input.
++
++    extra_sources: a list that will be filled in with newly generated source
++                   files, if any
++    extra_outputs: a list that will be filled in with any outputs of these
++                   actions (used to make other pieces dependent on these
++                   actions)
++    """
++    for action in actions:
++      name = make.StringToMakefileVariable('%s_%s' % (self.relative_target,
++                                                      action['action_name']))
++      self.WriteLn('### Rules for action "%s":' % action['action_name'])
++      inputs = action['inputs']
++      outputs = action['outputs']
++
++      # Build up a list of outputs.
++      # Collect the output dirs we'll need.
++      dirs = set()
++      for out in outputs:
++        if not out.startswith('$'):
++          print ('WARNING: Action for target "%s" writes output to local path '
++                 '"%s".' % (self.target, out))
++        dir = os.path.split(out)[0]
++        if dir:
++          dirs.add(dir)
++      if int(action.get('process_outputs_as_sources', False)):
++        extra_sources += outputs
++
++      # Prepare the actual command.
++      command = gyp.common.EncodePOSIXShellList(action['action'])
++      if 'message' in action:
++        quiet_cmd = 'Gyp action: %s ($@)' % action['message']
++      else:
++        quiet_cmd = 'Gyp action: %s ($@)' % name
++      if len(dirs) > 0:
++        command = 'mkdir -p %s' % ' '.join(dirs) + '; ' + command
++
++      cd_action = 'cd $(gyp_local_path)/%s; ' % self.path
++      command = cd_action + command
++
++      # The makefile rules are all relative to the top dir, but the gyp actions
++      # are defined relative to their containing dir.  This replaces the gyp_*
++      # variables for the action rule with an absolute version so that the
++      # output goes in the right place.
++      # Only write the gyp_* rules for the "primary" output (:1);
++      # it's superfluous for the "extra outputs", and this avoids accidentally
++      # writing duplicate dummy rules for those outputs.
++      main_output = make.QuoteSpaces(self.LocalPathify(outputs[0]))
++      self.WriteLn('%s: gyp_local_path := $(LOCAL_PATH)' % main_output)
++      self.WriteLn('%s: gyp_var_prefix := $(GYP_VAR_PREFIX)' % main_output)
++      self.WriteLn('%s: gyp_intermediate_dir := '
++                   '$(abspath $(gyp_intermediate_dir))' % main_output)
++      self.WriteLn('%s: gyp_shared_intermediate_dir := '
++                   '$(abspath $(gyp_shared_intermediate_dir))' % main_output)
++
++      # Android's envsetup.sh adds a number of directories to the path including
++      # the built host binary directory. This causes actions/rules invoked by
++      # gyp to sometimes use these instead of system versions, e.g. bison.
++      # The built host binaries may not be suitable, and can cause errors.
++      # So, we remove them from the PATH using the ANDROID_BUILD_PATHS variable
++      # set by envsetup.
++      self.WriteLn('%s: export PATH := $(subst $(ANDROID_BUILD_PATHS),,$(PATH))'
++                   % main_output)
++
++      # Don't allow spaces in input/output filenames, but make an exception for
++      # filenames which start with '$(' since it's okay for there to be spaces
++      # inside of make function/macro invocations.
++      for input in inputs:
++        if not input.startswith('$(') and ' ' in input:
++          raise gyp.common.GypError(
++              'Action input filename "%s" in target %s contains a space' %
++              (input, self.target))
++      for output in outputs:
++        if not output.startswith('$(') and ' ' in output:
++          raise gyp.common.GypError(
++              'Action output filename "%s" in target %s contains a space' %
++              (output, self.target))
++
++      self.WriteLn('%s: %s $(GYP_TARGET_DEPENDENCIES)' %
++                   (main_output, ' '.join(map(self.LocalPathify, inputs))))
++      self.WriteLn('\t@echo "%s"' % quiet_cmd)
++      self.WriteLn('\t$(hide)%s\n' % command)
++      for output in outputs[1:]:
++        # Make each output depend on the main output, with an empty command
++        # to force make to notice that the mtime has changed.
++        self.WriteLn('%s: %s ;' % (self.LocalPathify(output), main_output))
++
++      extra_outputs += outputs
++      self.WriteLn()
++
++    self.WriteLn()
++
++
++  def WriteRules(self, rules, extra_sources, extra_outputs):
++    """Write Makefile code for any 'rules' from the gyp input.
++
++    extra_sources: a list that will be filled in with newly generated source
++                   files, if any
++    extra_outputs: a list that will be filled in with any outputs of these
++                   rules (used to make other pieces dependent on these rules)
++    """
++    if len(rules) == 0:
++      return
++
++    for rule in rules:
++      if len(rule.get('rule_sources', [])) == 0:
++        continue
++      name = make.StringToMakefileVariable('%s_%s' % (self.relative_target,
++                                                      rule['rule_name']))
++      self.WriteLn('\n### Generated for rule "%s":' % name)
++      self.WriteLn('# "%s":' % rule)
++
++      inputs = rule.get('inputs')
++      for rule_source in rule.get('rule_sources', []):
++        (rule_source_dirname, rule_source_basename) = os.path.split(rule_source)
++        (rule_source_root, rule_source_ext) = \
++            os.path.splitext(rule_source_basename)
++
++        outputs = [self.ExpandInputRoot(out, rule_source_root,
++                                        rule_source_dirname)
++                   for out in rule['outputs']]
++
++        dirs = set()
++        for out in outputs:
++          if not out.startswith('$'):
++            print ('WARNING: Rule for target %s writes output to local path %s'
++                   % (self.target, out))
++          dir = os.path.dirname(out)
++          if dir:
++            dirs.add(dir)
++        extra_outputs += outputs
++        if int(rule.get('process_outputs_as_sources', False)):
++          extra_sources.extend(outputs)
++
++        components = []
++        for component in rule['action']:
++          component = self.ExpandInputRoot(component, rule_source_root,
++                                           rule_source_dirname)
++          if '$(RULE_SOURCES)' in component:
++            component = component.replace('$(RULE_SOURCES)',
++                                          rule_source)
++          components.append(component)
++
++        command = gyp.common.EncodePOSIXShellList(components)
++        cd_action = 'cd $(gyp_local_path)/%s; ' % self.path
++        command = cd_action + command
++        if dirs:
++          command = 'mkdir -p %s' % ' '.join(dirs) + '; ' + command
++
++        # We set up a rule to build the first output, and then set up
++        # a rule for each additional output to depend on the first.
++        outputs = map(self.LocalPathify, outputs)
++        main_output = outputs[0]
++        self.WriteLn('%s: gyp_local_path := $(LOCAL_PATH)' % main_output)
++        self.WriteLn('%s: gyp_var_prefix := $(GYP_VAR_PREFIX)' % main_output)
++        self.WriteLn('%s: gyp_intermediate_dir := '
++                     '$(abspath $(gyp_intermediate_dir))' % main_output)
++        self.WriteLn('%s: gyp_shared_intermediate_dir := '
++                     '$(abspath $(gyp_shared_intermediate_dir))' % main_output)
++
++        # See explanation in WriteActions.
++        self.WriteLn('%s: export PATH := '
++                     '$(subst $(ANDROID_BUILD_PATHS),,$(PATH))' % main_output)
++
++        main_output_deps = self.LocalPathify(rule_source)
++        if inputs:
++          main_output_deps += ' '
++          main_output_deps += ' '.join([self.LocalPathify(f) for f in inputs])
++
++        self.WriteLn('%s: %s $(GYP_TARGET_DEPENDENCIES)' %
++                     (main_output, main_output_deps))
++        self.WriteLn('\t%s\n' % command)
++        for output in outputs[1:]:
++          # Make each output depend on the main output, with an empty command
++          # to force make to notice that the mtime has changed.
++          self.WriteLn('%s: %s ;' % (output, main_output))
++        self.WriteLn()
++
++    self.WriteLn()
++
++
++  def WriteCopies(self, copies, extra_outputs):
++    """Write Makefile code for any 'copies' from the gyp input.
++
++    extra_outputs: a list that will be filled in with any outputs of this action
++                   (used to make other pieces dependent on this action)
++    """
++    self.WriteLn('### Generated for copy rule.')
++
++    variable = make.StringToMakefileVariable(self.relative_target + '_copies')
++    outputs = []
++    for copy in copies:
++      for path in copy['files']:
++        # The Android build system does not allow generation of files into the
++        # source tree. The destination should start with a variable, which will
++        # typically be $(gyp_intermediate_dir) or
++        # $(gyp_shared_intermediate_dir). Note that we can't use an assertion
++        # because some of the gyp tests depend on this.
++        if not copy['destination'].startswith('$'):
++          print ('WARNING: Copy rule for target %s writes output to '
++                 'local path %s' % (self.target, copy['destination']))
++
++        # LocalPathify() calls normpath, stripping trailing slashes.
++        path = Sourceify(self.LocalPathify(path))
++        filename = os.path.split(path)[1]
++        output = Sourceify(self.LocalPathify(os.path.join(copy['destination'],
++                                                          filename)))
++
++        self.WriteLn('%s: %s $(GYP_TARGET_DEPENDENCIES) | $(ACP)' %
++                     (output, path))
++        self.WriteLn('\t@echo Copying: $@')
++        self.WriteLn('\t$(hide) mkdir -p $(dir $@)')
++        self.WriteLn('\t$(hide) $(ACP) -rpf $< $@')
++        self.WriteLn()
++        outputs.append(output)
++    self.WriteLn('%s = %s' % (variable,
++                              ' '.join(map(make.QuoteSpaces, outputs))))
++    extra_outputs.append('$(%s)' % variable)
++    self.WriteLn()
++
++
++  def WriteSourceFlags(self, spec, configs):
++    """Write out the flags and include paths used to compile source files for
++    the current target.
++
++    Args:
++      spec, configs: input from gyp.
++    """
++    for configname, config in sorted(configs.iteritems()):
++      extracted_includes = []
++
++      self.WriteLn('\n# Flags passed to both C and C++ files.')
++      cflags, includes_from_cflags = self.ExtractIncludesFromCFlags(
++          config.get('cflags', []) + config.get('cflags_c', []))
++      extracted_includes.extend(includes_from_cflags)
++      self.WriteList(cflags, 'MY_CFLAGS_%s' % configname)
++
++      self.WriteList(config.get('defines'), 'MY_DEFS_%s' % configname,
++                     prefix='-D', quoter=make.EscapeCppDefine)
++
++      self.WriteLn('\n# Include paths placed before CFLAGS/CPPFLAGS')
++      includes = list(config.get('include_dirs', []))
++      includes.extend(extracted_includes)
++      includes = map(Sourceify, map(self.LocalPathify, includes))
++      includes = self.NormalizeIncludePaths(includes)
++      self.WriteList(includes, 'LOCAL_C_INCLUDES_%s' % configname)
++
++      self.WriteLn('\n# Flags passed to only C++ (and not C) files.')
++      self.WriteList(config.get('cflags_cc'), 'LOCAL_CPPFLAGS_%s' % configname)
++
++    self.WriteLn('\nLOCAL_CFLAGS := $(MY_CFLAGS_$(GYP_CONFIGURATION)) '
++                 '$(MY_DEFS_$(GYP_CONFIGURATION))')
++    # Undefine ANDROID for host modules
++    # TODO: the source code should not use macro ANDROID to tell if it's host
++    # or target module.
++    if self.toolset == 'host':
++      self.WriteLn('# Undefine ANDROID for host modules')
++      self.WriteLn('LOCAL_CFLAGS += -UANDROID')
++    self.WriteLn('LOCAL_C_INCLUDES := $(GYP_COPIED_SOURCE_ORIGIN_DIRS) '
++                                     '$(LOCAL_C_INCLUDES_$(GYP_CONFIGURATION))')
++    self.WriteLn('LOCAL_CPPFLAGS := $(LOCAL_CPPFLAGS_$(GYP_CONFIGURATION))')
++    # Android uses separate flags for assembly file invocations, but gyp expects
++    # the same CFLAGS to be applied:
++    self.WriteLn('LOCAL_ASFLAGS := $(LOCAL_CFLAGS)')
++
++
++  def WriteSources(self, spec, configs, extra_sources):
++    """Write Makefile code for any 'sources' from the gyp input.
++    These are source files necessary to build the current target.
++    We need to handle shared_intermediate directory source files as
++    a special case by copying them to the intermediate directory and
++    treating them as a genereated sources. Otherwise the Android build
++    rules won't pick them up.
++
++    Args:
++      spec, configs: input from gyp.
++      extra_sources: Sources generated from Actions or Rules.
++    """
++    sources = filter(make.Compilable, spec.get('sources', []))
++    generated_not_sources = [x for x in extra_sources if not make.Compilable(x)]
++    extra_sources = filter(make.Compilable, extra_sources)
++
++    # Determine and output the C++ extension used by these sources.
++    # We simply find the first C++ file and use that extension.
++    all_sources = sources + extra_sources
++    local_cpp_extension = '.cpp'
++    for source in all_sources:
++      (root, ext) = os.path.splitext(source)
++      if IsCPPExtension(ext):
++        local_cpp_extension = ext
++        break
++    if local_cpp_extension != '.cpp':
++      self.WriteLn('LOCAL_CPP_EXTENSION := %s' % local_cpp_extension)
++
++    # We need to move any non-generated sources that are coming from the
++    # shared intermediate directory out of LOCAL_SRC_FILES and put them
++    # into LOCAL_GENERATED_SOURCES. We also need to move over any C++ files
++    # that don't match our local_cpp_extension, since Android will only
++    # generate Makefile rules for a single LOCAL_CPP_EXTENSION.
++    local_files = []
++    for source in sources:
++      (root, ext) = os.path.splitext(source)
++      if '$(gyp_shared_intermediate_dir)' in source:
++        extra_sources.append(source)
++      elif '$(gyp_intermediate_dir)' in source:
++        extra_sources.append(source)
++      elif IsCPPExtension(ext) and ext != local_cpp_extension:
++        extra_sources.append(source)
++      else:
++        local_files.append(os.path.normpath(os.path.join(self.path, source)))
++
++    # For any generated source, if it is coming from the shared intermediate
++    # directory then we add a Make rule to copy them to the local intermediate
++    # directory first. This is because the Android LOCAL_GENERATED_SOURCES
++    # must be in the local module intermediate directory for the compile rules
++    # to work properly. If the file has the wrong C++ extension, then we add
++    # a rule to copy that to intermediates and use the new version.
++    final_generated_sources = []
++    # If a source file gets copied, we still need to add the orginal source
++    # directory as header search path, for GCC searches headers in the
++    # directory that contains the source file by default.
++    origin_src_dirs = []
++    for source in extra_sources:
++      local_file = source
++      if not '$(gyp_intermediate_dir)/' in local_file:
++        basename = os.path.basename(local_file)
++        local_file = '$(gyp_intermediate_dir)/' + basename
++      (root, ext) = os.path.splitext(local_file)
++      if IsCPPExtension(ext) and ext != local_cpp_extension:
++        local_file = root + local_cpp_extension
++      if local_file != source:
++        self.WriteLn('%s: %s' % (local_file, self.LocalPathify(source)))
++        self.WriteLn('\tmkdir -p $(@D); cp $< $@')
++        origin_src_dirs.append(os.path.dirname(source))
++      final_generated_sources.append(local_file)
++
++    # We add back in all of the non-compilable stuff to make sure that the
++    # make rules have dependencies on them.
++    final_generated_sources.extend(generated_not_sources)
++    self.WriteList(final_generated_sources, 'LOCAL_GENERATED_SOURCES')
++
++    origin_src_dirs = gyp.common.uniquer(origin_src_dirs)
++    origin_src_dirs = map(Sourceify, map(self.LocalPathify, origin_src_dirs))
++    self.WriteList(origin_src_dirs, 'GYP_COPIED_SOURCE_ORIGIN_DIRS')
++
++    self.WriteList(local_files, 'LOCAL_SRC_FILES')
++
++    # Write out the flags used to compile the source; this must be done last
++    # so that GYP_COPIED_SOURCE_ORIGIN_DIRS can be used as an include path.
++    self.WriteSourceFlags(spec, configs)
++
++
++  def ComputeAndroidModule(self, spec):
++    """Return the Android module name used for a gyp spec.
++
++    We use the complete qualified target name to avoid collisions between
++    duplicate targets in different directories. We also add a suffix to
++    distinguish gyp-generated module names.
++    """
++
++    if int(spec.get('android_unmangled_name', 0)):
++      assert self.type != 'shared_library' or self.target.startswith('lib')
++      return self.target
++
++    if self.type == 'shared_library':
++      # For reasons of convention, the Android build system requires that all
++      # shared library modules are named 'libfoo' when generating -l flags.
++      prefix = 'lib_'
++    else:
++      prefix = ''
++
++    if spec['toolset'] == 'host':
++      suffix = '_$(TARGET_$(GYP_VAR_PREFIX)ARCH)_host_gyp'
++    else:
++      suffix = '_gyp'
++
++    if self.path:
++      middle = make.StringToMakefileVariable('%s_%s' % (self.path, self.target))
++    else:
++      middle = make.StringToMakefileVariable(self.target)
++
++    return ''.join([prefix, middle, suffix])
++
++
++  def ComputeOutputParts(self, spec):
++    """Return the 'output basename' of a gyp spec, split into filename + ext.
++
++    Android libraries must be named the same thing as their module name,
++    otherwise the linker can't find them, so product_name and so on must be
++    ignored if we are building a library, and the "lib" prepending is
++    not done for Android.
++    """
++    assert self.type != 'loadable_module' # TODO: not supported?
++
++    target = spec['target_name']
++    target_prefix = ''
++    target_ext = ''
++    if self.type == 'static_library':
++      target = self.ComputeAndroidModule(spec)
++      target_ext = '.a'
++    elif self.type == 'shared_library':
++      target = self.ComputeAndroidModule(spec)
++      target_ext = '.so'
++    elif self.type == 'none':
++      target_ext = '.stamp'
++    elif self.type != 'executable':
++      print ("ERROR: What output file should be generated?",
++             "type", self.type, "target", target)
++
++    if self.type != 'static_library' and self.type != 'shared_library':
++      target_prefix = spec.get('product_prefix', target_prefix)
++      target = spec.get('product_name', target)
++      product_ext = spec.get('product_extension')
++      if product_ext:
++        target_ext = '.' + product_ext
++
++    target_stem = target_prefix + target
++    return (target_stem, target_ext)
++
++
++  def ComputeOutputBasename(self, spec):
++    """Return the 'output basename' of a gyp spec.
++
++    E.g., the loadable module 'foobar' in directory 'baz' will produce
++      'libfoobar.so'
++    """
++    return ''.join(self.ComputeOutputParts(spec))
++
++
++  def ComputeOutput(self, spec):
++    """Return the 'output' (full output path) of a gyp spec.
++
++    E.g., the loadable module 'foobar' in directory 'baz' will produce
++      '$(obj)/baz/libfoobar.so'
++    """
++    if self.type == 'executable':
++      # We install host executables into shared_intermediate_dir so they can be
++      # run by gyp rules that refer to PRODUCT_DIR.
++      path = '$(gyp_shared_intermediate_dir)'
++    elif self.type == 'shared_library':
++      if self.toolset == 'host':
++        path = '$($(GYP_HOST_VAR_PREFIX)HOST_OUT_INTERMEDIATE_LIBRARIES)'
++      else:
++        path = '$($(GYP_VAR_PREFIX)TARGET_OUT_INTERMEDIATE_LIBRARIES)'
++    else:
++      # Other targets just get built into their intermediate dir.
++      if self.toolset == 'host':
++        path = ('$(call intermediates-dir-for,%s,%s,true,,'
++                '$(GYP_HOST_VAR_PREFIX))' % (self.android_class,
++                                             self.android_module))
++      else:
++        path = ('$(call intermediates-dir-for,%s,%s,,,$(GYP_VAR_PREFIX))'
++                % (self.android_class, self.android_module))
++
++    assert spec.get('product_dir') is None # TODO: not supported?
++    return os.path.join(path, self.ComputeOutputBasename(spec))
++
++  def NormalizeIncludePaths(self, include_paths):
++    """ Normalize include_paths.
++    Convert absolute paths to relative to the Android top directory.
++
++    Args:
++      include_paths: A list of unprocessed include paths.
++    Returns:
++      A list of normalized include paths.
++    """
++    normalized = []
++    for path in include_paths:
++      if path[0] == '/':
++        path = gyp.common.RelativePath(path, self.android_top_dir)
++      normalized.append(path)
++    return normalized
++
++  def ExtractIncludesFromCFlags(self, cflags):
++    """Extract includes "-I..." out from cflags
++
++    Args:
++      cflags: A list of compiler flags, which may be mixed with "-I.."
++    Returns:
++      A tuple of lists: (clean_clfags, include_paths). "-I.." is trimmed.
++    """
++    clean_cflags = []
++    include_paths = []
++    for flag in cflags:
++      if flag.startswith('-I'):
++        include_paths.append(flag[2:])
++      else:
++        clean_cflags.append(flag)
++
++    return (clean_cflags, include_paths)
++
++  def FilterLibraries(self, libraries):
++    """Filter the 'libraries' key to separate things that shouldn't be ldflags.
++
++    Library entries that look like filenames should be converted to android
++    module names instead of being passed to the linker as flags.
++
++    Args:
++      libraries: the value of spec.get('libraries')
++    Returns:
++      A tuple (static_lib_modules, dynamic_lib_modules, ldflags)
++    """
++    static_lib_modules = []
++    dynamic_lib_modules = []
++    ldflags = []
++    for libs in libraries:
++      # Libs can have multiple words.
++      for lib in libs.split():
++        # Filter the system libraries, which are added by default by the Android
++        # build system.
++        if (lib == '-lc' or lib == '-lstdc++' or lib == '-lm' or
++            lib.endswith('libgcc.a')):
++          continue
++        match = re.search(r'([^/]+)\.a$', lib)
++        if match:
++          static_lib_modules.append(match.group(1))
++          continue
++        match = re.search(r'([^/]+)\.so$', lib)
++        if match:
++          dynamic_lib_modules.append(match.group(1))
++          continue
++        if lib.startswith('-l'):
++          ldflags.append(lib)
++    return (static_lib_modules, dynamic_lib_modules, ldflags)
++
++
++  def ComputeDeps(self, spec):
++    """Compute the dependencies of a gyp spec.
++
++    Returns a tuple (deps, link_deps), where each is a list of
++    filenames that will need to be put in front of make for either
++    building (deps) or linking (link_deps).
++    """
++    deps = []
++    link_deps = []
++    if 'dependencies' in spec:
++      deps.extend([target_outputs[dep] for dep in spec['dependencies']
++                   if target_outputs[dep]])
++      for dep in spec['dependencies']:
++        if dep in target_link_deps:
++          link_deps.append(target_link_deps[dep])
++      deps.extend(link_deps)
++    return (gyp.common.uniquer(deps), gyp.common.uniquer(link_deps))
++
++
++  def WriteTargetFlags(self, spec, configs, link_deps):
++    """Write Makefile code to specify the link flags and library dependencies.
++
++    spec, configs: input from gyp.
++    link_deps: link dependency list; see ComputeDeps()
++    """
++    # Libraries (i.e. -lfoo)
++    # These must be included even for static libraries as some of them provide
++    # implicit include paths through the build system.
++    libraries = gyp.common.uniquer(spec.get('libraries', []))
++    static_libs, dynamic_libs, ldflags_libs = self.FilterLibraries(libraries)
++
++    if self.type != 'static_library':
++      for configname, config in sorted(configs.iteritems()):
++        ldflags = list(config.get('ldflags', []))
++        self.WriteLn('')
++        self.WriteList(ldflags, 'LOCAL_LDFLAGS_%s' % configname)
++      self.WriteList(ldflags_libs, 'LOCAL_GYP_LIBS')
++      self.WriteLn('LOCAL_LDFLAGS := $(LOCAL_LDFLAGS_$(GYP_CONFIGURATION)) '
++                   '$(LOCAL_GYP_LIBS)')
++
++    # Link dependencies (i.e. other gyp targets this target depends on)
++    # These need not be included for static libraries as within the gyp build
++    # we do not use the implicit include path mechanism.
++    if self.type != 'static_library':
++      static_link_deps = [x[1] for x in link_deps if x[0] == 'static']
++      shared_link_deps = [x[1] for x in link_deps if x[0] == 'shared']
++    else:
++      static_link_deps = []
++      shared_link_deps = []
++
++    # Only write the lists if they are non-empty.
++    if static_libs or static_link_deps:
++      self.WriteLn('')
++      self.WriteList(static_libs + static_link_deps,
++                     'LOCAL_STATIC_LIBRARIES')
++      self.WriteLn('# Enable grouping to fix circular references')
++      self.WriteLn('LOCAL_GROUP_STATIC_LIBRARIES := true')
++    if dynamic_libs or shared_link_deps:
++      self.WriteLn('')
++      self.WriteList(dynamic_libs + shared_link_deps,
++                     'LOCAL_SHARED_LIBRARIES')
++
++
++  def WriteTarget(self, spec, configs, deps, link_deps, part_of_all,
++                  write_alias_target):
++    """Write Makefile code to produce the final target of the gyp spec.
++
++    spec, configs: input from gyp.
++    deps, link_deps: dependency lists; see ComputeDeps()
++    part_of_all: flag indicating this target is part of 'all'
++    write_alias_target: flag indicating whether to create short aliases for this
++                        target
++    """
++    self.WriteLn('### Rules for final target.')
++
++    if self.type != 'none':
++      self.WriteTargetFlags(spec, configs, link_deps)
++
++    settings = spec.get('aosp_build_settings', {})
++    if settings:
++      self.WriteLn('### Set directly by aosp_build_settings.')
++      for k, v in settings.iteritems():
++        if isinstance(v, list):
++          self.WriteList(v, k)
++        else:
++          self.WriteLn('%s := %s' % (k, make.QuoteIfNecessary(v)))
++      self.WriteLn('')
++
++    # Add to the set of targets which represent the gyp 'all' target. We use the
++    # name 'gyp_all_modules' as the Android build system doesn't allow the use
++    # of the Make target 'all' and because 'all_modules' is the equivalent of
++    # the Make target 'all' on Android.
++    if part_of_all and write_alias_target:
++      self.WriteLn('# Add target alias to "gyp_all_modules" target.')
++      self.WriteLn('.PHONY: gyp_all_modules')
++      self.WriteLn('gyp_all_modules: %s' % self.android_module)
++      self.WriteLn('')
++
++    # Add an alias from the gyp target name to the Android module name. This
++    # simplifies manual builds of the target, and is required by the test
++    # framework.
++    if self.target != self.android_module and write_alias_target:
++      self.WriteLn('# Alias gyp target name.')
++      self.WriteLn('.PHONY: %s' % self.target)
++      self.WriteLn('%s: %s' % (self.target, self.android_module))
++      self.WriteLn('')
++
++    # Add the command to trigger build of the target type depending
++    # on the toolset. Ex: BUILD_STATIC_LIBRARY vs. BUILD_HOST_STATIC_LIBRARY
++    # NOTE: This has to come last!
++    modifier = ''
++    if self.toolset == 'host':
++      modifier = 'HOST_'
++    if self.type == 'static_library':
++      self.WriteLn('include $(BUILD_%sSTATIC_LIBRARY)' % modifier)
++    elif self.type == 'shared_library':
++      self.WriteLn('LOCAL_PRELINK_MODULE := false')
++      self.WriteLn('include $(BUILD_%sSHARED_LIBRARY)' % modifier)
++    elif self.type == 'executable':
++      self.WriteLn('LOCAL_CXX_STL := libc++_static')
++      # Executables are for build and test purposes only, so they're installed
++      # to a directory that doesn't get included in the system image.
++      self.WriteLn('LOCAL_MODULE_PATH := $(gyp_shared_intermediate_dir)')
++      self.WriteLn('include $(BUILD_%sEXECUTABLE)' % modifier)
++    else:
++      self.WriteLn('LOCAL_MODULE_PATH := $(PRODUCT_OUT)/gyp_stamp')
++      self.WriteLn('LOCAL_UNINSTALLABLE_MODULE := true')
++      if self.toolset == 'target':
++        self.WriteLn('LOCAL_2ND_ARCH_VAR_PREFIX := $(GYP_VAR_PREFIX)')
++      else:
++        self.WriteLn('LOCAL_2ND_ARCH_VAR_PREFIX := $(GYP_HOST_VAR_PREFIX)')
++      self.WriteLn()
++      self.WriteLn('include $(BUILD_SYSTEM)/base_rules.mk')
++      self.WriteLn()
++      self.WriteLn('$(LOCAL_BUILT_MODULE): $(LOCAL_ADDITIONAL_DEPENDENCIES)')
++      self.WriteLn('\t$(hide) echo "Gyp timestamp: $@"')
++      self.WriteLn('\t$(hide) mkdir -p $(dir $@)')
++      self.WriteLn('\t$(hide) touch $@')
++      self.WriteLn()
++      self.WriteLn('LOCAL_2ND_ARCH_VAR_PREFIX :=')
++
++
++  def WriteList(self, value_list, variable=None, prefix='',
++                quoter=make.QuoteIfNecessary, local_pathify=False):
++    """Write a variable definition that is a list of values.
++
++    E.g. WriteList(['a','b'], 'foo', prefix='blah') writes out
++         foo = blaha blahb
++    but in a pretty-printed style.
++    """
++    values = ''
++    if value_list:
++      value_list = [quoter(prefix + l) for l in value_list]
++      if local_pathify:
++        value_list = [self.LocalPathify(l) for l in value_list]
++      values = ' \\\n\t' + ' \\\n\t'.join(value_list)
++    self.fp.write('%s :=%s\n\n' % (variable, values))
++
++
++  def WriteLn(self, text=''):
++    self.fp.write(text + '\n')
++
++
++  def LocalPathify(self, path):
++    """Convert a subdirectory-relative path into a normalized path which starts
++    with the make variable $(LOCAL_PATH) (i.e. the top of the project tree).
++    Absolute paths, or paths that contain variables, are just normalized."""
++    if '$(' in path or os.path.isabs(path):
++      # path is not a file in the project tree in this case, but calling
++      # normpath is still important for trimming trailing slashes.
++      return os.path.normpath(path)
++    local_path = os.path.join('$(LOCAL_PATH)', self.path, path)
++    local_path = os.path.normpath(local_path)
++    # Check that normalizing the path didn't ../ itself out of $(LOCAL_PATH)
++    # - i.e. that the resulting path is still inside the project tree. The
++    # path may legitimately have ended up containing just $(LOCAL_PATH), though,
++    # so we don't look for a slash.
++    assert local_path.startswith('$(LOCAL_PATH)'), (
++           'Path %s attempts to escape from gyp path %s !)' % (path, self.path))
++    return local_path
++
++
++  def ExpandInputRoot(self, template, expansion, dirname):
++    if '%(INPUT_ROOT)s' not in template and '%(INPUT_DIRNAME)s' not in template:
++      return template
++    path = template % {
++        'INPUT_ROOT': expansion,
++        'INPUT_DIRNAME': dirname,
++        }
++    return os.path.normpath(path)
++
++
++def PerformBuild(data, configurations, params):
++  # The android backend only supports the default configuration.
++  options = params['options']
++  makefile = os.path.abspath(os.path.join(options.toplevel_dir,
++                                          'GypAndroid.mk'))
++  env = dict(os.environ)
++  env['ONE_SHOT_MAKEFILE'] = makefile
++  arguments = ['make', '-C', os.environ['ANDROID_BUILD_TOP'], 'gyp_all_modules']
++  print 'Building: %s' % arguments
++  subprocess.check_call(arguments, env=env)
++
++
++def GenerateOutput(target_list, target_dicts, data, params):
++  options = params['options']
++  generator_flags = params.get('generator_flags', {})
++  builddir_name = generator_flags.get('output_dir', 'out')
++  limit_to_target_all = generator_flags.get('limit_to_target_all', False)
++  write_alias_targets = generator_flags.get('write_alias_targets', True)
++  sdk_version = generator_flags.get('aosp_sdk_version', 0)
++  android_top_dir = os.environ.get('ANDROID_BUILD_TOP')
++  assert android_top_dir, '$ANDROID_BUILD_TOP not set; you need to run lunch.'
++
++  def CalculateMakefilePath(build_file, base_name):
++    """Determine where to write a Makefile for a given gyp file."""
++    # Paths in gyp files are relative to the .gyp file, but we want
++    # paths relative to the source root for the master makefile.  Grab
++    # the path of the .gyp file as the base to relativize against.
++    # E.g. "foo/bar" when we're constructing targets for "foo/bar/baz.gyp".
++    base_path = gyp.common.RelativePath(os.path.dirname(build_file),
++                                        options.depth)
++    # We write the file in the base_path directory.
++    output_file = os.path.join(options.depth, base_path, base_name)
++    assert not options.generator_output, (
++        'The Android backend does not support options.generator_output.')
++    base_path = gyp.common.RelativePath(os.path.dirname(build_file),
++                                        options.toplevel_dir)
++    return base_path, output_file
++
++  # TODO:  search for the first non-'Default' target.  This can go
++  # away when we add verification that all targets have the
++  # necessary configurations.
++  default_configuration = None
++  toolsets = set([target_dicts[target]['toolset'] for target in target_list])
++  for target in target_list:
++    spec = target_dicts[target]
++    if spec['default_configuration'] != 'Default':
++      default_configuration = spec['default_configuration']
++      break
++  if not default_configuration:
++    default_configuration = 'Default'
++
++  srcdir = '.'
++  makefile_name = 'GypAndroid' + options.suffix + '.mk'
++  makefile_path = os.path.join(options.toplevel_dir, makefile_name)
++  assert not options.generator_output, (
++      'The Android backend does not support options.generator_output.')
++  gyp.common.EnsureDirExists(makefile_path)
++  root_makefile = open(makefile_path, 'w')
++
++  root_makefile.write(header)
++
++  # We set LOCAL_PATH just once, here, to the top of the project tree. This
++  # allows all the other paths we use to be relative to the Android.mk file,
++  # as the Android build system expects.
++  root_makefile.write('\nLOCAL_PATH := $(call my-dir)\n')
++
++  # Find the list of targets that derive from the gyp file(s) being built.
++  needed_targets = set()
++  for build_file in params['build_files']:
++    for target in gyp.common.AllTargets(target_list, target_dicts, build_file):
++      needed_targets.add(target)
++
++  build_files = set()
++  include_list = set()
++  android_modules = {}
++  for qualified_target in target_list:
++    build_file, target, toolset = gyp.common.ParseQualifiedTarget(
++        qualified_target)
++    relative_build_file = gyp.common.RelativePath(build_file,
++                                                  options.toplevel_dir)
++    build_files.add(relative_build_file)
++    included_files = data[build_file]['included_files']
++    for included_file in included_files:
++      # The included_files entries are relative to the dir of the build file
++      # that included them, so we have to undo that and then make them relative
++      # to the root dir.
++      relative_include_file = gyp.common.RelativePath(
++          gyp.common.UnrelativePath(included_file, build_file),
++          options.toplevel_dir)
++      abs_include_file = os.path.abspath(relative_include_file)
++      # If the include file is from the ~/.gyp dir, we should use absolute path
++      # so that relocating the src dir doesn't break the path.
++      if (params['home_dot_gyp'] and
++          abs_include_file.startswith(params['home_dot_gyp'])):
++        build_files.add(abs_include_file)
++      else:
++        build_files.add(relative_include_file)
++
++    base_path, output_file = CalculateMakefilePath(build_file,
++        target + '.' + toolset + options.suffix + '.mk')
++
++    spec = target_dicts[qualified_target]
++    configs = spec['configurations']
++
++    part_of_all = qualified_target in needed_targets
++    if limit_to_target_all and not part_of_all:
++      continue
++
++    relative_target = gyp.common.QualifiedTarget(relative_build_file, target,
++                                                 toolset)
++    writer = AndroidMkWriter(android_top_dir)
++    android_module = writer.Write(qualified_target, relative_target, base_path,
++                                  output_file, spec, configs,
++                                  part_of_all=part_of_all,
++                                  write_alias_target=write_alias_targets,
++                                  sdk_version=sdk_version)
++    if android_module in android_modules:
++      print ('ERROR: Android module names must be unique. The following '
++             'targets both generate Android module name %s.\n  %s\n  %s' %
++             (android_module, android_modules[android_module],
++              qualified_target))
++      return
++    android_modules[android_module] = qualified_target
++
++    # Our root_makefile lives at the source root.  Compute the relative path
++    # from there to the output_file for including.
++    mkfile_rel_path = gyp.common.RelativePath(output_file,
++                                              os.path.dirname(makefile_path))
++    include_list.add(mkfile_rel_path)
++
++  root_makefile.write('GYP_CONFIGURATION ?= %s\n' % default_configuration)
++  root_makefile.write('GYP_VAR_PREFIX ?=\n')
++  root_makefile.write('GYP_HOST_VAR_PREFIX ?=\n')
++  root_makefile.write('GYP_HOST_MULTILIB ?= first\n')
++
++  # Write out the sorted list of includes.
++  root_makefile.write('\n')
++  for include_file in sorted(include_list):
++    root_makefile.write('include $(LOCAL_PATH)/' + include_file + '\n')
++  root_makefile.write('\n')
++
++  if write_alias_targets:
++    root_makefile.write(ALL_MODULES_FOOTER)
++
++  root_makefile.close()
+diff --git tools/gyp/pylib/gyp/generator/cmake.py tools/gyp/pylib/gyp/generator/cmake.py
+index eece6ea98d..17f5e6396c 100644
+--- tools/gyp/pylib/gyp/generator/cmake.py
++++ tools/gyp/pylib/gyp/generator/cmake.py
+@@ -55,7 +55,7 @@ generator_default_variables = {
+   'CONFIGURATION_NAME': '${configuration}',
+ }
+ 
+-FULL_PATH_VARS = ('${CMAKE_SOURCE_DIR}', '${builddir}', '${obj}')
++FULL_PATH_VARS = ('${CMAKE_CURRENT_LIST_DIR}', '${builddir}', '${obj}')
+ 
+ generator_supports_multiple_toolsets = True
+ generator_wants_static_library_dependencies_adjusted = True
+@@ -103,7 +103,7 @@ def NormjoinPathForceCMakeSource(base_path, rel_path):
+   if any([rel_path.startswith(var) for var in FULL_PATH_VARS]):
+     return rel_path
+   # TODO: do we need to check base_path for absolute variables as well?
+-  return os.path.join('${CMAKE_SOURCE_DIR}',
++  return os.path.join('${CMAKE_CURRENT_LIST_DIR}',
+                       os.path.normpath(os.path.join(base_path, rel_path)))
+ 
+ 
+@@ -293,7 +293,7 @@ def WriteActions(target_name, actions, extra_sources, extra_deps,
+     WriteVariable(output, inputs_name)
+     output.write('\n')
+ 
+-    output.write('  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/')
++    output.write('  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/')
+     output.write(path_to_gyp)
+     output.write('\n')
+ 
+@@ -398,9 +398,9 @@ def WriteRules(target_name, rules, extra_sources, extra_deps,
+       output.write(NormjoinPath(path_to_gyp, rule_source))
+       output.write('\n')
+ 
+-      # CMAKE_SOURCE_DIR is where the CMakeLists.txt lives.
++      # CMAKE_CURRENT_LIST_DIR is where the CMakeLists.txt lives.
+       # The cwd is the current build directory.
+-      output.write('  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/')
++      output.write('  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/')
+       output.write(path_to_gyp)
+       output.write('\n')
+ 
+@@ -522,7 +522,7 @@ def WriteCopies(target_name, copies, extra_deps, path_to_gyp, output):
+       WriteVariable(output, copy.inputs_name, ' ')
+   output.write('\n')
+ 
+-  output.write('WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/')
++  output.write('WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/')
+   output.write(path_to_gyp)
+   output.write('\n')
+ 
+@@ -1126,7 +1126,7 @@ def GenerateOutputForConfig(target_list, target_dicts, data,
+   if cc:
+     SetVariable(output, 'CMAKE_ASM_COMPILER', cc)
+ 
+-  SetVariable(output, 'builddir', '${CMAKE_BINARY_DIR}')
++  SetVariable(output, 'builddir', '${CMAKE_CURRENT_BINARY_DIR}')
+   SetVariable(output, 'obj', '${builddir}/obj')
+   output.write('\n')
+ 
+diff --git tools/gyp/pylib/gyp/generator/make.py tools/gyp/pylib/gyp/generator/make.py
+index d9adddaa9b..b98fa9206a 100644
+--- tools/gyp/pylib/gyp/generator/make.py
++++ tools/gyp/pylib/gyp/generator/make.py
+@@ -31,8 +31,6 @@ import gyp.xcode_emulation
+ from gyp.common import GetEnvironFallback
+ from gyp.common import GypError
+ 
+-import hashlib
+-
+ generator_default_variables = {
+   'EXECUTABLE_PREFIX': '',
+   'EXECUTABLE_SUFFIX': '',
+@@ -92,10 +90,7 @@ def CalculateVariables(default_variables, params):
+     if flavor == 'android':
+       operating_system = 'linux'  # Keep this legacy behavior for now.
+     default_variables.setdefault('OS', operating_system)
+-    if flavor == 'aix':
+-      default_variables.setdefault('SHARED_LIB_SUFFIX', '.a')
+-    else:
+-      default_variables.setdefault('SHARED_LIB_SUFFIX', '.so')
++    default_variables.setdefault('SHARED_LIB_SUFFIX', '.so')
+     default_variables.setdefault('SHARED_LIB_DIR','$(builddir)/lib.$(TOOLSET)')
+     default_variables.setdefault('LIB_DIR', '$(obj).$(TOOLSET)')
+ 
+@@ -370,7 +365,7 @@ cmd_touch = touch $@
+ 
+ quiet_cmd_copy = COPY $@
+ # send stderr to /dev/null to ignore messages when linking directories.
+-cmd_copy = ln -f "$<" "$@" 2>/dev/null || (rm -rf "$@" && cp %(copy_archive_args)s "$<" "$@")
++cmd_copy = rm -rf "$@" && cp %(copy_archive_args)s "$<" "$@"
+ 
+ %(link_commands)s
+ """
+@@ -1352,10 +1347,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
+       if target[:3] == 'lib':
+         target = target[3:]
+       target_prefix = 'lib'
+-      if self.flavor == 'aix':
+-        target_ext = '.a'
+-      else:
+-        target_ext = '.so'
++      target_ext = '.so'
+     elif self.type == 'none':
+       target = '%s.stamp' % target
+     elif self.type != 'executable':
+@@ -1587,7 +1579,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
+       for link_dep in link_deps:
+         assert ' ' not in link_dep, (
+             "Spaces in alink input filenames not supported (%s)"  % link_dep)
+-      if (self.flavor not in ('mac', 'openbsd', 'win') and not
++      if (self.flavor not in ('mac', 'openbsd', 'netbsd', 'win') and not
+           self.is_standalone_static_library):
+         self.WriteDoCmd([self.output_binary], link_deps, 'alink_thin',
+                         part_of_all, postbuilds=postbuilds)
+@@ -1751,10 +1743,7 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
+       #   actual command.
+       # - The intermediate recipe will 'touch' the intermediate file.
+       # - The multi-output rule will have an do-nothing recipe.
+-
+-      # Hash the target name to avoid generating overlong filenames.
+-      cmddigest = hashlib.sha1(command if command else self.target).hexdigest()
+-      intermediate = "%s.intermediate" % cmddigest
++      intermediate = "%s.intermediate" % (command if command else self.target)
+       self.WriteLn('%s: %s' % (' '.join(outputs), intermediate))
+       self.WriteLn('\t%s' % '@:');
+       self.WriteLn('%s: %s' % ('.INTERMEDIATE', intermediate))
+@@ -1928,11 +1917,13 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
+     """Returns the location of the final output for an installable target."""
+     # Xcode puts shared_library results into PRODUCT_DIR, and some gyp files
+     # rely on this. Emulate this behavior for mac.
+-    if (self.type == 'shared_library' and
+-        (self.flavor != 'mac' or self.toolset != 'target')):
+-      # Install all shared libs into a common directory (per toolset) for
+-      # convenient access with LD_LIBRARY_PATH.
+-      return '$(builddir)/lib.%s/%s' % (self.toolset, self.alias)
++
++    # XXX(TooTallNate): disabling this code since we don't want this behavior...
++    #if (self.type == 'shared_library' and
++    #    (self.flavor != 'mac' or self.toolset != 'target')):
++    #  # Install all shared libs into a common directory (per toolset) for
++    #  # convenient access with LD_LIBRARY_PATH.
++    #  return '$(builddir)/lib.%s/%s' % (self.toolset, self.alias)
+     return '$(builddir)/' + self.alias
+ 
+ 
+@@ -2055,6 +2046,11 @@ def GenerateOutput(target_list, target_dicts, data, params):
+     header_params.update({
+         'flock': 'lockf',
+     })
++  elif flavor == 'openbsd':
++    copy_archive_arguments = '-pPRf'
++    header_params.update({
++        'copy_archive_args': copy_archive_arguments,
++    })
+   elif flavor == 'aix':
+     copy_archive_arguments = '-pPRf'
+     header_params.update({
+diff --git tools/gyp/pylib/gyp/generator/msvs.py tools/gyp/pylib/gyp/generator/msvs.py
+index 44cc1304a2..6bfad0f3bd 100644
+--- tools/gyp/pylib/gyp/generator/msvs.py
++++ tools/gyp/pylib/gyp/generator/msvs.py
+@@ -285,6 +285,22 @@ def _ConfigFullName(config_name, config_data):
+   return '%s|%s' % (_ConfigBaseName(config_name, platform_name), platform_name)
+ 
+ 
++def _ConfigWindowsTargetPlatformVersion(config_data):
++  ver = config_data.get('msvs_windows_target_platform_version')
++  if not ver or re.match(r'^\d+', ver):
++    return ver
++  for key in [r'HKLM\Software\Microsoft\Microsoft SDKs\Windows\%s',
++              r'HKLM\Software\Wow6432Node\Microsoft\Microsoft SDKs\Windows\%s']:
++    sdkdir = MSVSVersion._RegistryGetValue(key % ver, 'InstallationFolder')
++    if not sdkdir:
++      continue
++    version = MSVSVersion._RegistryGetValue(key % ver, 'ProductVersion') or ''
++    # find a matching entry in sdkdir\include
++    names = sorted([x for x in os.listdir(r'%s\include' % sdkdir) \
++                    if x.startswith(version)], reverse = True)
++    return names[0]
++
++
+ def _BuildCommandLineForRuleRaw(spec, cmd, cygwin_shell, has_input_path,
+                                 quote_cmd, do_setup_env):
+ 
+@@ -2662,6 +2678,22 @@ def _GetMSBuildGlobalProperties(spec, guid, gyp_file_name):
+     else:
+       properties[0].append(['ApplicationType', 'Windows Store'])
+ 
++  platform_name = None
++  msvs_windows_target_platform_version = None
++  for configuration in spec['configurations'].itervalues():
++    platform_name = platform_name or _ConfigPlatform(configuration)
++    msvs_windows_target_platform_version = \
++                    msvs_windows_target_platform_version or \
++                    _ConfigWindowsTargetPlatformVersion(configuration)
++    if platform_name and msvs_windows_target_platform_version:
++      break
++
++  if platform_name == 'ARM':
++    properties[0].append(['WindowsSDKDesktopARMSupport', 'true'])
++  if msvs_windows_target_platform_version:
++    properties[0].append(['WindowsTargetPlatformVersion', \
++                          str(msvs_windows_target_platform_version)])
++
+   return properties
+ 
+ def _GetMSBuildConfigurationDetails(spec, build_file):
+@@ -2798,6 +2830,9 @@ def _GetMSBuildAttributes(spec, config, build_file):
+     product_name = spec.get('product_name', '$(ProjectName)')
+     target_name = prefix + product_name
+     msbuild_attributes['TargetName'] = target_name
++  if 'TargetExt' not in msbuild_attributes and 'product_extension' in spec:
++    ext = spec.get('product_extension')
++    msbuild_attributes['TargetExt'] = '.' + ext
+ 
+   if spec.get('msvs_external_builder'):
+     external_out_dir = spec.get('msvs_external_builder_out_dir', '.')
+@@ -2851,6 +2886,9 @@ def _GetMSBuildConfigurationGlobalProperties(spec, configurations, build_file):
+                             attributes['OutputDirectory'])
+     _AddConditionalProperty(properties, condition, 'TargetName',
+                             attributes['TargetName'])
++    if 'TargetExt' in attributes:
++      _AddConditionalProperty(properties, condition, 'TargetExt',
++                              attributes['TargetExt'])
+ 
+     if attributes.get('TargetPath'):
+       _AddConditionalProperty(properties, condition, 'TargetPath',
+@@ -3203,6 +3241,9 @@ def _GetMSBuildProjectReferences(project):
+           ['ReferenceOutputAssembly', 'false']
+           ]
+       for config in dependency.spec.get('configurations', {}).itervalues():
++        if config.get('msvs_use_library_dependency_inputs', 0):
++          project_ref.append(['UseLibraryDependencyInputs', 'true'])
++          break
+         # If it's disabled in any config, turn it off in the reference.
+         if config.get('msvs_2010_disable_uldi_when_referenced', 0):
+           project_ref.append(['UseLibraryDependencyInputs', 'false'])
+diff --git tools/gyp/pylib/gyp/generator/ninja.py tools/gyp/pylib/gyp/generator/ninja.py
+index 0e8ae97908..841067ed34 100644
+--- tools/gyp/pylib/gyp/generator/ninja.py
++++ tools/gyp/pylib/gyp/generator/ninja.py
+@@ -139,8 +139,11 @@ class Target(object):
+     self.bundle = None
+     # On Windows, incremental linking requires linking against all the .objs
+     # that compose a .lib (rather than the .lib itself). That list is stored
+-    # here.
++    # here. In this case, we also need to save the compile_deps for the target,
++    # so that the the target that directly depends on the .objs can also depend
++    # on those.
+     self.component_objs = None
++    self.compile_deps = None
+     # Windows only. The import .lib is the output of a build step, but
+     # because dependents only link against the lib (not both the lib and the
+     # dll) we keep track of the import library here.
+@@ -474,16 +477,17 @@ class NinjaWriter(object):
+     elif self.flavor == 'mac' and len(self.archs) > 1:
+       link_deps = collections.defaultdict(list)
+ 
+-
++    compile_deps = self.target.actions_stamp or actions_depends
+     if self.flavor == 'win' and self.target.type == 'static_library':
+       self.target.component_objs = link_deps
++      self.target.compile_deps = compile_deps
+ 
+     # Write out a link step, if needed.
+     output = None
+     is_empty_bundle = not link_deps and not mac_bundle_depends
+     if link_deps or self.target.actions_stamp or actions_depends:
+       output = self.WriteTarget(spec, config_name, config, link_deps,
+-                                self.target.actions_stamp or actions_depends)
++                                compile_deps)
+       if self.is_mac_bundle:
+         mac_bundle_depends.append(output)
+ 
+@@ -1093,6 +1097,7 @@ class NinjaWriter(object):
+ 
+     implicit_deps = set()
+     solibs = set()
++    order_deps = set()
+ 
+     if 'dependencies' in spec:
+       # Two kinds of dependencies:
+@@ -1111,6 +1116,8 @@ class NinjaWriter(object):
+               target.component_objs and
+               self.msvs_settings.IsUseLibraryDependencyInputs(config_name)):
+             new_deps = target.component_objs
++            if target.compile_deps:
++              order_deps.add(target.compile_deps)
+           elif self.flavor == 'win' and target.import_lib:
+             new_deps = [target.import_lib]
+           elif target.UsesToc(self.flavor):
+@@ -1249,6 +1256,7 @@ class NinjaWriter(object):
+ 
+     ninja_file.build(output, command + command_suffix, link_deps,
+                      implicit=list(implicit_deps),
++                     order_only=list(order_deps),
+                      variables=extra_bindings)
+     return linked_binary
+ 
+@@ -1263,7 +1271,7 @@ class NinjaWriter(object):
+       self.target.type = 'none'
+     elif spec['type'] == 'static_library':
+       self.target.binary = self.ComputeOutput(spec)
+-      if (self.flavor not in ('mac', 'openbsd', 'win') and not
++      if (self.flavor not in ('mac', 'openbsd', 'netbsd', 'win') and not
+           self.is_standalone_static_library):
+         self.ninja.build(self.target.binary, 'alink_thin', link_deps,
+                          order_only=compile_deps)
+@@ -2242,7 +2250,7 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params,
+     master_ninja.rule(
+       'copy',
+       description='COPY $in $out',
+-      command='ln -f $in $out 2>/dev/null || (rm -rf $out && cp -af $in $out)')
++      command='rm -rf $out && cp -af $in $out')
+   master_ninja.newline()
+ 
+   all_targets = set()
+diff --git tools/gyp/pylib/gyp/generator/xcode.py tools/gyp/pylib/gyp/generator/xcode.py
+index 482b53ac8a..0e3fb9301e 100644
+--- tools/gyp/pylib/gyp/generator/xcode.py
++++ tools/gyp/pylib/gyp/generator/xcode.py
+@@ -87,6 +87,8 @@ generator_extra_sources_for_rules = [
+   'mac_framework_private_headers',
+ ]
+ 
++generator_filelist_paths = None
++
+ # Xcode's standard set of library directories, which don't need to be duplicated
+ # in LIBRARY_SEARCH_PATHS. This list is not exhaustive, but that's okay.
+ xcode_standard_library_dirs = frozenset([
+@@ -578,6 +580,26 @@ def PerformBuild(data, configurations, params):
+     subprocess.check_call(arguments)
+ 
+ 
++def CalculateGeneratorInputInfo(params):
++  toplevel = params['options'].toplevel_dir
++  if params.get('flavor') == 'ninja':
++    generator_dir = os.path.relpath(params['options'].generator_output or '.')
++    output_dir = params.get('generator_flags', {}).get('output_dir', 'out')
++    output_dir = os.path.normpath(os.path.join(generator_dir, output_dir))
++    qualified_out_dir = os.path.normpath(os.path.join(
++        toplevel, output_dir, 'gypfiles-xcode-ninja'))
++  else:
++    output_dir = os.path.normpath(os.path.join(toplevel, 'xcodebuild'))
++    qualified_out_dir = os.path.normpath(os.path.join(
++        toplevel, output_dir, 'gypfiles'))
++
++  global generator_filelist_paths
++  generator_filelist_paths = {
++      'toplevel': toplevel,
++      'qualified_out_dir': qualified_out_dir,
++  }
++
++
+ def GenerateOutput(target_list, target_dicts, data, params):
+   # Optionally configure each spec to use ninja as the external builder.
+   ninja_wrapper = params.get('flavor') == 'ninja'
+@@ -590,6 +612,15 @@ def GenerateOutput(target_list, target_dicts, data, params):
+   parallel_builds = generator_flags.get('xcode_parallel_builds', True)
+   serialize_all_tests = \
+       generator_flags.get('xcode_serialize_all_test_runs', True)
++  upgrade_check_project_version = \
++      generator_flags.get('xcode_upgrade_check_project_version', None)
++
++  # Format upgrade_check_project_version with leading zeros as needed.
++  if upgrade_check_project_version:
++    upgrade_check_project_version = str(upgrade_check_project_version)
++    while len(upgrade_check_project_version) < 4:
++      upgrade_check_project_version = '0' + upgrade_check_project_version
++
+   skip_excluded_files = \
+       not generator_flags.get('xcode_list_excluded_files', True)
+   xcode_projects = {}
+@@ -604,9 +635,17 @@ def GenerateOutput(target_list, target_dicts, data, params):
+     xcode_projects[build_file] = xcp
+     pbxp = xcp.project
+ 
++    # Set project-level attributes from multiple options
++    project_attributes = {};
+     if parallel_builds:
+-      pbxp.SetProperty('attributes',
+-                       {'BuildIndependentTargetsInParallel': 'YES'})
++      project_attributes['BuildIndependentTargetsInParallel'] = 'YES'
++    if upgrade_check_project_version:
++      project_attributes['LastUpgradeCheck'] = upgrade_check_project_version
++      project_attributes['LastTestingUpgradeCheck'] = \
++          upgrade_check_project_version
++      project_attributes['LastSwiftUpdateCheck'] = \
++          upgrade_check_project_version
++    pbxp.SetProperty('attributes', project_attributes)
+ 
+     # Add gyp/gypi files to project
+     if not generator_flags.get('standalone'):
+@@ -648,6 +687,7 @@ def GenerateOutput(target_list, target_dicts, data, params):
+       'loadable_module':             'com.googlecode.gyp.xcode.bundle',
+       'shared_library':              'com.apple.product-type.library.dynamic',
+       'static_library':              'com.apple.product-type.library.static',
++      'mac_kernel_extension':        'com.apple.product-type.kernel-extension',
+       'executable+bundle':           'com.apple.product-type.application',
+       'loadable_module+bundle':      'com.apple.product-type.bundle',
+       'loadable_module+xctest':      'com.apple.product-type.bundle.unit-test',
+@@ -655,7 +695,9 @@ def GenerateOutput(target_list, target_dicts, data, params):
+       'executable+extension+bundle': 'com.apple.product-type.app-extension',
+       'executable+watch+extension+bundle':
+           'com.apple.product-type.watchkit-extension',
+-      'executable+watch+bundle': 'com.apple.product-type.application.watchapp',
++      'executable+watch+bundle':
++          'com.apple.product-type.application.watchapp',
++      'mac_kernel_extension+bundle': 'com.apple.product-type.kernel-extension',
+     }
+ 
+     target_properties = {
+diff --git tools/gyp/pylib/gyp/input.py tools/gyp/pylib/gyp/input.py
+index bc68c3765d..7567d0a05b 100644
+--- tools/gyp/pylib/gyp/input.py
++++ tools/gyp/pylib/gyp/input.py
+@@ -28,7 +28,12 @@ from gyp.common import OrderedSet
+ 
+ 
+ # A list of types that are treated as linkable.
+-linkable_types = ['executable', 'shared_library', 'loadable_module']
++linkable_types = [
++  'executable',
++  'shared_library',
++  'loadable_module',
++  'mac_kernel_extension',
++]
+ 
+ # A list of sections that contain links to other targets.
+ dependency_sections = ['dependencies', 'export_dependent_settings']
+@@ -225,7 +230,10 @@ def LoadOneBuildFile(build_file_path, data, aux_data, includes,
+     return data[build_file_path]
+ 
+   if os.path.exists(build_file_path):
+-    build_file_contents = open(build_file_path).read()
++    # Open the build file for read ('r') with universal-newlines mode ('U')
++    # to make sure platform specific newlines ('\r\n' or '\r') are converted to '\n'
++    # which otherwise will fail eval()
++    build_file_contents = open(build_file_path, 'rU').read()
+   else:
+     raise GypError("%s not found (cwd: %s)" % (build_file_path, os.getcwd()))
+ 
+@@ -1724,11 +1732,12 @@ class DependencyGraphNode(object):
+       dependencies.add(self.ref)
+       return dependencies
+ 
+-    # Executables and loadable modules are already fully and finally linked.
+-    # Nothing else can be a link dependency of them, there can only be
+-    # dependencies in the sense that a dependent target might run an
+-    # executable or load the loadable_module.
+-    if not initial and target_type in ('executable', 'loadable_module'):
++    # Executables, mac kernel extensions and loadable modules are already fully
++    # and finally linked. Nothing else can be a link dependency of them, there
++    # can only be dependencies in the sense that a dependent target might run
++    # an executable or load the loadable_module.
++    if not initial and target_type in ('executable', 'loadable_module',
++                                       'mac_kernel_extension'):
+       return dependencies
+ 
+     # Shared libraries are already fully linked.  They should only be included
+@@ -2479,7 +2488,7 @@ def ValidateTargetType(target, target_dict):
+   """
+   VALID_TARGET_TYPES = ('executable', 'loadable_module',
+                         'static_library', 'shared_library',
+-                        'none')
++                        'mac_kernel_extension', 'none')
+   target_type = target_dict.get('type', None)
+   if target_type not in VALID_TARGET_TYPES:
+     raise GypError("Target %s has an invalid target type '%s'.  "
+diff --git tools/gyp/pylib/gyp/xcode_emulation.py tools/gyp/pylib/gyp/xcode_emulation.py
+index 407ead074b..b06bdc4e8b 100644
+--- tools/gyp/pylib/gyp/xcode_emulation.py
++++ tools/gyp/pylib/gyp/xcode_emulation.py
+@@ -1452,6 +1452,7 @@ def _GetXcodeEnv(xcode_settings, built_products_dir, srcroot, configuration,
+ 
+   # These are filled in on a as-needed basis.
+   env = {
++    'BUILT_FRAMEWORKS_DIR' : built_products_dir,
+     'BUILT_PRODUCTS_DIR' : built_products_dir,
+     'CONFIGURATION' : configuration,
+     'PRODUCT_NAME' : xcode_settings.GetProductName(),
+diff --git tools/gyp/pylib/gyp/xcodeproj_file.py tools/gyp/pylib/gyp/xcodeproj_file.py
+index 034a0d2d4f..d08b7f7770 100644
+--- tools/gyp/pylib/gyp/xcodeproj_file.py
++++ tools/gyp/pylib/gyp/xcodeproj_file.py
+@@ -1492,6 +1492,7 @@ class PBXFileReference(XCFileLikeElement, XCContainerPortal, XCRemoteObject):
+         'icns':        'image.icns',
+         'java':        'sourcecode.java',
+         'js':          'sourcecode.javascript',
++        'kext':        'wrapper.kext',
+         'm':           'sourcecode.c.objc',
+         'mm':          'sourcecode.cpp.objcpp',
+         'nib':         'wrapper.nib',
+@@ -1951,6 +1952,7 @@ class PBXCopyFilesBuildPhase(XCBuildPhase):
+   # path_tree_to_subfolder maps names of Xcode variables to the associated
+   # dstSubfolderSpec property value used in a PBXCopyFilesBuildPhase object.
+   path_tree_to_subfolder = {
++    'BUILT_FRAMEWORKS_DIR': 10,  # Frameworks Directory
+     'BUILT_PRODUCTS_DIR': 16,  # Products Directory
+     # Other types that can be chosen via the Xcode UI.
+     # TODO(mark): Map Xcode variable names to these.
+@@ -1958,7 +1960,6 @@ class PBXCopyFilesBuildPhase(XCBuildPhase):
+     # : 6,  # Executables: 6
+     # : 7,  # Resources
+     # : 15,  # Java Resources
+-    # : 10,  # Frameworks
+     # : 11,  # Shared Frameworks
+     # : 12,  # Shared Support
+     # : 13,  # PlugIns
+@@ -2262,6 +2263,8 @@ class PBXNativeTarget(XCTarget):
+                                                  '', '.xctest'],
+     'com.googlecode.gyp.xcode.bundle':          ['compiled.mach-o.dylib',
+                                                  '', '.so'],
++    'com.apple.product-type.kernel-extension':  ['wrapper.kext',
++                                                 '', '.kext'],
+   }
+ 
+   def __init__(self, properties=None, id=None, parent=None,
+-- 
+2.12.2.windows.1
+
