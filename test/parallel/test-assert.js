@@ -468,6 +468,14 @@ assert.throws(() => {
 }, /Got unwanted exception: user message/,
               'a.doesNotThrow ignores user message');
 
+assert.throws(() => {
+  assert.doesNotThrow(makeBlock(thrower, Error), 'user message');
+}, /Got unwanted exception: user message\ntest/);
+
+assert.throws(() => {
+  assert.doesNotThrow(makeBlock(thrower, Error));
+}, /Got unwanted exception\.\ntest/);
+
 // make sure that validating using constructor really works
 {
   let threw = false;
