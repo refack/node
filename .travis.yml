@@ -1,0 +1,19 @@
+dist: trusty
+sudo: false
+language: cpp
+addons:
+  artifacts:
+    paths:
+    - build.log
+    bucket: media.refack.com.log
+    key:
+      secure: zp5Tsq2W1j5TiL8qcnQ65Y3ATTTw/JZlJvaSWS8sSapgAltftxajUuCCgSJTrVsJfdLV2M1L2MS0Kjp7tgQiQDXcUo9gkhyKB/l0usEDfuHHmI4L9KDJtEcjBCgb8mEQOKwsWj5itKnUrZR3eP+iWBu3GBoCm9gAmV2SIAkAuc/J1bXFZwMkiXaFamUTYjs+IuDBgz4i0VeLN+48s20f6mlxgOAO8pXDztzOHEzOwGwq733geNtqnI6pXDHFGFlBbdhuy2tjd18oNAGxFhPQPmXlmqDwoUeBC77YQ+EvY7aq61nItgOO5EfGfva/i8xo2+7HaKArY5eeRv0P9irEv+8CBVD680fPwahnzZLOl2/ewuuuIB1gPGodSIqd99jNvOJaaWmOk7255JfrZkqrZ4A4cLWsFaXEvpKQ07ho17Y4JBkcO7eeXCBVQV7UqEYK7d8WV4nK+4dXInRDg1uYKK5RgjJPB/9qgzurRgTl8wRD1olKM3PpPzyE2N23boDwaC/zioLRY8RoVC43+dnx9D/Pc1H72bdcXOcyrhK9qu1iXUz+8WEQhoMIucwXLTy/DmkdiW7bgw19WCTUEUaK7kqSj7VO/o+vWvnLYEnXbWhH1PKZpeq3BOxQKkX7ER43IxD+PwhnE/x5IP3YeYBwhPd+XlKWdtSyfsssmnFONcE=
+    secret:
+      secure: MbQtINLafq0r+qsyZRVAhBqbhwfZywefGK6BTUpSCLEUCd+qvlBkP16zeHNi3ODfF9y+QxRRjs1g3A7ccChGhn6WdgYMRPxfUNcbU2iGMqWcoALRyLxHUv7yZBzGbTkJTARFNgNxRO7xDFwN+fecOmiNKUips+sN9WPANLlX7N+g5O4l3m++umJCdlbFlUC1rn4PF7bMhpR/HdJx2A95GaB8poS3EJcLsOHMvBehvSZEZFNBkpUFr/OlYArq3H4C+MC56LFSeNqaIBsV81FcEZgNyYwEmrViEXJf0HFTm9LAgfhxHhT+zqd5GfBb28QPWBMVC6+LTIrQS8BGdatR9/HG8RPM38JWG23B763pB+B9mmB39o8gEQgIdbg/ge/l+adr3fxYgPdKDQVHYn2ymj5Ra15oTJg+oAID35lyoOHptle2mzbcZAUev+pVj6JKfU1tKlB5nhPt3JlZwoLM2aWNXu7kC+PwSWVMRIoYJjEqSPtZrZ4goQ2nXaWvE+7mV1DLHRuZ0d5WCrzlLnskNXuA/fpMA+8jDEpnHqbV1xDlnDPz500p/x/+JNazyyedEb7wWLuHBstrs/aXHxk5hUnyHzQJWw9LfgwUaCuTSeD0qF8+jD45V4tneKxcpcvImfFR1nRq7mQrwKg3wbP5sPEZ1lRT2orV9ONsU5Gokdo=
+cache:
+  directories:
+  - out
+script:
+- python configure --download=all --with-intl=full-icu --dest-cpu=x64 --tag=
+- make
+- out/Release/cctest
