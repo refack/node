@@ -302,6 +302,8 @@ class MsvsSettings(object):
     return {'Win32': 'x86', 'x64': 'x64'}.get(platform, 'x86')
 
   def _TargetConfig(self, config):
+    if self.vs_version.short_name == '2015':
+      return config
     """Returns the target-specific configuration."""
     # There's two levels of architecture/platform specification in VS. The
     # first level is globally for the configuration (this is what we consider
