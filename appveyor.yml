@@ -1,0 +1,22 @@
+version: 1.0.{build}
+configuration: Debug
+platform: x64
+clone_depth: 10
+environment:
+  matrix:
+  - ICU_STYLE: small-icu
+  - ICU_STYLE: full-icu download-all
+cache: Debug
+before_build:
+- cmd: >-
+    rmdir /s /q C:\projects\node\Debug\obj\global_intermediate&ver
+
+    vcbuild.bat nobuild debug %ICU_STYLE%
+build:
+  project: tools\icu\icudata.vcxproj
+  parallel: true
+  verbosity: minimal
+test_script:
+- cmd: if not exist tools\icu\Debug\lib\icudata.lib (exit /b 1) else (exit /b 0)
+on_finish:
+- ps: Get-Item *.log | %{ Push-AppveyorArtifact $_.FullName}
