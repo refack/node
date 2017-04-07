@@ -15,7 +15,7 @@ if /i "%1"=="/?" goto help
 set config=Release
 set target=Build
 set target_arch=x64
-set target_env=
+set target_env=vs2015
 set noprojgen=
 set nobuild=
 set sign=
@@ -51,7 +51,8 @@ if /i "%1"=="clean"         set target=Clean&goto arg-ok
 if /i "%1"=="ia32"          set target_arch=x86&goto arg-ok
 if /i "%1"=="x86"           set target_arch=x86&goto arg-ok
 if /i "%1"=="x64"           set target_arch=x64&goto arg-ok
-if /i "%1"=="vc2015"        set target_env=vc2015&goto arg-ok
+if /i "%1"=="vs2015"        set target_env=vs2015&goto arg-ok
+if /i "%1"=="vs2017"        set target_env=vs2017&goto arg-ok
 if /i "%1"=="noprojgen"     set noprojgen=1&goto arg-ok
 if /i "%1"=="nobuild"       set nobuild=1&goto arg-ok
 if /i "%1"=="nosign"        set "sign="&echo Note: vcbuild no longer signs by default. "nosign" is redundant.&goto arg-ok
@@ -85,7 +86,7 @@ if /i "%1"=="upload"        set upload=1&goto arg-ok
 if /i "%1"=="small-icu"     set i18n_arg=%1&goto arg-ok
 if /i "%1"=="full-icu"      set i18n_arg=%1&goto arg-ok
 if /i "%1"=="intl-none"     set i18n_arg=%1&goto arg-ok
-if /i "%1"=="without-intl"     set i18n_arg=%1&goto arg-ok
+if /i "%1"=="without-intl"  set i18n_arg=%1&goto arg-ok
 if /i "%1"=="download-all"  set download_arg="--download=all"&goto arg-ok
 if /i "%1"=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
 if /i "%1"=="enable-vtune"  set enable_vtune_arg=1&goto arg-ok
@@ -142,7 +143,31 @@ if defined noprojgen if defined nobuild if not defined sign if not defined msi g
 
 @rem Set environment for msbuild
 
+@rem Look for Visual Studio 2017
+:vs-set-2017
+if "%target_env%" NEQ "vs2017" goto vs-set-2015
+echo Looking for Visual Studio 2017
+if defined VisualStudioVersion if "%VisualStudioVersion%"=="15.0" goto found_vs2017
+set ps_call=powershell -NoProfile -ExecutionPolicy Unrestricted
+set ps_args="%~dp0tools\msvs-com-helper\GetKey.ps1" IsVcCompatible InstallationPath
+@rem this call could return multiple hits, so arbitrarily we pick the last one
+for /F "tokens=*" %%A IN ('%ps_call% %ps_args%') DO set VS2017_INST_PATH=%%A
+if "_%VS2017_INST_PATH%_" == "__" goto vs-set-2015
+if NOT EXIST "%VS2017_INST_PATH%" goto vs-set-2015
+@rem GYP_MSVS_VERSION=2015 is a workaround for old `GYP`
+if %target_arch%==x64 SET VS_TARGET_ARCH=amd64
+set "VSVARSALL="%VS2017_INST_PATH%\VC\Auxiliary\Build\vcvarsall.bat" %VS_TARGET_ARCH%"
+call %VSVARSALL%
+:found_vs2017
+echo Found MSVS version %VisualStudioVersion%
+set GYP_MSVS_VERSION=2015
+set PLATFORM_TOOLSET=v141
+set VS_TARGET_ARCH=x86
+goto msbuild-found
+
 @rem Look for Visual Studio 2015
+:vs-set-2015
+if "%target_env%" NEQ "vs2015" goto msbuild-not-found
 echo Looking for Visual Studio 2015
 if not defined VS140COMNTOOLS goto msbuild-not-found
 if not exist "%VS140COMNTOOLS%\..\..\vc\vcvarsall.bat" goto msbuild-not-found
@@ -165,7 +190,8 @@ set PLATFORM_TOOLSET=v140
 goto msbuild-found
 
 :msbuild-not-found
-echo Failed to find Visual Studio installation.
+echo Failed to find a suitable Visual Studio installation.
+Echo Please consult https://github.com/nodejs/node/blob/master/BUILDING.md#windows-1
 goto exit
 
 :wix-not-found
@@ -291,6 +317,7 @@ if not defined SSHCONFIG (
   echo SSHCONFIG is not set for upload
   exit /b 1
 )
+
 if not defined STAGINGSERVER set STAGINGSERVER=node-www
 ssh -F %SSHCONFIG% %STAGINGSERVER% "mkdir -p nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%"
 scp -F %SSHCONFIG% Release\node.exe %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node.exe
@@ -439,7 +466,7 @@ echo Failed to create vc project files.
 goto exit
 
 :help
-echo vcbuild.bat [debug/release] [msi] [test-all/test-uv/test-inspector/test-internet/test-pummel/test-simple/test-message] [clean] [noprojgen] [small-icu/full-icu/without-intl] [nobuild] [sign] [x86/x64] [vc2015] [download-all] [enable-vtune] [lint/lint-ci]
+echo vcbuild.bat [debug/release] [msi] [test-all/test-uv/test-inspector/test-internet/test-pummel/test-simple/test-message] [clean] [noprojgen] [small-icu/full-icu/without-intl] [nobuild] [sign] [x86/x64] [vs2015/vs2017] [download-all] [enable-vtune] [lint/lint-ci]
 echo Examples:
 echo   vcbuild.bat                : builds release build
 echo   vcbuild.bat debug          : builds debug build
