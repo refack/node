@@ -1,17 +1,16 @@
-@echo off
+$invocation = (Get-Variable MyInvocation).Value
+cd (Split-Path $invocation.MyCommand.Path)
 
-cd %~dp0
+if ($Args[0]=="help"return help()
+if ($Args[0]=="--help"return help()
+if ($Args[0]=="-help"return help()
+if ($Args[0]=="/help"return help()
+if ($Args[0]=="?"return help()
+if ($Args[0]=="-?"return help()
+if ($Args[0]=="--?"return help()
+if ($Args[0]=="/?"return help()
 
-if /i "%1"=="help" goto help
-if /i "%1"=="--help" goto help
-if /i "%1"=="-help" goto help
-if /i "%1"=="/help" goto help
-if /i "%1"=="?" goto help
-if /i "%1"=="-?" goto help
-if /i "%1"=="--?" goto help
-if /i "%1"=="/?" goto help
-
-@rem Process arguments.
+# Process arguments.
 set config=Release
 set target=Build
 set target_arch=x64
@@ -45,53 +44,53 @@ set build_addons_napi=
 set test_node_inspect=
 
 :next-arg
-if "%1"=="" goto args-done
-if /i "%1"=="debug"         set config=Debug&goto arg-ok
-if /i "%1"=="release"       set config=Release&goto arg-ok
-if /i "%1"=="clean"         set target=Clean&goto arg-ok
-if /i "%1"=="ia32"          set target_arch=x86&goto arg-ok
-if /i "%1"=="x86"           set target_arch=x86&goto arg-ok
-if /i "%1"=="x64"           set target_arch=x64&goto arg-ok
-if /i "%1"=="vc2015"        set target_env=vc2015&goto arg-ok
-if /i "%1"=="noprojgen"     set noprojgen=1&goto arg-ok
-if /i "%1"=="nobuild"       set nobuild=1&goto arg-ok
-if /i "%1"=="nosign"        set "sign="&echo Note: vcbuild no longer signs by default. "nosign" is redundant.&goto arg-ok
-if /i "%1"=="sign"          set sign=1&goto arg-ok
-if /i "%1"=="nosnapshot"    set nosnapshot=1&goto arg-ok
-if /i "%1"=="noetw"         set noetw=1&goto arg-ok
-if /i "%1"=="noperfctr"     set noperfctr=1&goto arg-ok
-if /i "%1"=="notargettype"  set notargettype=1&goto arg-ok
-if /i "%1"=="licensertf"    set licensertf=1&goto arg-ok
-if /i "%1"=="test"          set test_args=%test_args% addons addons-napi doctool known_issues message parallel sequential -J&set cpplint=1&set jslint=1&set build_addons=1&set build_addons_napi=1&goto arg-ok
-if /i "%1"=="test-ci"       set test_args=%test_args% %test_ci_args% -p tap --logfile test.tap addons addons-napi doctool inspector known_issues message sequential parallel&set cctest_args=%cctest_args% --gtest_output=tap:cctest.tap&set build_addons=1&set build_addons_napi=1&goto arg-ok
-if /i "%1"=="test-addons"   set test_args=%test_args% addons&set build_addons=1&goto arg-ok
-if /i "%1"=="test-addons-napi"   set test_args=%test_args% addons-napi&set build_addons_napi=1&goto arg-ok
-if /i "%1"=="test-simple"   set test_args=%test_args% sequential parallel -J&goto arg-ok
-if /i "%1"=="test-message"  set test_args=%test_args% message&goto arg-ok
-if /i "%1"=="test-gc"       set test_args=%test_args% gc&set build_testgc_addon=1&goto arg-ok
-if /i "%1"=="test-inspector" set test_args=%test_args% inspector&goto arg-ok
-if /i "%1"=="test-tick-processor" set test_args=%test_args% tick-processor&goto arg-ok
-if /i "%1"=="test-internet" set test_args=%test_args% internet&goto arg-ok
-if /i "%1"=="test-pummel"   set test_args=%test_args% pummel&goto arg-ok
-if /i "%1"=="test-all"      set test_args=%test_args% sequential parallel message gc inspector internet pummel&set build_testgc_addon=1&set cpplint=1&set jslint=1&goto arg-ok
-if /i "%1"=="test-known-issues" set test_args=%test_args% known_issues&goto arg-ok
-if /i "%1"=="test-node-inspect" set test_node_inspect=1&goto arg-ok
-if /i "%1"=="jslint"        set jslint=1&goto arg-ok
-if /i "%1"=="jslint-ci"     set jslint_ci=1&goto arg-ok
-if /i "%1"=="lint"          set cpplint=1&set jslint=1&goto arg-ok
-if /i "%1"=="lint-ci"       set cpplint=1&set jslint_ci=1&goto arg-ok
-if /i "%1"=="package"       set package=1&goto arg-ok
-if /i "%1"=="msi"           set msi=1&set licensertf=1&set download_arg="--download=all"&set i18n_arg=small-icu&goto arg-ok
-if /i "%1"=="build-release" set build_release=1&set sign=1&goto arg-ok
-if /i "%1"=="upload"        set upload=1&goto arg-ok
-if /i "%1"=="small-icu"     set i18n_arg=%1&goto arg-ok
-if /i "%1"=="full-icu"      set i18n_arg=%1&goto arg-ok
-if /i "%1"=="intl-none"     set i18n_arg=%1&goto arg-ok
-if /i "%1"=="without-intl"     set i18n_arg=%1&goto arg-ok
-if /i "%1"=="download-all"  set download_arg="--download=all"&goto arg-ok
-if /i "%1"=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
-if /i "%1"=="enable-vtune"  set enable_vtune_arg=1&goto arg-ok
-if /i "%1"=="dll"           set dll=1&goto arg-ok
+if $Args[0]=="" goto args-done
+if ($Args[0]=="debug"         set config=Debug&goto arg-ok
+if ($Args[0]=="release"       set config=Release&goto arg-ok
+if ($Args[0]=="clean"         set target=Clean&goto arg-ok
+if ($Args[0]=="ia32"          set target_arch=x86&goto arg-ok
+if ($Args[0]=="x86"           set target_arch=x86&goto arg-ok
+if ($Args[0]=="x64"           set target_arch=x64&goto arg-ok
+if ($Args[0]=="vc2015"        set target_env=vc2015&goto arg-ok
+if ($Args[0]=="noprojgen"     set noprojgen=1&goto arg-ok
+if ($Args[0]=="nobuild"       set nobuild=1&goto arg-ok
+if ($Args[0]=="nosign"        set "sign="&echo Note: vcbuild no longer signs by default. "nosign" is redundant.&goto arg-ok
+if ($Args[0]=="sign"          set sign=1&goto arg-ok
+if ($Args[0]=="nosnapshot"    set nosnapshot=1&goto arg-ok
+if ($Args[0]=="noetw"         set noetw=1&goto arg-ok
+if ($Args[0]=="noperfctr"     set noperfctr=1&goto arg-ok
+if ($Args[0]=="notargettype"  set notargettype=1&goto arg-ok
+if ($Args[0]=="licensertf"    set licensertf=1&goto arg-ok
+if ($Args[0]=="test"          set test_args=%test_args% addons addons-napi doctool known_issues message parallel s-eqential -J&set cpplint=1&set jslint=1&set build_addons=1&set build_addons_napi=1&goto arg-ok
+if ($Args[0]=="test-ci"       set test_args=%test_args% %test_ci_args% -p tap --logfile test.tap addons addons-napi doctool inspector known_issues message s-eqential parallel&set cctest_args=%cctest_args% --gtest_output=tap:cctest.tap&set build_addons=1&set build_addons_napi=1&goto arg-ok
+if ($Args[0]=="test-addons"   set test_args=%test_args% addons&set build_addons=1&goto arg-ok
+if ($Args[0]=="test-addons-napi"   set test_args=%test_args% addons-napi&set build_addons_napi=1&goto arg-ok
+if ($Args[0]=="test-simple"   set test_args=%test_args% s-eqential parallel -J&goto arg-ok
+if ($Args[0]=="test-message"  set test_args=%test_args% message&goto arg-ok
+if ($Args[0]=="test-gc"       set test_args=%test_args% gc&set build_testgc_addon=1&goto arg-ok
+if ($Args[0]=="test-inspector" set test_args=%test_args% inspector&goto arg-ok
+if ($Args[0]=="test-tick-processor" set test_args=%test_args% tick-processor&goto arg-ok
+if ($Args[0]=="test-internet" set test_args=%test_args% internet&goto arg-ok
+if ($Args[0]=="test-pummel"   set test_args=%test_args% pummel&goto arg-ok
+if ($Args[0]=="test-all"      set test_args=%test_args% s-eqential parallel message gc inspector internet pummel&set build_testgc_addon=1&set cpplint=1&set jslint=1&goto arg-ok
+if ($Args[0]=="test-known-issues" set test_args=%test_args% known_issues&goto arg-ok
+if ($Args[0]=="test-node-inspect" set test_node_inspect=1&goto arg-ok
+if ($Args[0]=="jslint"        set jslint=1&goto arg-ok
+if ($Args[0]=="jslint-ci"     set jslint_ci=1&goto arg-ok
+if ($Args[0]=="lint"          set cpplint=1&set jslint=1&goto arg-ok
+if ($Args[0]=="lint-ci"       set cpplint=1&set jslint_ci=1&goto arg-ok
+if ($Args[0]=="package"       set package=1&goto arg-ok
+if ($Args[0]=="msi"           set msi=1&set licensertf=1&set download_arg="--download=all"&set i18n_arg=small-icu&goto arg-ok
+if ($Args[0]=="build-release" set build_release=1&set sign=1&goto arg-ok
+if ($Args[0]=="upload"        set upload=1&goto arg-ok
+if ($Args[0]=="small-icu"     set i18n_arg=%1&goto arg-ok
+if ($Args[0]=="full-icu"      set i18n_arg=%1&goto arg-ok
+if ($Args[0]=="intl-none"     set i18n_arg=%1&goto arg-ok
+if ($Args[0]=="without-intl"     set i18n_arg=%1&goto arg-ok
+if ($Args[0]=="download-all"  set download_arg="--download=all"&goto arg-ok
+if ($Args[0]=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
+if ($Args[0]=="enable-vtune"  set enable_vtune_arg=1&goto arg-ok
+if ($Args[0]=="dll"           set dll=1&goto arg-ok
 
 echo Error: invalid command line option `%1`.
 exit /b 1
@@ -142,9 +141,9 @@ if "%target%"=="Clean" rmdir /Q /S "%~dp0%config%\node-v%FULLVERSION%-win-%targe
 
 if defined noprojgen if defined nobuild if not defined sign if not defined msi goto licensertf
 
-@rem Set environment for msbuild
+# Set environment for msbuild
 
-@rem Look for Visual Studio 2015
+# Look for Visual Studio 2015
 echo Looking for Visual Studio 2015
 if not defined VS140COMNTOOLS goto msbuild-not-found
 if not exist "%VS140COMNTOOLS%\..\..\vc\vcvarsall.bat" goto msbuild-not-found
@@ -168,7 +167,7 @@ goto msbuild-found
 
 :msbuild-not-found
 echo Failed to find Visual Studio installation.
-goto exit
+return
 
 :wix-not-found
 echo Build skipped. To generate installer, you need to install Wix.
@@ -177,10 +176,10 @@ goto run
 :msbuild-found
 
 :project-gen
-@rem Skip project generation if requested.
+# Skip project generation if r-eqested.
 if defined noprojgen goto msbuild
 
-@rem Generate the VS project.
+# Generate the VS project.
 echo configure %configure_flags% --dest-cpu=%target_arch% --tag=%TAG%
 python configure %configure_flags% --dest-cpu=%target_arch% --tag=%TAG%
 if errorlevel 1 goto create-msvs-files-failed
@@ -188,29 +187,29 @@ if not exist node.sln goto create-msvs-files-failed
 echo Project files generated.
 
 :msbuild
-@rem Skip build if requested.
+# Skip build if r-eqested.
 if defined nobuild goto sign
 
-@rem Build the sln with msbuild.
+# Build the sln with msbuild.
 set "msbplatform=Win32"
 if "%target_arch%"=="x64" set "msbplatform=x64"
 msbuild node.sln /m /t:%target% /p:Configuration=%config% /p:Platform=%msbplatform% /clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal /nologo
-if errorlevel 1 goto exit
-if "%target%" == "Clean" goto exit
+if errorlevel 1 return
+if "%target%" == "Clean" return
 
 :sign
-@rem Skip signing unless the `sign` option was specified.
+# Skip signing unless the `sign` option was specified.
 if not defined sign goto licensertf
 
 call tools\sign.bat Release\node.exe
-if errorlevel 1 echo Failed to sign exe&goto exit
+if errorlevel 1 echo Failed to sign exe&return
 
 :licensertf
-@rem Skip license.rtf generation if not requested.
+# Skip license.rtf generation if not r-eqested.
 if not defined licensertf goto package
 
 %config%\node tools\license2rtf.js < LICENSE > %config%\license.rtf
-if errorlevel 1 echo Failed to generate license.rtf&goto exit
+if errorlevel 1 echo Failed to generate license.rtf&return
 
 :package
 if not defined package goto msi
@@ -271,20 +270,20 @@ exit /b 1
 :package_done
 
 :msi
-@rem Skip msi generation if not requested
+# Skip msi generation if not r-eqested
 if not defined msi goto run
 
 :msibuild
 echo Building node-v%FULLVERSION%-%target_arch%.msi
 msbuild "%~dp0tools\msvs\msi\nodemsi.sln" /m /t:Clean,Build /p:PlatformToolset=%PLATFORM_TOOLSET% /p:GypMsvsVersion=%GYP_MSVS_VERSION% /p:Configuration=%config% /p:Platform=%target_arch% /p:NodeVersion=%NODE_VERSION% /p:FullVersion=%FULLVERSION% /p:DistTypeDir=%DISTTYPEDIR% %noetw_msi_arg% %noperfctr_msi_arg% /clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal /nologo
-if errorlevel 1 goto exit
+if errorlevel 1 return
 
 if not defined sign goto upload
 call tools\sign.bat node-v%FULLVERSION%-%target_arch%.msi
-if errorlevel 1 echo Failed to sign msi&goto exit
+if errorlevel 1 echo Failed to sign msi&return
 
 :upload
-@rem Skip upload if not requested
+# Skip upload if not r-eqested
 if not defined upload goto run
 
 if not defined SSHCONFIG (
@@ -303,17 +302,18 @@ scp -F %SSHCONFIG% node-v%FULLVERSION%-%target_arch%.msi %STAGINGSERVER%:nodejs/
 ssh -F %SSHCONFIG% %STAGINGSERVER% "touch nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.msi.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.zip.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.7z.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%.done && chmod -R ug=rw-x+X,o=r+X nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.* nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%*"
 
 :run
-@rem Run tests if requested.
+# Run tests if r-eqested.
 
-@rem Build test/gc add-on if required.
+# Build test/gc add-on if r-eqired.
 if "%build_testgc_addon%"=="" goto build-addons
 "%config%\node" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild --directory="%~dp0test\gc" --nodedir="%~dp0."
 if errorlevel 1 goto build-testgc-addon-failed
 goto build-addons
 
-:build-testgc-addon-failed
-echo Failed to build test/gc add-on."
-goto exit
+function build-testgc-addon-failed
+{
+  echo "Failed to build test/gc add-on."
+}
 
 :build-addons
 if not defined build_addons goto build-addons-napi
@@ -328,7 +328,7 @@ for /d %%F in (test\addons\??_*) do (
 )
 :: generate
 "%node_exe%" tools\doc\addon-verify.js
-if %errorlevel% neq 0 exit /b %errorlevel%
+if $? neq 0 exit /b $?
 :: building addons
 setlocal EnableDelayedExpansion
 for /d %%F in (test\addons\*) do (
@@ -374,129 +374,143 @@ echo running 'python tools\test.py %test_args%'
 python tools\test.py %test_args%
 goto cpplint
 
-:cpplint
-if not defined cpplint goto jslint
-echo running cpplint
-set cppfilelist=
-setlocal enabledelayedexpansion
-for /f "tokens=*" %%G in ('dir /b /s /a src\*.c src\*.cc src\*.h ^
-test\addons\*.cc test\addons\*.h test\cctest\*.cc test\cctest\*.h ^
-test\gc\binding.cc tools\icu\*.cc tools\icu\*.h') do (
-  set relpath=%%G
-  set relpath=!relpath:*%~dp0=!
-  call :add-to-list !relpath!
-)
-( endlocal
-  set cppfilelist=%localcppfilelist%
-)
-python tools/cpplint.py %cppfilelist%
-python tools/check-imports.py
-goto jslint
+function cpplint {
+  if not defined cpplint return jslint
+  echo running cpplint
+  set cppfilelist=
+  setlocal enabledelayedexpansion
+  for /f "tokens=*" %%G in ('dir /b /s /a src\*.c src\*.cc src\*.h ^
+  test\addons\*.cc test\addons\*.h test\cctest\*.cc test\cctest\*.h ^
+  test\gc\binding.cc tools\icu\*.cc tools\icu\*.h') do (
+    set relpath=%%G
+    set relpath=!relpath:*%~dp0=!
+    add-to-list !relpath!
+  )
+  ( endlocal
+    set cppfilelist=%localcppfilelist%
+  )
+  python tools/cpplint.py %cppfilelist%
+  python tools/check-imports.py
+  return jslint()
+}
 
-:add-to-list
-echo %1 | findstr /c:"src\node_root_certs.h"
-if %errorlevel% equ 0 goto exit
+function add-to-list(p)
+{
+  param( [string]$path-item )
+  $path-item | findstr /c:"src\node_root_certs.h"
+  if $? -eq 0 return
 
-echo %1 | findstr /c:"src\queue.h"
-if %errorlevel% equ 0 goto exit
+  $path-item | findstr /c:"src\queue.h"
+  if $? -eq 0 return
 
-echo %1 | findstr /c:"src\tree.h"
-if %errorlevel% equ 0 goto exit
+  $path-item | findstr /c:"src\tree.h"
+  if $? -eq 0 return
 
-@rem skip subfolders under /src
-echo %1 | findstr /r /c:"src\\.*\\.*"
-if %errorlevel% equ 0 goto exit
+  # skip subfolders under /src
+  $path-item | findstr /r /c:"src\\.*\\.*"
+  if $? -eq 0 return
 
-echo %1 | findstr /r /c:"test\\addons\\[0-9].*_.*\.h"
-if %errorlevel% equ 0 goto exit
+  $path-item | findstr /r /c:"test\\addons\\[0-9].*_.*\.h"
+  if $? -eq 0 return
 
-echo %1 | findstr /r /c:"test\\addons\\[0-9].*_.*\.cc"
-if %errorlevel% equ 0 goto exit
+  $path-item | findstr /r /c:"test\\addons\\[0-9].*_.*\.cc"
+  if $? -eq 0 return
 
-set "localcppfilelist=%localcppfilelist% %1"
-goto exit
+  set "localcppfilelist=%localcppfilelist% %1"
+  return
+}
 
-:jslint
-if defined jslint_ci goto jslint-ci
-if not defined jslint goto exit
-if not exist tools\eslint\lib\eslint.js goto no-lint
-echo running jslint
-%config%\node tools\eslint\bin\eslint.js --cache --rule "linebreak-style: 0" --rulesdir=tools\eslint-rules benchmark lib test tools
-goto exit
 
-:jslint-ci
-echo running jslint-ci
-%config%\node tools\jslint.js -J -f tap -o test-eslint.tap benchmark lib test tools
-goto exit
+function jslint
+{
+  if defined jslint_ci & $jslint-ci
+  if not defined jslint return
+  if not exist tools\eslint\lib\eslint.js $ $no-lint
+  echo running jslint
+  %config%\node tools\eslint\bin\eslint.js --cache --rule "linebreak-style: 0" --rulesdir=tools\eslint-rules benchmark lib test tools
+  return
 
-:no-lint
-echo Linting is not available through the source tarball.
-echo Use the git repo instead: $ git clone https://github.com/nodejs/node.git
-goto exit
+  $jslint-ci = {
+    echo running jslint-ci
+    %config%\node tools\jslint.js -J -f tap -o test-eslint.tap benchmark lib test tools
+    return
+  }
 
-:create-msvs-files-failed
-echo Failed to create vc project files.
-goto exit
+  $no-lint = {
+    echo Linting is not available through the source tarball.
+    echo Use the git repo instead: $ git clone https://github.com/nodejs/node.git
+    return
+  }
+}
 
-:help
-echo vcbuild.bat [debug/release] [msi] [test-all/test-uv/test-inspector/test-internet/test-pummel/test-simple/test-message] [clean] [noprojgen] [small-icu/full-icu/without-intl] [nobuild] [sign] [x86/x64] [vc2015] [download-all] [enable-vtune] [lint/lint-ci]
-echo Examples:
-echo   vcbuild.bat                : builds release build
-echo   vcbuild.bat debug          : builds debug build
-echo   vcbuild.bat release msi    : builds release build and MSI installer package
-echo   vcbuild.bat test           : builds debug build and runs tests
-echo   vcbuild.bat build-release  : builds the release distribution as used by nodejs.org
-echo   vcbuild.bat enable-vtune   : builds nodejs with Intel VTune profiling support to profile JavaScript
-goto exit
+function create-msvs-files-failed
+{
+  echo Failed to create vc project files.
+  exit(0)
+}
 
-:exit
-goto :EOF
 
-rem ***************
-rem   Subroutines
-rem ***************
+function help
+{
+  echo vcbuild.bat [debug/release] [msi] [test-all/test-uv/test-inspector/test-internet/test-pummel/test-simple/test-message] [clean] [noprojgen] [small-icu/full-icu/without-intl] [nobuild] [sign] [x86/x64] [vc2015] [download-all] [enable-vtune] [lint/lint-ci]
+  echo Examples:
+  echo   vcbuild.bat                : builds release build
+  echo   vcbuild.bat debug          : builds debug build
+  echo   vcbuild.bat release msi    : builds release build and MSI installer package
+  echo   vcbuild.bat test           : builds debug build and runs tests
+  echo   vcbuild.bat build-release  : builds the release distribution as used by nodejs.org
+  echo   vcbuild.bat enable-vtune   : builds nodejs with Intel VTune profiling support to profile JavaScript
+  exit(0)
+}
 
-:getnodeversion
-set NODE_VERSION=
-set TAG=
-set FULLVERSION=
 
-for /F "usebackq tokens=*" %%i in (`python "%~dp0tools\getnodeversion.py"`) do set NODE_VERSION=%%i
-if not defined NODE_VERSION (
-  echo Cannot determine current version of Node.js
-  exit /b 1
-)
+# ***************
+#   Subroutines
+# ***************
 
-if not defined DISTTYPE set DISTTYPE=release
-if "%DISTTYPE%"=="release" (
-  set FULLVERSION=%NODE_VERSION%
-  goto exit
-)
-if "%DISTTYPE%"=="custom" (
-  if not defined CUSTOMTAG (
-    echo "CUSTOMTAG is not set for DISTTYPE=custom"
+function getnodeversion
+{
+  set NODE_VERSION=
+  set TAG=
+  set FULLVERSION=
+
+  for /F "usebackq tokens=*" %%i in (`python "%~dp0tools\getnodeversion.py"`) do set NODE_VERSION=%%i
+  if not defined NODE_VERSION (
+    echo Cannot determine current version of Node.js
     exit /b 1
   )
-  set TAG=%CUSTOMTAG%
-)
-if not "%DISTTYPE%"=="custom" (
-  if not defined DATESTRING (
-    echo "DATESTRING is not set for nightly"
-    exit /b 1
+
+  if not defined DISTTYPE set DISTTYPE=release
+  if "%DISTTYPE%"=="release" (
+    set FULLVERSION=%NODE_VERSION%
+    return
   )
-  if not defined COMMIT (
-    echo "COMMIT is not set for nightly"
-    exit /b 1
-  )
-  if not "%DISTTYPE%"=="nightly" (
-    if not "%DISTTYPE%"=="next-nightly" (
-      echo "DISTTYPE is not release, custom, nightly or next-nightly"
+  if "%DISTTYPE%"=="custom" (
+    if not defined CUSTOMTAG (
+      echo "CUSTOMTAG is not set for DISTTYPE=custom"
       exit /b 1
     )
+    set TAG=%CUSTOMTAG%
   )
-  set TAG=%DISTTYPE%%DATESTRING%%COMMIT%
-)
-set FULLVERSION=%NODE_VERSION%-%TAG%
+  if not "%DISTTYPE%"=="custom" (
+    if not defined DATESTRING (
+      echo "DATESTRING is not set for nightly"
+      exit /b 1
+    )
+    if not defined COMMIT (
+      echo "COMMIT is not set for nightly"
+      exit /b 1
+    )
+    if not "%DISTTYPE%"=="nightly" (
+      if not "%DISTTYPE%"=="next-nightly" (
+        echo "DISTTYPE is not release, custom, nightly or next-nightly"
+        exit /b 1
+      )
+    )
+    set TAG=%DISTTYPE%%DATESTRING%%COMMIT%
+  )
+  set FULLVERSION=%NODE_VERSION%-%TAG%
+}
 
 :exit
 if not defined DISTTYPEDIR set DISTTYPEDIR=%DISTTYPE%
