@@ -1,47 +1,47 @@
 $invocation = (Get-Variable MyInvocation).Value
 cd (Split-Path $invocation.MyCommand.Path)
 
-if ($Args[0]=="help"return help()
-if ($Args[0]=="--help"return help()
-if ($Args[0]=="-help"return help()
-if ($Args[0]=="/help"return help()
-if ($Args[0]=="?"return help()
-if ($Args[0]=="-?"return help()
-if ($Args[0]=="--?"return help()
-if ($Args[0]=="/?"return help()
+if ($Args[0]=="help") { return help }
+if ($Args[0]=="--help") { return help }
+if ($Args[0]=="-help") { return help }
+if ($Args[0]=="/help") { return help }
+if ($Args[0]=="?") { return help }
+if ($Args[0]=="-?") { return help }
+if ($Args[0]=="--?") { return help }
+if ($Args[0]=="/?") { return help }
 
 # Process arguments.
-set config=Release
-set target=Build
-set target_arch=x64
-set target_env=
-set noprojgen=
-set nobuild=
-set sign=
-set nosnapshot=
-set notargettype=
-set cctest_args=
-set test_args=
-set package=
-set msi=
-set upload=
-set licensertf=
-set jslint=
-set cpplint=
-set build_testgc_addon=
-set noetw=
-set noetw_msi_arg=
-set noperfctr=
-set noperfctr_msi_arg=
-set i18n_arg=
-set download_arg=
-set build_release=
-set enable_vtune_arg=
-set configure_flags=
-set build_addons=
-set dll=
-set build_addons_napi=
-set test_node_inspect=
+$config=Release
+$target=Build
+$target_arch=x64
+$target_env=
+$noprojgen=
+$nobuild=
+$sign=
+$nosnapshot=
+$notargettype=
+$cctest_args=
+$test_args=
+$package=
+$msi=
+$upload=
+$licensertf=
+$jslint=
+$cpplint=
+$build_testgc_addon=
+$noetw=
+$noetw_msi_arg=
+$noperfctr=
+$noperfctr_msi_arg=
+$i18n_arg=
+$download_arg=
+$build_release=
+$enable_vtune_arg=
+$configure_flags=
+$build_addons=
+$dll=
+$build_addons_napi=
+$test_node_inspect=
 
 :next-arg
 if $Args[0]=="" goto args-done
@@ -139,243 +139,289 @@ call :getnodeversion || exit /b 1
 
 if "%target%"=="Clean" rmdir /Q /S "%~dp0%config%\node-v%FULLVERSION%-win-%target_arch%" > nul 2> nul
 
-if defined noprojgen if defined nobuild if not defined sign if not defined msi goto licensertf
+if (defined noprojgen if defined nobuild if not defined sign if not defined msi goto) {return licensertf}
 
-# Set environment for msbuild
+function set-env
+{
+  # Set environment for msbuild
 
-# Look for Visual Studio 2015
-echo Looking for Visual Studio 2015
-if not defined VS140COMNTOOLS goto msbuild-not-found
-if not exist "%VS140COMNTOOLS%\..\..\vc\vcvarsall.bat" goto msbuild-not-found
-echo Found Visual Studio 2015
-if defined msi (
-  echo Looking for WiX installation for Visual Studio 2015...
-  if not exist "%WIX%\SDK\VS2015" (
-    echo Failed to find WiX install for Visual Studio 2015
-    echo VS2015 support for WiX is only present starting at version 3.10
-    goto wix-not-found
+  # Look for Visual Studio 2015
+  echo Looking for Visual Studio 2015
+  if not defined VS140COMNTOOLS goto msbuild-not-found
+  if not exist "%VS140COMNTOOLS%\..\..\vc\vcvarsall.bat" goto msbuild-not-found
+  echo Found Visual Studio 2015
+  if defined msi (
+    echo Looking for WiX installation for Visual Studio 2015...
+    if not exist "%WIX%\SDK\VS2015" (
+      echo Failed to find WiX install for Visual Studio 2015
+      echo VS2015 support for WiX is only present starting at version 3.10
+      goto wix-not-found
+    )
   )
-)
-if "%VCVARS_VER%" NEQ "140" (
-  call "%VS140COMNTOOLS%\..\..\vc\vcvarsall.bat"
-  SET VCVARS_VER=140
-)
-if not defined VCINSTALLDIR goto msbuild-not-found
-set GYP_MSVS_VERSION=2015
-set PLATFORM_TOOLSET=v140
-goto msbuild-found
+  if "%VCVARS_VER%" NEQ "140" (
+    call "%VS140COMNTOOLS%\..\..\vc\vcvarsall.bat"
+    SET VCVARS_VER=140
+  )
+  if not defined VCINSTALLDIR goto msbuild-not-found
+  set GYP_MSVS_VERSION=2015
+  set PLATFORM_TOOLSET=v140
+  return msbuild-found
+}
 
-:msbuild-not-found
-echo Failed to find Visual Studio installation.
-return
 
-:wix-not-found
-echo Build skipped. To generate installer, you need to install Wix.
-goto run
+function msbuild-not-found
+{
+  echo Failed to find Visual Studio installation.
+  return
+}
 
-:msbuild-found
 
-:project-gen
-# Skip project generation if r-eqested.
-if defined noprojgen goto msbuild
+function wix-not-found
+{
+  echo Build skipped. To generate installer, you need to install Wix.
+  return run
+}
 
-# Generate the VS project.
-echo configure %configure_flags% --dest-cpu=%target_arch% --tag=%TAG%
-python configure %configure_flags% --dest-cpu=%target_arch% --tag=%TAG%
-if errorlevel 1 goto create-msvs-files-failed
-if not exist node.sln goto create-msvs-files-failed
-echo Project files generated.
+function msbuild-found
+{
+  return project-gen
+}
 
-:msbuild
-# Skip build if r-eqested.
-if defined nobuild goto sign
+function project-gen
+{
+  # Skip project generation if r-eqested.
+  if defined noprojgen goto msbuild
 
-# Build the sln with msbuild.
-set "msbplatform=Win32"
-if "%target_arch%"=="x64" set "msbplatform=x64"
-msbuild node.sln /m /t:%target% /p:Configuration=%config% /p:Platform=%msbplatform% /clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal /nologo
-if errorlevel 1 return
-if "%target%" == "Clean" return
+  # Generate the VS project.
+  echo configure %configure_flags% --dest-cpu=%target_arch% --tag=%TAG%
+  python configure %configure_flags% --dest-cpu=%target_arch% --tag=%TAG%
+  if errorlevel 1 goto create-msvs-files-failed
+  if not exist node.sln goto create-msvs-files-failed
+  echo Project files generated.
+}
 
-:sign
-# Skip signing unless the `sign` option was specified.
-if not defined sign goto licensertf
+function msbuild
+{
+  # Skip build if r-eqested.
+  if defined nobuild goto sign
 
-call tools\sign.bat Release\node.exe
-if errorlevel 1 echo Failed to sign exe&return
+  # Build the sln with msbuild.
+  set "msbplatform=Win32"
+  if "%target_arch%"=="x64" set "msbplatform=x64"
+  msbuild node.sln /m /t:%target% /p:Configuration=%config% /p:Platform=%msbplatform% /clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal /nologo
+  if errorlevel 1 return
+  if "%target%" == "Clean" return
+}
 
-:licensertf
-# Skip license.rtf generation if not r-eqested.
-if not defined licensertf goto package
+function sign
+{
+  # Skip signing unless the `sign` option was specified.
+  if not defined sign goto licensertf
 
-%config%\node tools\license2rtf.js < LICENSE > %config%\license.rtf
-if errorlevel 1 echo Failed to generate license.rtf&return
+  call tools\sign.bat Release\node.exe
+  if errorlevel 1 echo Failed to sign exe&return
+}
 
-:package
-if not defined package goto msi
-echo Creating package...
-cd Release
-mkdir node-v%FULLVERSION%-win-%target_arch% > nul 2> nul
-mkdir node-v%FULLVERSION%-win-%target_arch%\node_modules > nul 2>nul
+function licensertf
+{
+  # Skip license.rtf generation if not r-eqested.
+  if not defined licensertf goto package
 
-copy /Y node.exe node-v%FULLVERSION%-win-%target_arch%\ > nul
-if errorlevel 1 echo Cannot copy node.exe && goto package_error
-copy /Y ..\LICENSE node-v%FULLVERSION%-win-%target_arch%\ > nul
-if errorlevel 1 echo Cannot copy LICENSE && goto package_error
-copy /Y ..\README.md node-v%FULLVERSION%-win-%target_arch%\ > nul
-if errorlevel 1 echo Cannot copy README.md && goto package_error
-copy /Y ..\CHANGELOG.md node-v%FULLVERSION%-win-%target_arch%\ > nul
-if errorlevel 1 echo Cannot copy CHANGELOG.md && goto package_error
-robocopy /e ..\deps\npm node-v%FULLVERSION%-win-%target_arch%\node_modules\npm > nul
-if errorlevel 8 echo Cannot copy npm package && goto package_error
-copy /Y ..\deps\npm\bin\npm node-v%FULLVERSION%-win-%target_arch%\ > nul
-if errorlevel 1 echo Cannot copy npm && goto package_error
-copy /Y ..\deps\npm\bin\npm.cmd node-v%FULLVERSION%-win-%target_arch%\ > nul
-if errorlevel 1 echo Cannot copy npm.cmd && goto package_error
-copy /Y ..\tools\msvs\nodevars.bat node-v%FULLVERSION%-win-%target_arch%\ > nul
-if errorlevel 1 echo Cannot copy nodevars.bat && goto package_error
-if not defined noetw (
-    copy /Y ..\src\res\node_etw_provider.man node-v%FULLVERSION%-win-%target_arch%\ > nul
-    if errorlevel 1 echo Cannot copy node_etw_provider.man && goto package_error
-)
-if not defined noperfctr (
-    copy /Y ..\src\res\node_perfctr_provider.man node-v%FULLVERSION%-win-%target_arch%\ > nul
-    if errorlevel 1 echo Cannot copy node_perfctr_provider.man && goto package_error
-)
+  %config%\node tools\license2rtf.js < LICENSE > %config%\license.rtf
+  if errorlevel 1 echo Failed to generate license.rtf&return
+}
 
-echo Creating node-v%FULLVERSION%-win-%target_arch%.7z
-del node-v%FULLVERSION%-win-%target_arch%.7z > nul 2> nul
-7z a -r -mx9 -t7z node-v%FULLVERSION%-win-%target_arch%.7z node-v%FULLVERSION%-win-%target_arch% > nul
-if errorlevel 1 echo Cannot create node-v%FULLVERSION%-win-%target_arch%.7z && goto package_error
+function package
+{
+  if (not defined package) {return msi}
+  echo Creating package...
+  cd Release
+  mkdir node-v%FULLVERSION%-win-%target_arch% > nul 2> nul
+  mkdir node-v%FULLVERSION%-win-%target_arch%\node_modules > nul 2>nul
 
-echo Creating node-v%FULLVERSION%-win-%target_arch%.zip
-del node-v%FULLVERSION%-win-%target_arch%.zip > nul 2> nul
-7z a -r -mx9 -tzip node-v%FULLVERSION%-win-%target_arch%.zip node-v%FULLVERSION%-win-%target_arch% > nul
-if errorlevel 1 echo Cannot create node-v%FULLVERSION%-win-%target_arch%.zip && goto package_error
+  copy /Y node.exe node-v%FULLVERSION%-win-%target_arch%\ > nul
+  if errorlevel 1 echo Cannot copy node.exe && goto package_error
+  copy /Y ..\LICENSE node-v%FULLVERSION%-win-%target_arch%\ > nul
+  if errorlevel 1 echo Cannot copy LICENSE && goto package_error
+  copy /Y ..\README.md node-v%FULLVERSION%-win-%target_arch%\ > nul
+  if errorlevel 1 echo Cannot copy README.md && goto package_error
+  copy /Y ..\CHANGELOG.md node-v%FULLVERSION%-win-%target_arch%\ > nul
+  if errorlevel 1 echo Cannot copy CHANGELOG.md && goto package_error
+  robocopy /e ..\deps\npm node-v%FULLVERSION%-win-%target_arch%\node_modules\npm > nul
+  if errorlevel 8 echo Cannot copy npm package && goto package_error
+  copy /Y ..\deps\npm\bin\npm node-v%FULLVERSION%-win-%target_arch%\ > nul
+  if errorlevel 1 echo Cannot copy npm && goto package_error
+  copy /Y ..\deps\npm\bin\npm.cmd node-v%FULLVERSION%-win-%target_arch%\ > nul
+  if errorlevel 1 echo Cannot copy npm.cmd && goto package_error
+  copy /Y ..\tools\msvs\nodevars.bat node-v%FULLVERSION%-win-%target_arch%\ > nul
+  if errorlevel 1 echo Cannot copy nodevars.bat && goto package_error
+  if not defined noetw (
+      copy /Y ..\src\res\node_etw_provider.man node-v%FULLVERSION%-win-%target_arch%\ > nul
+      if errorlevel 1 echo Cannot copy node_etw_provider.man && goto package_error
+  )
+  if not defined noperfctr (
+      copy /Y ..\src\res\node_perfctr_provider.man node-v%FULLVERSION%-win-%target_arch%\ > nul
+      if errorlevel 1 echo Cannot copy node_perfctr_provider.man && goto package_error
+  )
 
-echo Creating node_pdb.7z
-del node_pdb.7z > nul 2> nul
-7z a -mx9 -t7z node_pdb.7z node.pdb > nul
+  echo Creating node-v%FULLVERSION%-win-%target_arch%.7z
+  del node-v%FULLVERSION%-win-%target_arch%.7z > nul 2> nul
+  7z a -r -mx9 -t7z node-v%FULLVERSION%-win-%target_arch%.7z node-v%FULLVERSION%-win-%target_arch% > nul
+  if errorlevel 1 echo Cannot create node-v%FULLVERSION%-win-%target_arch%.7z && goto package_error
 
-echo Creating node_pdb.zip
-del node_pdb.zip  > nul 2> nul
-7z a -mx9 -tzip node_pdb.zip node.pdb > nul
+  echo Creating node-v%FULLVERSION%-win-%target_arch%.zip
+  del node-v%FULLVERSION%-win-%target_arch%.zip > nul 2> nul
+  7z a -r -mx9 -tzip node-v%FULLVERSION%-win-%target_arch%.zip node-v%FULLVERSION%-win-%target_arch% > nul
+  if errorlevel 1 echo Cannot create node-v%FULLVERSION%-win-%target_arch%.zip && goto package_error
 
-cd ..
-echo Package created!
-goto package_done
-:package_error
-cd ..
-exit /b 1
-:package_done
+  echo Creating node_pdb.7z
+  del node_pdb.7z > nul 2> nul
+  7z a -mx9 -t7z node_pdb.7z node.pdb > nul
 
-:msi
-# Skip msi generation if not r-eqested
-if not defined msi goto run
+  echo Creating node_pdb.zip
+  del node_pdb.zip  > nul 2> nul
+  7z a -mx9 -tzip node_pdb.zip node.pdb > nul
 
-:msibuild
-echo Building node-v%FULLVERSION%-%target_arch%.msi
-msbuild "%~dp0tools\msvs\msi\nodemsi.sln" /m /t:Clean,Build /p:PlatformToolset=%PLATFORM_TOOLSET% /p:GypMsvsVersion=%GYP_MSVS_VERSION% /p:Configuration=%config% /p:Platform=%target_arch% /p:NodeVersion=%NODE_VERSION% /p:FullVersion=%FULLVERSION% /p:DistTypeDir=%DISTTYPEDIR% %noetw_msi_arg% %noperfctr_msi_arg% /clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal /nologo
-if errorlevel 1 return
+  cd ..
+  echo Package created!
+  goto package_done
+  :package_error
+  cd ..
+  return 1
+}
 
-if not defined sign goto upload
-call tools\sign.bat node-v%FULLVERSION%-%target_arch%.msi
-if errorlevel 1 echo Failed to sign msi&return
+function msi
+{
+  # Skip msi generation if not r-eqested
+  if (not defined msi) {return run}
+  else {return msibuild}
+}
 
-:upload
-# Skip upload if not r-eqested
-if not defined upload goto run
+function msibuild
+{
+  echo Building node-v%FULLVERSION%-%target_arch%.msi
+  msbuild "%~dp0tools\msvs\msi\nodemsi.sln" /m /t:Clean,Build /p:PlatformToolset=%PLATFORM_TOOLSET% /p:GypMsvsVersion=%GYP_MSVS_VERSION% /p:Configuration=%config% /p:Platform=%target_arch% /p:NodeVersion=%NODE_VERSION% /p:FullVersion=%FULLVERSION% /p:DistTypeDir=%DISTTYPEDIR% %noetw_msi_arg% %noperfctr_msi_arg% /clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal /nologo
+  if (errorlevel 1) {return}
 
-if not defined SSHCONFIG (
-  echo SSHCONFIG is not set for upload
-  exit /b 1
-)
-if not defined STAGINGSERVER set STAGINGSERVER=node-www
-ssh -F %SSHCONFIG% %STAGINGSERVER% "mkdir -p nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%"
-scp -F %SSHCONFIG% Release\node.exe %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node.exe
-scp -F %SSHCONFIG% Release\node.lib %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node.lib
-scp -F %SSHCONFIG% Release\node_pdb.zip %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node_pdb.zip
-scp -F %SSHCONFIG% Release\node_pdb.7z %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node_pdb.7z
-scp -F %SSHCONFIG% Release\node-v%FULLVERSION%-win-%target_arch%.7z %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.7z
-scp -F %SSHCONFIG% Release\node-v%FULLVERSION%-win-%target_arch%.zip %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.zip
-scp -F %SSHCONFIG% node-v%FULLVERSION%-%target_arch%.msi %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/
-ssh -F %SSHCONFIG% %STAGINGSERVER% "touch nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.msi.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.zip.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.7z.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%.done && chmod -R ug=rw-x+X,o=r+X nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.* nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%*"
+  if (not defined sign) { return upload }
+  call tools\sign.bat node-v%FULLVERSION%-%target_arch%.msi
+  if (errorlevel 1) {
+    echo Failed to sign msi
+    return
+  }
+}
 
-:run
-# Run tests if r-eqested.
 
-# Build test/gc add-on if r-eqired.
-if "%build_testgc_addon%"=="" goto build-addons
-"%config%\node" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild --directory="%~dp0test\gc" --nodedir="%~dp0."
-if errorlevel 1 goto build-testgc-addon-failed
-goto build-addons
+function upload
+{
+  # Skip upload if not r-eqested
+  if (not defined upload) {return run}
+
+  if (not defined SSHCONFIG) {
+    echo SSHCONFIG is not set for upload
+    return 1
+  }
+  if (not defined STAGINGSERVER) { set STAGINGSERVER=node-www }
+  ssh -F %SSHCONFIG% %STAGINGSERVER% "mkdir -p nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%"
+  scp -F %SSHCONFIG% Release\node.exe %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node.exe
+  scp -F %SSHCONFIG% Release\node.lib %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node.lib
+  scp -F %SSHCONFIG% Release\node_pdb.zip %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node_pdb.zip
+  scp -F %SSHCONFIG% Release\node_pdb.7z %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node_pdb.7z
+  scp -F %SSHCONFIG% Release\node-v%FULLVERSION%-win-%target_arch%.7z %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.7z
+  scp -F %SSHCONFIG% Release\node-v%FULLVERSION%-win-%target_arch%.zip %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.zip
+  scp -F %SSHCONFIG% node-v%FULLVERSION%-%target_arch%.msi %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/
+  ssh -F %SSHCONFIG% %STAGINGSERVER% "touch nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.msi.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.zip.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.7z.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%.done && chmod -R ug=rw-x+X,o=r+X nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.* nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%*"
+}
+
+
+# Run tests if reqested.
+function run
+{
+  # Build test/gc add-on if r-eqired.
+  if ("%build_testgc_addon%"=="") { return build-addons }
+  "%config%\node" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild --directory="%~dp0test\gc" --nodedir="%~dp0."
+  if (errorlevel 1) { build-testgc-addon-failed }
+  return build-addons
+}
+
 
 function build-testgc-addon-failed
 {
   echo "Failed to build test/gc add-on."
 }
 
-:build-addons
-if not defined build_addons goto build-addons-napi
-if not exist "%node_exe%" (
-  echo Failed to find node.exe
-  goto build-addons-napi
-)
-echo Building addons
-:: clear
-for /d %%F in (test\addons\??_*) do (
-  rd /s /q %%F
-)
-:: generate
-"%node_exe%" tools\doc\addon-verify.js
-if $? neq 0 exit /b $?
-:: building addons
-setlocal EnableDelayedExpansion
-for /d %%F in (test\addons\*) do (
-  "%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild ^
-    --directory="%%F" ^
-    --nodedir="%cd%"
-  if !errorlevel! neq 0 exit /b !errorlevel!
-)
 
-:build-addons-napi
-if not defined build_addons_napi goto run-tests
-if not exist "%node_exe%" (
-  echo Failed to find node.exe
-  goto run-tests
-)
-echo Building addons-napi
-:: clear
-for /d %%F in (test\addons-napi\??_*) do (
-  rd /s /q %%F
-)
-:: building addons-napi
-for /d %%F in (test\addons-napi\*) do (
-  "%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild ^
-    --directory="%%F" ^
-    --nodedir="%cd%"
-)
-endlocal
-goto run-tests
+function build-addons
+{
+  if (not defined build_addons) { return build-addons-napi }
+  if (not exist "%node_exe%") {
+    echo Failed to find node.exe
+    exit(1)
+  }
+  echo Building addons
+  # clear
+  for (/d %%F in (test\addons\??_*)) {
+    rd /s /q %%F
+  }
+  # generate
+  "%node_exe%" tools\doc\addon-verify.js
+  if ($? -ne 0) { return $? }
+  # building addons
+  setlocal EnableDelayedExpansion
+  for (/d %%F in (test\addons\*)) {
+    "%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild --directory="%%F" --nodedir="%cd%"
+    if (!errorlevel! neq 0) { return !errorlevel! }
+  }
+  build-addons-napi
+}
 
-:run-tests
-if not defined test_node_inspect goto node-tests
-set USE_EMBEDDED_NODE_INSPECT=1
-%config%\node tools\test-npm-package.js --install deps\node-inspect test
-goto node-tests
+function build-addons-napi
+{
+  if not defined build_addons_napi return run-tests
+  if not exist "%node_exe%" {
+    echo Failed to find node.exe
+    exit(1)
+  }
+  echo Building addons-napi
+  :: clear
+  for /d %%F in (test\addons-napi\??_*) do (
+    rd /s /q %%F
+  )
+  :: building addons-napi
+  for /d %%F in (test\addons-napi\*) do (
+    "%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild ^
+      --directory="%%F" ^
+      --nodedir="%cd%"
+  )
+  endlocal
+  return run-tests
+}
 
-:node-tests
-if "%test_args%"=="" goto cpplint
-if "%config%"=="Debug" set test_args=--mode=debug %test_args%
-if "%config%"=="Release" set test_args=--mode=release %test_args%
-echo running 'cctest %cctest_args%'
-"%config%\cctest" %cctest_args%
-echo running 'python tools\test.py %test_args%'
-python tools\test.py %test_args%
-goto cpplint
+
+function run-tests
+{
+  if not defined test_node_inspect return node-tests
+  set USE_EMBEDDED_NODE_INSPECT=1
+  %config%\node tools\test-npm-package.js --install deps\node-inspect test
+  return node-tests
+}
+
+
+function node-tests
+{
+  if "%test_args%"=="" return cpplint
+  if "%config%"=="Debug" set test_args=--mode=debug %test_args%
+  if "%config%"=="Release" set test_args=--mode=release %test_args%
+  echo running 'cctest %cctest_args%'
+  "%config%\cctest" %cctest_args%
+  echo running 'python tools\test.py %test_args%'
+  python tools\test.py %test_args%
+  return cpplint
+}
+
 
 function cpplint {
-  if not defined cpplint return jslint
+  if not defined cpplint return jslint()
   echo running cpplint
   set cppfilelist=
   setlocal enabledelayedexpansion
@@ -393,6 +439,7 @@ function cpplint {
   python tools/check-imports.py
   return jslint()
 }
+
 
 function add-to-list(p)
 {
@@ -443,6 +490,7 @@ function jslint
   }
 }
 
+
 function create-msvs-files-failed
 {
   echo Failed to create vc project files.
@@ -467,6 +515,7 @@ function help
 # ***************
 #   Subroutines
 # ***************
+
 
 function getnodeversion
 {
@@ -511,6 +560,7 @@ function getnodeversion
   )
   set FULLVERSION=%NODE_VERSION%-%TAG%
 }
+
 
 :exit
 if not defined DISTTYPEDIR set DISTTYPEDIR=%DISTTYPE%
