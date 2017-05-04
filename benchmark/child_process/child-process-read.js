@@ -29,7 +29,12 @@ function main(conf) {
   });
 
   setTimeout(function() {
-    child.kill();
+    if (process.platform === 'win32') {
+      // Sometimes there's a yes.exe process left hanging around on Windows...
+      child_process.execSync(`taskkill /f /t /pid ${child.pid}`);
+    } else {
+      child.kill();
+    }
     const gbits = (bytes * 8) / (1024 * 1024 * 1024);
     bench.end(gbits);
   }, dur * 1000);
