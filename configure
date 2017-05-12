@@ -1370,8 +1370,19 @@ write('config.gypi', do_not_edit +
 config = {
   'BUILDTYPE': 'Debug' if options.debug else 'Release',
   'USE_XCODE': str(int(options.use_xcode or 0)),
-  'PYTHON': sys.executable,
 }
+try:
+  if sys.platform == 'win32':
+    where_is_python_cmd = 'where python'
+  else:
+    where_is_python_cmd = 'which python'
+  found = subprocess.check_output(where_is_python_cmd).strip()
+  if sys.platform == 'win32':
+    found = found.lower()
+  if found != sys.executable.lower():
+    config['PYTHON'] = sys.executable
+except subprocess.CalledProcessError:
+  config['PYTHON'] = sys.executable
 
 if options.prefix:
   config['PREFIX'] = options.prefix
@@ -1399,4 +1410,5 @@ gyp_args += args
 if warn.warned:
   warn('warnings were emitted in the configure phase')
 
+print " ".join(gyp_args)
 sys.exit(subprocess.call(gyp_args))
