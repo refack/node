@@ -3,16 +3,19 @@ const common = require('../common');
 const assert = require('assert');
 const net = require('net');
 
+const NEVER_PORT = 26;
+const localPort = common.PORT;
 const client = net.connect({
-  port: 13,
-  localPort: common.PORT,
+  port: NEVER_PORT,
+  localPort,
   localAddress: common.localhostIPv4
-});
+}, common.mustNotCall());
 
 client.on('error', common.mustCall(function onError(err) {
   assert.strictEqual(err.syscall, 'connect');
   assert.strictEqual(err.code, 'ECONNREFUSED');
-  assert.strictEqual(err.localPort, common.PORT + 1);
+  assert.strictEqual(err.port, NEVER_PORT);
+  assert.strictEqual(err.localPort, localPort);
   assert.strictEqual(err.localAddress, common.localhostIPv4);
   assert.strictEqual(
     err.message,
