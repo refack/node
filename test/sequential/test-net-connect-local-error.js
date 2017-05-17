@@ -4,8 +4,8 @@ const assert = require('assert');
 const net = require('net');
 
 const client = net.connect({
-  port: common.PORT,
-  localPort: common.PORT + 1,
+  port: 13,
+  localPort: common.PORT,
   localAddress: common.localhostIPv4
 });
 
