@@ -37,6 +37,19 @@ ifeq ($(OSTYPE), darwin)
   GCOV = xcrun llvm-cov gcov
 endif
 
+# Use Node arch names rather than V8 ones.
+ifeq ($(DESTCPU),ia32)
+  override DESTCPU=x86
+endif
+ifeq ($(DESTCPU),aarch64)
+  override DESTCPU=arm64
+endif
+
+ifdef DESTCPU
+  # TODO(gib): only add if not already there
+  CONFIG_FLAGS += --dest-cpu=$(DESTCPU)
+endif
+
 BUILDTYPE_LOWER := $(shell echo $(BUILDTYPE) | tr '[A-Z]' '[a-z]')
 
 # Determine EXEEXT
@@ -718,6 +731,9 @@ RELEASE=$(shell sed -ne 's/\#define NODE_VERSION_IS_RELEASE \([01]\)/\1/p' src/n
 PLATFORM=$(shell uname | tr '[:upper:]' '[:lower:]')
 NPMVERSION=v$(shell cat deps/npm/package.json | grep '"version"' | sed 's/^[^:]*: "\([^"]*\)",.*/\1/')
 
+ifdef DESTCPU
+  ARCH = $(DESTCPU)
+else
 UNAME_M=$(shell uname -m)
 ifeq ($(findstring x86_64,$(UNAME_M)),x86_64)
 DESTCPU ?= x64
@@ -973,7 +989,6 @@ doc-upload: doc
 $(TARBALL)-headers: release-only
 	$(PYTHON) ./configure \
 		--prefix=/ \
-		--dest-cpu=$(DESTCPU) \
 		--tag=$(TAG) \
 		--release-urlbase=$(RELEASE_URLBASE) \
 		$(CONFIG_FLAGS) $(BUILD_RELEASE_FLAGS)
@@ -1005,7 +1020,6 @@ $(BINARYTAR): release-only
 	$(RM) -r out/deps out/Release
 	$(PYTHON) ./configure \
 		--prefix=/ \
-		--dest-cpu=$(DESTCPU) \
 		--tag=$(TAG) \
 		--release-urlbase=$(RELEASE_URLBASE) \
 		$(CONFIG_FLAGS) $(BUILD_RELEASE_FLAGS)
