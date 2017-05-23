@@ -536,7 +536,7 @@ The "not recommended" examples above check for accessibility and then use the
 file; the "recommended" examples are better because they use the file directly
 and handle the error, if any.
 
-In general, check for the accessibility of a file only if the file won?t be
+In general, check for the accessibility of a file only if the file won't be
 used directly, for example when its accessibility is a signal from another
 process.
 
@@ -968,7 +968,7 @@ The "not recommended" examples above check for existence and then use the
 file; the "recommended" examples are better because they use the file directly
 and handle the error, if any.
 
-In general, check for the existence of a file only if the file won?t be
+In general, check for the existence of a file only if the file won't be
 used directly, for example when its existence is a signal from another
 process.
 
