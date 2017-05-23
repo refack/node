@@ -126,9 +126,12 @@ fs.stat(__filename, common.mustCall(function(err, s) {
     );
   });
 
-  const newFields = ['atimeMs', 'mtimeMs', 'ctimeMs', 'birthtimeMs'];
-  newFields.forEach(function(k) {
-    assert.strictEqual(typeof s.birthtimeMs, 'number', `${k} should a number`);
+  const numberFields = [
+    'dev', 'mode', 'nlink', 'uid', 'gid', 'rdev', 'ino', 'size',
+    'atimeMs', 'mtimeMs', 'ctimeMs', 'birthtimeMs'
+  ];
+  numberFields.forEach((k) => {
+    assert.strictEqual(typeof s[k], 'number', `${k} should be a number`);
   });
 
 }));
