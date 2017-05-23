@@ -295,10 +295,14 @@ argument to `fs.createReadStream()`. If `path` is passed as a string, then
 ## Class: fs.Stats
 <!-- YAML
 added: v0.1.21
+changes:
+  - version: REPLACEME
+    pr-url: https://github.com/nodejs/node/pull/13173
+    description: added times as Numbers.
 -->
 
-Objects returned from [`fs.stat()`][], [`fs.lstat()`][] and [`fs.fstat()`][] and their
-synchronous counterparts are of this type.
+Objects returned from [`fs.stat()`][], [`fs.lstat()`][] and [`fs.fstat()`][] and
+their synchronous counterparts are of this type.
 
  - `stats.isFile()`
  - `stats.isDirectory()`
@@ -323,20 +327,25 @@ Stats {
   size: 527,
   blksize: 4096,
   blocks: 8,
+  atimeMs: 1495555358452,
+  mtimeMs: 1495571896565,
+  ctimeMs: 1495571896565,
+  birthtimeMs: 1491689434171,
   atime: Mon, 10 Oct 2011 23:24:11 GMT,
   mtime: Mon, 10 Oct 2011 23:24:11 GMT,
   ctime: Mon, 10 Oct 2011 23:24:11 GMT,
   birthtime: Mon, 10 Oct 2011 23:24:11 GMT }
 ```
 
-Please note that `atime`, `mtime`, `birthtime`, and `ctime` are
-instances of [`Date`][MDN-Date] object and appropriate methods should be used
-to compare the values of these objects. For most general uses
-[`getTime()`][MDN-Date-getTime] will return the number of milliseconds elapsed
-since _1 January 1970 00:00:00 UTC_ and this integer should be sufficient for
-any comparison, however there are additional methods which can be used for
-displaying fuzzy information. More details can be found in the
-[MDN JavaScript Reference][MDN-Date] page.
+*Note*: `atime`, `mtime`, `birthtime`, and `ctime` are instances of
+[`Date`][MDN-Date] object and appropriate methods should be used to compare the
+values of these objects. For most general uses [`getTime()`][MDN-Date-getTime]
+will return the number of milliseconds elapsed since _1 January 1970 00:00:00
+UTC_ and this integer should be sufficient for any comparison, however there are
+additional methods which can be used for displaying fuzzy information. More
+details can be found in the [MDN JavaScript Reference][MDN-Date] page.
+`atimeMs`, `mtimeMs`, `ctimeMs`, `birthtimeMs` are of [numbers][MDN-Number]
+that hold the corresponding times. Their precision is platform specific.
 
 ### Stat Time Values
 
@@ -527,7 +536,7 @@ The "not recommended" examples above check for accessibility and then use the
 file; the "recommended" examples are better because they use the file directly
 and handle the error, if any.
 
-In general, check for the accessibility of a file only if the file won’t be
+In general, check for the accessibility of a file only if the file won?t be
 used directly, for example when its accessibility is a signal from another
 process.
 
@@ -959,7 +968,7 @@ The "not recommended" examples above check for existence and then use the
 file; the "recommended" examples are better because they use the file directly
 and handle the error, if any.
 
-In general, check for the existence of a file only if the file won’t be
+In general, check for the existence of a file only if the file won?t be
 used directly, for example when its existence is a signal from another
 process.
 
@@ -2835,6 +2844,8 @@ The following constants are meant for use with the [`fs.Stats`][] object's
 [FS Constants]: #fs_fs_constants_1
 [MDN-Date-getTime]: https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Date/getTime
 [MDN-Date]: https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Date
+[MDN-Number]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type
+.org/en/JavaScript/Reference/Global_Objects/Date
 [Readable Stream]: stream.html#stream_class_stream_readable
 [Writable Stream]: stream.html#stream_class_stream_writable
 [inode]: https://en.wikipedia.org/wiki/Inode

@@ -102,27 +102,33 @@ fs.stat(__filename, common.mustCall(function(err, s) {
   assert.ok(s.mtime instanceof Date);
   assert.ok(s.ctime instanceof Date);
   assert.ok(s.birthtime instanceof Date);
-  assert.strictEqual(typeof s.atime_msec, "number");
-  assert.strictEqual(typeof s.mtime_msec, "number");
-  assert.strictEqual(typeof s.ctime_msec, "number");
-  assert.strictEqual(typeof s.birthtime_msec, "number");
+  assert.strictEqual(typeof s.atimeMs, 'number');
+  assert.strictEqual(typeof s.mtimeMs, 'number');
+  assert.strictEqual(typeof s.ctimeMs, 'number');
+  assert.strictEqual(typeof s.birthtimeMs, 'number');
 }));
 
 fs.stat(__filename, common.mustCall(function(err, s) {
-  const deJsoned = JSON.parse(JSON.stringify(s));
+  const parsed = JSON.parse(JSON.stringify(s));
   const keys = [
     'dev', 'mode', 'nlink', 'uid',
     'gid', 'rdev', 'ino', 'size',
     'atime', 'mtime', 'ctime', 'birthtime',
-    'atime_msec', 'mtime_msec', 'ctime_msec', 'birthtime_msec'
+    'atimeMs', 'mtimeMs', 'ctimeMs', 'birthtimeMs'
   ];
   if (!common.isWindows) {
     keys.push('blocks', 'blksize');
   }
   keys.forEach(function(k) {
     assert.ok(
-      deJsoned[k] !== undefined && deJsoned[k] !== null,
+      parsed[k] !== undefined && parsed[k] !== null,
       k + ' should not be null or undefined'
     );
   });
+
+  const newFields = ['atimeMs', 'mtimeMs', 'ctimeMs', 'birthtimeMs'];
+  newFields.forEach(function(k) {
+    assert.strictEqual(typeof s.birthtimeMs, 'number', `${k} should a number`);
+  });
+
 }));
