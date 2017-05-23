@@ -102,22 +102,26 @@ fs.stat(__filename, common.mustCall(function(err, s) {
   assert.ok(s.mtime instanceof Date);
   assert.ok(s.ctime instanceof Date);
   assert.ok(s.birthtime instanceof Date);
+  assert.strictEqual(typeof s.atime_msec, "number");
+  assert.strictEqual(typeof s.mtime_msec, "number");
+  assert.strictEqual(typeof s.ctime_msec, "number");
+  assert.strictEqual(typeof s.birthtime_msec, "number");
 }));
 
 fs.stat(__filename, common.mustCall(function(err, s) {
-  const json = JSON.parse(JSON.stringify(s));
+  const deJsoned = JSON.parse(JSON.stringify(s));
   const keys = [
     'dev', 'mode', 'nlink', 'uid',
-    'gid', 'rdev', 'ino',
-    'size', 'atime', 'mtime',
-    'ctime', 'birthtime'
+    'gid', 'rdev', 'ino', 'size',
+    'atime', 'mtime', 'ctime', 'birthtime',
+    'atime_msec', 'mtime_msec', 'ctime_msec', 'birthtime_msec'
   ];
   if (!common.isWindows) {
     keys.push('blocks', 'blksize');
   }
   keys.forEach(function(k) {
     assert.ok(
-      json[k] !== undefined && json[k] !== null,
+      deJsoned[k] !== undefined && deJsoned[k] !== null,
       k + ' should not be null or undefined'
     );
   });
