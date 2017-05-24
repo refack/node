@@ -23,6 +23,7 @@
 const common = require('../common');
 const assert = require('assert');
 const fs = require('fs');
+const util = require('util');
 
 fs.stat('.', common.mustCall(function(err, stats) {
   assert.ifError(err);
@@ -75,7 +76,7 @@ console.log(`stating:  ${__filename}`);
 fs.stat(__filename, common.mustCall(function(err, s) {
   assert.ifError(err);
 
-  console.dir(s);
+  console.info(util.inspect(s));
 
   console.log(`isDirectory: ${JSON.stringify(s.isDirectory())}`);
   assert.strictEqual(false, s.isDirectory());
