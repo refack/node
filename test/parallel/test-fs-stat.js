@@ -134,12 +134,4 @@ fs.stat(__filename, common.mustCall(function(err, s) {
   numberFields.forEach((k) => {
     assert.strictEqual(typeof s[k], 'number', `${k} should be a number`);
   });
-
-  const dateFields = ['atime', 'mtime', 'ctime', 'birthtime'];
-  dateFields.forEach((k) => {
-    const kMs = k + 'Ms';
-    const d = new Date();
-    s[k] = d;
-    assert.strictEqual(s[kMs], Number(d));
-  });
 }));
