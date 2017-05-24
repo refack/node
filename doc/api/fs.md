@@ -327,25 +327,24 @@ Stats {
   size: 527,
   blksize: 4096,
   blocks: 8,
-  atimeMs: 1495555358452,
-  mtimeMs: 1495571896565,
-  ctimeMs: 1495571896565,
-  birthtimeMs: 1491689434171,
+  atimeMs: 1318289051000.1,
+  mtimeMs: 1318289051000.1,
+  ctimeMs: 1318289051000.1,
+  birthtimeMs: 1318289051000.1,
   atime: Mon, 10 Oct 2011 23:24:11 GMT,
   mtime: Mon, 10 Oct 2011 23:24:11 GMT,
   ctime: Mon, 10 Oct 2011 23:24:11 GMT,
   birthtime: Mon, 10 Oct 2011 23:24:11 GMT }
 ```
 
-*Note*: `atime`, `mtime`, `birthtime`, and `ctime` are instances of
-[`Date`][MDN-Date] object and appropriate methods should be used to compare the
-values of these objects. For most general uses [`getTime()`][MDN-Date-getTime]
-will return the number of milliseconds elapsed since _1 January 1970 00:00:00
-UTC_ and this integer should be sufficient for any comparison, however there are
-additional methods which can be used for displaying fuzzy information. More
-details can be found in the [MDN JavaScript Reference][MDN-Date] page.
-`atimeMs`, `mtimeMs`, `ctimeMs`, `birthtimeMs` are of [numbers][MDN-Number]
-that hold the corresponding times. Their precision is platform specific.
+*Note*: `atimeMs`, `mtimeMs`, `ctimeMs`, `birthtimeMs` are [numbers][MDN-Number]
+that hold the corresponding times in milliseconds. Their precision is platform
+specific. `atime`, `mtime`, `birthtime`, and `ctime` are their counterpart
+[`Date`][MDN-Date] object representation and implement various specialized date
+and time  getters and setters.
+The `Date` and `number` values are not connected so assigning a new `number`
+value or mutating the `Date` value will not be reflected in counterpart field.
+
 
 ### Stat Time Values
 
