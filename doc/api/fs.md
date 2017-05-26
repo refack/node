@@ -298,7 +298,7 @@ added: v0.1.21
 changes:
   - version: REPLACEME
     pr-url: https://github.com/nodejs/node/pull/13173
-    description: added times as Numbers.
+    description: Added times as numbers.
 -->
 
 Objects returned from [`fs.stat()`][], [`fs.lstat()`][] and [`fs.fstat()`][] and
