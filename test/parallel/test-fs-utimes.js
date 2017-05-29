@@ -177,7 +177,7 @@ if (common.isWindows) {
 
   // This value if treaded as a `signed long` gets converted to -2135622133469.
   // POSIX systems stores timestamps in {long t_sec, long t_usec}.
-  // NTFS stores times in nanoseconds in a single `uint64_t`, so when `uv`
+  // NTFS stores times in nanoseconds in a single `uint64_t`, so when libuv
   // calculates (long)`uv_timespec_t.tv_sec` we get 2's complement.
   const overflow_mtime = 2159345162531;
   fs.utimesSync(path, overflow_mtime / 1000, overflow_mtime / 1000);
