@@ -163,8 +163,28 @@ runTest(new Date('1982-09-10 13:37'), new Date('1982-09-10 13:37'), function() {
   });
 });
 
+// Ref: https://github.com/nodejs/node/issues/13255
+if (common.isWindows) {
+  common.refreshTmpDir();
+  const path = `${common.tmpDir}/test-utimes-precision`;
+  fs.writeFileSync(path, '');
+
+  // this value would get converted to (double)1713037251359.9998
+  const truncate_mtime = 1713037251360;
+  fs.utimesSync(path, truncate_mtime / 1000, truncate_mtime / 1000);
+  const truncate_stats = fs.statSync(path);
+  assert.strictEqual(truncate_mtime, truncate_stats.mtime.getTime());
+
+  // This value if treaded as a `signed long` gets converted to -2135622133469.
+  // POSIX systems stores timestamps in {long t_sec, long t_usec}.
+  // NTFS stores times in nanoseconds in a single `uint64_t`, so when `uv`
+  // calculates (long)`uv_timespec_t.tv_sec` we get 2's complement.
+  const overflow_mtime = 2159345162531;
+  fs.utimesSync(path, overflow_mtime / 1000, overflow_mtime / 1000);
+  const overflow_stats = fs.statSync(path);
+  assert.strictEqual(overflow_mtime, overflow_stats.mtime.getTime());
+}
 
 process.on('exit', function() {
-  console.log('Tests run / ok:', tests_run, '/', tests_ok);
   assert.strictEqual(tests_ok, tests_run);
 });
