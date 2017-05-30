@@ -308,7 +308,7 @@ extern "C" {
 
 /* stack frame constants */
 #define FRAME_CONST(value, klass)       \
-    int v8dbg_frametype_##klass = StackFrame::value;
+    V8_EXPORT int v8dbg_frametype_##klass = StackFrame::value;
 
 STACK_FRAME_TYPE_LIST(FRAME_CONST)
 
@@ -597,7 +597,7 @@ def emit_set(out, consts):
         for const in consts:
                 name = ws.sub('', const['name'])
                 value = ws.sub('', str(const['value']))  # Can be a number.
-                out.write('int v8dbg_%s = %s;\n' % (name, value))
+                out.write('V8_EXPORT int v8dbg_%s = %s;\n' % (name, value))
         out.write('\n');
 
 #

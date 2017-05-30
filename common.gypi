@@ -27,6 +27,7 @@
 
     # Enable disassembler for `--print-code` v8 options
     'v8_enable_disassembler': 1,
+    'v8_postmortem_support%': 'true',
 
     # Don't bake anything extra into the snapshot.
     'v8_use_external_startup_data%': 0,
@@ -44,12 +45,10 @@
       }],
       ['OS == "win"', {
         'os_posix': 0,
-        'v8_postmortem_support%': 'false',
         'OBJ_DIR': '<(PRODUCT_DIR)/obj',
         'V8_BASE': '<(PRODUCT_DIR)/lib/v8_libbase.lib',
       }, {
         'os_posix': 1,
-        'v8_postmortem_support%': 'true',
       }],
       ['OS== "mac"', {
         'OBJ_DIR%': '<(PRODUCT_DIR)/obj.target',
