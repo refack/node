@@ -173,11 +173,15 @@ common.refreshTmpDir();
 const path = `${common.tmpDir}/test-utimes-precision`;
 fs.writeFileSync(path, '');
 
-// test Y2K38 for all platforms
-const Y2K38_mtime = 2**31;
-fs.utimesSync(path, Y2K38_mtime, Y2K38_mtime);
-const Y2K38_stats = fs.statSync(path);
-assert.strictEqual(Y2K38_mtime, Y2K38_stats.mtime.getTime() / 1000);
+// test Y2K38 for all platforms [except 'arm', and 'smartOS']
+if (process.arch !== 'arm' && process.platform !== 'sunos') {
+  // because 2 ** 31 doesn't look right
+  // eslint-disable-next-line space-infix-ops
+  const Y2K38_mtime = 2**31;
+  fs.utimesSync(path, Y2K38_mtime, Y2K38_mtime);
+  const Y2K38_stats = fs.statSync(path);
+  assert.strictEqual(Y2K38_mtime, Y2K38_stats.mtime.getTime() / 1000);
+}
 
 if (common.isWindows) {
   // this value would get converted to (double)1713037251359.9998
