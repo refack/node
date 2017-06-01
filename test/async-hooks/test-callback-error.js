@@ -36,12 +36,13 @@ if (process.execArgv.includes('--abort-on-uncaught-exception')) {
 }
 
 const c1 = spawnSync(`${process.execPath}`, [__filename, 'test_init_callback']);
-assert.strictEqual(c1.stderr.toString().split('\n')[0],
+assert.strictEqual(c1.stderr.toString().split(/[\r\n]+/g)[0],
                    'Error: test_init_callback');
 assert.strictEqual(c1.status, 1);
 
 const c2 = spawnSync(`${process.execPath}`, [__filename, 'test_callback']);
-assert.strictEqual(c2.stderr.toString().split('\n')[0], 'Error: test_callback');
+const stderrFirstLine = c2.stderr.toString().split(/[\r\n]+/g)[0];
+assert.strictEqual(stderrFirstLine, 'Error: test_callback');
 assert.strictEqual(c2.status, 1);
 
 const c3 = spawnSync(`${process.execPath}`, ['--abort-on-uncaught-exception',
@@ -51,6 +52,6 @@ assert.strictEqual(c3.stdout.toString(), '');
 
 const stderrOutput = c3.stderr.toString()
                        .trim()
-                       .split('\n')
+                       .split(/[\r\n]+/g)
                        .map((s) => s.trim());
 assert.strictEqual(stderrOutput[0], 'Error: test_callback_abort');
