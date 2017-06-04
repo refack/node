@@ -15,11 +15,14 @@ const util = require('util');
 added: REPLACEME
 -->
 
-* `original` {Function} An async function, or a Promise factory
-* Returns: {Function} a "callback style" function
+* `original` {Function} An `async` function
+* Returns: {Function} a callback style function
 
-Takes an async function and returns a function following the common Node.js
-callback style, i.e. taking a `(err, val) => ...` callback as the last argument.
+Takes an `async` function (or a function that returns a Promise) and returns a
+function following the common Node.js callback style, i.e. taking a `(err, val)
+=> ...` callback as the last argument. In the callback, the first argument will
+be the rejection reason (or `null` if function call resolved successfully), and
+the second argument will be the resolved value.
 
 For example:
 
@@ -28,23 +31,23 @@ const util = require('util');
 async function fn() {
   return await Promise.resolve('hello world');
 }
-const cbFn = util.callbackify(fn);
+const callbackFunction = util.callbackify(fn);
 
-cbFn((err, ret) => {
+callbackFunction((err, ret) => {
   if (err) throw err;
   console.log(ret);
 });
 ```
 
-will output something like:
+will print something like:
 
 ```txt
 hello world
 ```
 
-*Note*: Like with most "callback style" function, the callback is executed in an
-async context (having a limited stacktrace), and if the callback throws, the
-process will emit an `uncaughtException` event and if not handles will exit.
+*Note*: Like with most callback style functions, the callback is executed in an
+async context (having a limited stacktrace), and if the callback throws the
+process will emit an `uncaughtException` event, and if not handled, will exit.
 
 ## util.debuglog(section)
 <!-- YAML
