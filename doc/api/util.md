@@ -10,6 +10,42 @@ module developers as well. It can be accessed using:
 const util = require('util');
 ```
 
+## util.callbackify(original)
+<!-- YAML
+added: REPLACEME
+-->
+
+* `original` {Function} An async function, or a Promise factory
+* Returns: {Function} a "callback style" function
+
+Takes an async function and returns a function following the common Node.js
+callback style, i.e. taking a `(err, val) => ...` callback as the last argument.
+
+For example:
+
+```js
+const util = require('util');
+async function fn() {
+  return await Promise.resolve('hello world');
+}
+const cbFn = util.callbackify(fn);
+
+cbFn((err, ret) => {
+  if (err) throw err;
+  console.log(ret);
+});
+```
+
+will output something like:
+
+```txt
+hello world
+```
+
+*Note*: Like with most "callback style" function, the callback is executed in an
+async context (having a limited stacktrace), and if the callback throws, the
+process will emit an `uncaughtException` event and if not handles will exit.
+
 ## util.debuglog(section)
 <!-- YAML
 added: v0.11.3
