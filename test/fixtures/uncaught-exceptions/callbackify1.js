@@ -5,15 +5,11 @@
 const { callbackify } = require('util');
 
 {
-  const sentinel = new Error(__filename);
-
-  async function fn3 () {
-    return await Promise.reject(sentinel);
-  }
+  async function fn3 () { }
 
   const cbFn = callbackify(fn3);
 
   cbFn((err, ret) => {
-    throw err;
+    throw new Error(__filename);
   });
 }
