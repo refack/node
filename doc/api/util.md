@@ -18,16 +18,18 @@ added: REPLACEME
 * `original` {Function} An `async` function
 * Returns: {Function} a callback style function
 
-Takes an `async` function (or a function that returns a Promise) and returns a
-function following the common Node.js callback style, i.e. taking a `(err, val)
-=> ...` callback as the last argument. In the callback, the first argument will
-be the rejection reason (or `null` if function call resolved successfully), and
+This method converts Promise returning API endpoints to ones that use callbacks.
+`callbackify` takes an `async function` (or a function that returns a Promise)
+and returns a function following the common Node.js callback style, i.e. taking
+a `(err, val) => ...` callback as the last argument. In the callback, the first
+argument will be the rejection reason (or `null` if the Promise resolved), and
 the second argument will be the resolved value.
 
 For example:
 
 ```js
 const util = require('util');
+
 async function fn() {
   return await Promise.resolve('hello world');
 }
@@ -45,9 +47,26 @@ will print something like:
 hello world
 ```
 
-*Note*: Like with most callback style functions, the callback is executed in an
+*Note*:
+* Like with most callback style functions, the callback is executed in an
 async context (having a limited stacktrace), and if the callback throws the
 process will emit an `uncaughtException` event, and if not handled, will exit.
+* Since `null` has a special meaning as the first argument to a callback, if a
+wrapped function rejects a `Promise` with a "falsy" value as a reason, we wrap
+the value in an `Error` with that value stored in a field named `cause`.
+
+```js
+function fn() {
+  return Promise.reject(null);
+}
+const callbackFunction = util.callbackify(fn);
+
+callbackFunction((err, ret) => {
+  err && err.cause && err.cause === null;  // true
+  err && err.message === 'Error: null';    // true
+});
+```
+
 
 ## util.debuglog(section)
 <!-- YAML
