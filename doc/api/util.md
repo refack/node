@@ -41,19 +41,22 @@ callbackFunction((err, ret) => {
 });
 ```
 
-will print something like:
+Will print something like:
 
 ```txt
 hello world
 ```
 
 *Note*:
+
 * Like with most callback style functions, the callback is executed in an
-async context (having a limited stacktrace), and if the callback throws the
-process will emit an `uncaughtException` event, and if not handled, will exit.
+async context (i.e. having a limited stacktrace). If the callback throws, the
+process will emit an `uncaughtException` event, and if not handled will exit.
+
 * Since `null` has a special meaning as the first argument to a callback, if a
-wrapped function rejects a `Promise` with a "falsy" value as a reason, we wrap
-the value in an `Error` with that value stored in a field named `cause`.
+wrapped function rejects a `Promise` with a falsy value as a reason, the value
+is wrapped in an `Error` with the original value stored in a field named
+`reason`.
 
 ```js
 function fn() {
@@ -62,11 +65,11 @@ function fn() {
 const callbackFunction = util.callbackify(fn);
 
 callbackFunction((err, ret) => {
-  err && err.cause && err.cause === null;  // true
-  err && err.message === 'Error: null';    // true
+  // When the Promise was rejected with `null` it is wrapped with an Error and
+  // the original value is stored in `reason`.
+  err && ('reason' in err) && err.reason === null;  // true
 });
 ```
-
 
 ## util.debuglog(section)
 <!-- YAML

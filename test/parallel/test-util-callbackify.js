@@ -1,12 +1,15 @@
 'use strict';
 const common = require('../common');
 
+// This test checks that the semantics of `util.callbackify` are as described in
+// the API docs
+
 const assert = require('assert');
 const { callbackify } = require('util');
 const { join } = require('path');
 const { execFile } = require('child_process');
 const fixtureDir = join(common.fixturesDir, 'uncaught-exceptions');
-const sentinalValues = [
+const sentinelValues = [
   'hello world',
   null,
   undefined,
@@ -18,8 +21,8 @@ const sentinalValues = [
 ];
 
 {
-  // Just works
-  for (const sentinel of sentinalValues) {
+  // Test that the resolution value is passed as second argument to callback
+  for (const sentinel of sentinelValues) {
     async function asyncFn() {
       return await Promise.resolve(sentinel);
     }
@@ -45,8 +48,8 @@ const sentinalValues = [
 }
 
 {
-  // Rejections
-  for (const sentinel of sentinalValues) {
+  // Test that rejection reason is passed as first argument to callback
+  for (const sentinel of sentinelValues) {
     async function asyncFn() {
       return await Promise.reject(sentinel);
     }
@@ -56,16 +59,19 @@ const sentinalValues = [
     cbAsyncFn(common.mustCall((err, ret) => {
       assert.strictEqual(ret, undefined);
       if (err instanceof Error) {
-        assert.strictEqual(String(sentinel).endsWith(err.message), true);
-        if ('cause' in err)
-          assert.strictEqual(err.cause, sentinel);
+        if ('reason' in err) {
+          assert.strictEqual(err.code, 'NULL_REJECTION');
+          assert.strictEqual(err.reason, sentinel);
+        } else {
+          assert.strictEqual(String(sentinel).endsWith(err.message), true);
+        }
       } else {
         assert.strictEqual(err, sentinel);
       }
     }));
   }
 
-  for (const sentinel of sentinalValues) {
+  for (const sentinel of sentinelValues) {
     function promiseFn() {
       return Promise.reject(sentinel);
     }
@@ -75,9 +81,12 @@ const sentinalValues = [
     cbPromiseFn(common.mustCall((err, ret) => {
       assert.strictEqual(ret, undefined);
       if (err instanceof Error) {
-        assert.strictEqual(String(sentinel).endsWith(err.message), true);
-        if ('cause' in err)
-          assert.strictEqual(err.cause, sentinel);
+        if ('reason' in err) {
+          assert.strictEqual(err.code, 'NULL_REJECTION');
+          assert.strictEqual(err.reason, sentinel);
+        } else {
+          assert.strictEqual(String(sentinel).endsWith(err.message), true);
+        }
       } else {
         assert.strictEqual(err, sentinel);
       }
@@ -86,8 +95,8 @@ const sentinalValues = [
 }
 
 {
-  // 3. args work
-  for (const sentinel of sentinalValues) {
+  // Test that arguments passed to callbackified function are passed to original
+  for (const sentinel of sentinelValues) {
     async function asyncFn(arg) {
       assert.strictEqual(arg, sentinel);
       return await Promise.resolve(arg);
@@ -115,8 +124,8 @@ const sentinalValues = [
 }
 
 {
-  // `this` binding
-  for (const sentinel of sentinalValues) {
+  // Test that `this` binding is the same for callbackified and original
+  for (const sentinel of sentinelValues) {
     const iAmThis = {
       fn(arg) {
         assert.strictEqual(this, iAmThis);
@@ -148,7 +157,7 @@ const sentinalValues = [
 }
 
 {
-  // `uncaughtException` aborts process
+  // Test that callback that throws emits an `uncaughtException` event
   const fixture = join(fixtureDir, 'callbackify1.js');
   execFile(
     process.argv[0],
@@ -165,7 +174,7 @@ const sentinalValues = [
 }
 
 {
-  // handled `uncaughtException` works and passes rejection reason
+  // Test that handled `uncaughtException` works and passes rejection reason
   const fixture = join(fixtureDir, 'callbackify2.js');
   execFile(
     process.argv[0],

@@ -1,6 +1,6 @@
 'use strict';
 
-// Used to test `uncaughtException` is emitted
+// Used to test that `uncaughtException` is emitted
 
 const { callbackify } = require('util');
 

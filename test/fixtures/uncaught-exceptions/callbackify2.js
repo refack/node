@@ -1,6 +1,6 @@
 'use strict';
 
-// Used to test arguments to `uncaughtException` from a callback
+// Used to test the `uncaughtException` err object
 
 const assert = require('assert');
 const { callbackify } = require('util');
