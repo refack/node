@@ -44,6 +44,8 @@ There are four fundamental stream types within Node.js:
 * [Transform][] - Duplex streams that can modify or transform the data as it
   is written and read (for example [`zlib.createDeflate()`][]).
 
+Additionally this module inclues a utility function [pump][].
+
 ### Object Mode
 
 All streams created by Node.js APIs operate exclusively on strings and `Buffer`
@@ -87,7 +89,7 @@ total size of the internal write buffer is below the threshold set by
 the size of the internal buffer reaches or exceeds the `highWaterMark`, `false`
 will be returned.
 
-A key goal of the `stream` API, particularly the [`stream.pipe()`] method,
+A key goal of the `stream` API, particularly the [`stream.pump()`] function,
 is to limit the buffering of data to acceptable levels such that sources and
 destinations of differing speeds will not overwhelm the available memory.
 
@@ -1172,6 +1174,14 @@ implementors should not override this method, but instead implement
 [`readable._destroy`][readable-_destroy].
 The default implementation of `_destroy` for `Transform` also emit `'close'`.
 
+#### Class Method: stream.pump(...streams[, callback])
+
+* two or more streams to pipe between
+* optional callback
+
+A class method to pipe between streams forwarding errors and properly cleaning
+up.
+
 ## API for Stream Implementers
 
 <!--type=misc-->
@@ -2189,3 +2199,4 @@ readable buffer so there is nothing for a user to consume.
 [stream-write]: #stream_writable_write_chunk_encoding_callback
 [readable-_destroy]: #stream_readable_destroy_err_callback
 [writable-_destroy]: #stream_writable_destroy_err_callback
+[pump]: #stream_class_method_pump
