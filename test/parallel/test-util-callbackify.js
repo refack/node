@@ -85,6 +85,7 @@ const values = [
       assert.strictEqual(ret, undefined);
       if (err instanceof Error) {
         if ('reason' in err) {
+          assert(!value);
           assert.strictEqual(err.code, 'NULL_REJECTION');
           assert.strictEqual(err.reason, value);
         } else {
