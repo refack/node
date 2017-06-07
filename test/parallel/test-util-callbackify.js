@@ -25,36 +25,36 @@ const values = [
 
 {
   // Test that the resolution value is passed as second argument to callback
-  for (const sentinel of values) {
+  for (const value of values) {
     async function asyncFn() {
-      return await Promise.resolve(sentinel);
+      return await Promise.resolve(value);
     }
 
     const cbAsyncFn = callbackify(asyncFn);
 
     cbAsyncFn(common.mustCall((err, ret) => {
       assert.ifError(err);
-      assert.strictEqual(ret, sentinel);
+      assert.strictEqual(ret, value);
     }));
 
     function promiseFn() {
-      return Promise.resolve(sentinel);
+      return Promise.resolve(value);
     }
 
     const cbPromiseFn = callbackify(promiseFn);
 
     cbPromiseFn(common.mustCall((err, ret) => {
       assert.ifError(err);
-      assert.strictEqual(ret, sentinel);
+      assert.strictEqual(ret, value);
     }));
   }
 }
 
 {
   // Test that rejection reason is passed as first argument to callback
-  for (const sentinel of values) {
+  for (const value of values) {
     async function asyncFn() {
-      return await Promise.reject(sentinel);
+      return await Promise.reject(value);
     }
 
     const cbAsyncFn = callbackify(asyncFn);
@@ -64,19 +64,19 @@ const values = [
       if (err instanceof Error) {
         if ('reason' in err) {
           assert.strictEqual(err.code, 'NULL_REJECTION');
-          assert.strictEqual(err.reason, sentinel);
+          assert.strictEqual(err.reason, value);
         } else {
-          assert.strictEqual(String(sentinel).endsWith(err.message), true);
+          assert.strictEqual(String(value).endsWith(err.message), true);
         }
       } else {
-        assert.strictEqual(err, sentinel);
+        assert.strictEqual(err, value);
       }
     }));
   }
 
-  for (const sentinel of values) {
+  for (const value of values) {
     function promiseFn() {
-      return Promise.reject(sentinel);
+      return Promise.reject(value);
     }
 
     const cbPromiseFn = callbackify(promiseFn);
@@ -86,12 +86,12 @@ const values = [
       if (err instanceof Error) {
         if ('reason' in err) {
           assert.strictEqual(err.code, 'NULL_REJECTION');
-          assert.strictEqual(err.reason, sentinel);
+          assert.strictEqual(err.reason, value);
         } else {
-          assert.strictEqual(String(sentinel).endsWith(err.message), true);
+          assert.strictEqual(String(value).endsWith(err.message), true);
         }
       } else {
-        assert.strictEqual(err, sentinel);
+        assert.strictEqual(err, value);
       }
     }));
   }
@@ -99,36 +99,36 @@ const values = [
 
 {
   // Test that arguments passed to callbackified function are passed to original
-  for (const sentinel of values) {
+  for (const value of values) {
     async function asyncFn(arg) {
-      assert.strictEqual(arg, sentinel);
+      assert.strictEqual(arg, value);
       return await Promise.resolve(arg);
     }
 
     const cbAsyncFn = callbackify(asyncFn);
 
-    cbAsyncFn(sentinel, common.mustCall((err, ret) => {
+    cbAsyncFn(value, common.mustCall((err, ret) => {
       assert.ifError(err);
-      assert.strictEqual(ret, sentinel);
+      assert.strictEqual(ret, value);
     }));
 
     function promiseFn(arg) {
-      assert.strictEqual(arg, sentinel);
+      assert.strictEqual(arg, value);
       return Promise.resolve(arg);
     }
 
     const cbPromiseFn = callbackify(promiseFn);
 
-    cbPromiseFn(sentinel, common.mustCall((err, ret) => {
+    cbPromiseFn(value, common.mustCall((err, ret) => {
       assert.ifError(err);
-      assert.strictEqual(ret, sentinel);
+      assert.strictEqual(ret, value);
     }));
   }
 }
 
 {
   // Test that `this` binding is the same for callbackified and original
-  for (const sentinel of values) {
+  for (const value of values) {
     const iAmThis = {
       fn(arg) {
         assert.strictEqual(this, iAmThis);
@@ -137,9 +137,9 @@ const values = [
     };
     iAmThis.cbFn = callbackify(iAmThis.fn);
 
-    iAmThis.cbFn(sentinel, common.mustCall(function(err, ret) {
+    iAmThis.cbFn(value, common.mustCall(function(err, ret) {
       assert.ifError(err);
-      assert.strictEqual(ret, sentinel);
+      assert.strictEqual(ret, value);
       assert.strictEqual(this, iAmThis);
     }));
 
@@ -151,9 +151,9 @@ const values = [
     };
     iAmThat.cbFn = callbackify(iAmThat.fn);
 
-    iAmThat.cbFn(sentinel, common.mustCall(function(err, ret) {
+    iAmThat.cbFn(value, common.mustCall(function(err, ret) {
       assert.ifError(err);
-      assert.strictEqual(ret, sentinel);
+      assert.strictEqual(ret, value);
       assert.strictEqual(this, iAmThat);
     }));
   }
