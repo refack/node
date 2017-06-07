@@ -9,10 +9,13 @@ const { callbackify } = require('util');
 const { join } = require('path');
 const { execFile } = require('child_process');
 const fixtureDir = join(common.fixturesDir, 'uncaught-exceptions');
-const sentinelValues = [
+const values = [
   'hello world',
   null,
   undefined,
+  false,
+  0,
+  {},
   { key: 'value' },
   Symbol('I am a symbol'),
   function ok() {},
@@ -22,7 +25,7 @@ const sentinelValues = [
 
 {
   // Test that the resolution value is passed as second argument to callback
-  for (const sentinel of sentinelValues) {
+  for (const sentinel of values) {
     async function asyncFn() {
       return await Promise.resolve(sentinel);
     }
@@ -49,7 +52,7 @@ const sentinelValues = [
 
 {
   // Test that rejection reason is passed as first argument to callback
-  for (const sentinel of sentinelValues) {
+  for (const sentinel of values) {
     async function asyncFn() {
       return await Promise.reject(sentinel);
     }
@@ -71,7 +74,7 @@ const sentinelValues = [
     }));
   }
 
-  for (const sentinel of sentinelValues) {
+  for (const sentinel of values) {
     function promiseFn() {
       return Promise.reject(sentinel);
     }
@@ -96,7 +99,7 @@ const sentinelValues = [
 
 {
   // Test that arguments passed to callbackified function are passed to original
-  for (const sentinel of sentinelValues) {
+  for (const sentinel of values) {
     async function asyncFn(arg) {
       assert.strictEqual(arg, sentinel);
       return await Promise.resolve(arg);
@@ -125,7 +128,7 @@ const sentinelValues = [
 
 {
   // Test that `this` binding is the same for callbackified and original
-  for (const sentinel of sentinelValues) {
+  for (const sentinel of values) {
     const iAmThis = {
       fn(arg) {
         assert.strictEqual(this, iAmThis);
