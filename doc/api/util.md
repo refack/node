@@ -51,7 +51,8 @@ hello world
 
 * Like with most callback style functions, the callback is executed in an
 async context (i.e. having a limited stacktrace). If the callback throws, the
-process will emit an `uncaughtException` event, and if not handled will exit.
+process will emit an [`'uncaughtException'`][] event, and if not handled will
+exit.
 
 * Since `null` has a special meaning as the first argument to a callback, if a
 wrapped function rejects a `Promise` with a falsy value as a reason, the value
@@ -67,7 +68,7 @@ const callbackFunction = util.callbackify(fn);
 callbackFunction((err, ret) => {
   // When the Promise was rejected with `null` it is wrapped with an Error and
   // the original value is stored in `reason`.
-  err && ('reason' in err) && err.reason === null;  // true
+  err && err.hasOwnProperty('reason') && err.reason === null;  // true
 });
 ```
 
@@ -1016,6 +1017,7 @@ Deprecated predecessor of `console.log`.
 [`Object.assign()`]: https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
 [`console.error()`]: console.html#console_console_error_data_args
 [`console.log()`]: console.html#console_console_log_data_args
+[`'uncaughtException'`]: process.html#process_event_uncaughtexception
 [`util.inspect()`]: #util_util_inspect_object_options
 [`util.promisify()`]: #util_util_promisify_original
 [Custom inspection functions on Objects]: #util_custom_inspection_functions_on_objects
