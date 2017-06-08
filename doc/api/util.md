@@ -19,7 +19,7 @@ added: REPLACEME
 * Returns: {Function} a callback style function
 
 This method converts Promise returning API endpoints to ones that use callbacks.
-`callbackify` takes an `async function` (or a function that returns a Promise)
+`callbackify` takes an `async` function (or a function that returns a Promise)
 and returns a function following the common Node.js callback style, i.e. taking
 a `(err, val) => ...` callback as the last argument. In the callback, the first
 argument will be the rejection reason (or `null` if the Promise resolved), and
@@ -58,19 +58,18 @@ exit.
 wrapped function rejects a `Promise` with a falsy value as a reason, the value
 is wrapped in an `Error` with the original value stored in a field named
 `reason`.
+  ```js
+  function fn() {
+    return Promise.reject(null);
+  }
+  const callbackFunction = util.callbackify(fn);
 
-```js
-function fn() {
-  return Promise.reject(null);
-}
-const callbackFunction = util.callbackify(fn);
-
-callbackFunction((err, ret) => {
-  // When the Promise was rejected with `null` it is wrapped with an Error and
-  // the original value is stored in `reason`.
-  err && err.hasOwnProperty('reason') && err.reason === null;  // true
-});
-```
+  callbackFunction((err, ret) => {
+    // When the Promise was rejected with `null` it is wrapped with an Error and
+    // the original value is stored in `reason`.
+    err && err.hasOwnProperty('reason') && err.reason === null;  // true
+  });
+  ```
 
 ## util.debuglog(section)
 <!-- YAML
