@@ -78,7 +78,8 @@ const values = [
       assert.strictEqual(ret, undefined);
       if (err instanceof Error) {
         if ('reason' in err) {
-          assert.strictEqual(err.code, 'NULL_REJECTION');
+          assert(!value);
+          assert.strictEqual(err.code, 'FALSE_REJECTION');
           assert.strictEqual(err.reason, value);
         } else {
           assert.strictEqual(String(value).endsWith(err.message), true);
@@ -99,7 +100,7 @@ const values = [
       if (err instanceof Error) {
         if ('reason' in err) {
           assert(!value);
-          assert.strictEqual(err.code, 'NULL_REJECTION');
+          assert.strictEqual(err.code, 'FALSE_REJECTION');
           assert.strictEqual(err.reason, value);
         } else {
           assert.strictEqual(String(value).endsWith(err.message), true);
@@ -124,7 +125,7 @@ const values = [
       if (err instanceof Error) {
         if ('reason' in err) {
           assert(!value);
-          assert.strictEqual(err.code, 'NULL_REJECTION');
+          assert.strictEqual(err.code, 'FALSE_REJECTION');
           assert.strictEqual(err.reason, value);
         } else {
           assert.strictEqual(String(value).endsWith(err.message), true);
@@ -198,7 +199,7 @@ const values = [
   // Test that callback that throws emits an `uncaughtException` event
   const fixture = join(fixtureDir, 'callbackify1.js');
   execFile(
-    process.argv[0],
+    process.execPath,
     [fixture],
     common.mustCall((err, stdout, stderr) => {
       assert.strictEqual(err.code, 1);
@@ -215,7 +216,7 @@ const values = [
   // Test that handled `uncaughtException` works and passes rejection reason
   const fixture = join(fixtureDir, 'callbackify2.js');
   execFile(
-    process.argv[0],
+    process.execPath,
     [fixture],
     common.mustCall((err, stdout, stderr) => {
       assert.ifError(err);
