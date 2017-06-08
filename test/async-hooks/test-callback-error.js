@@ -46,7 +46,15 @@ assert.strictEqual(c2.status, 1);
 
 const c3 = spawnSync(`${process.execPath}`, ['--abort-on-uncaught-exception',
                                              __filename,
-                                             'test_callback_abort']);
+                                             'test_callback_abort'],
+                     { timeout: 15 * 1000 });
+if (c3.error && c3.error.code === 'ETIMEDOUT') {
+  console.log('   ==== stdout ====  ');
+  console.log(c3.stdout.toString());
+  console.log('   ==== stderr ====  ');
+  console.log(c3.stderr.toString());
+  assert.fail(c3.error);
+}
 assert.strictEqual(c3.stdout.toString(), '');
 
 const stderrOutput = c3.stderr.toString()
