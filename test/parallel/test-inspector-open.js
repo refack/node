@@ -15,6 +15,11 @@ if (process.env.BE_CHILD)
   return beChild();
 
 const child = fork(__filename, {env: {BE_CHILD: 1}});
+child.on('error', (err) => assert.fail(err));
+child.on('exit', (code, signal) => {
+  assert.strictEqual(code, 0);
+  assert.strictEqual(signal, null);
+});
 
 child.once('message', common.mustCall((msg) => {
   assert.strictEqual(msg.cmd, 'started');
@@ -99,6 +104,18 @@ function beChild() {
     if (msg.cmd === 'close') {
       inspector.close();
     }
-    process.send({cmd: 'url', url: inspector.url()});
+
+    const state = inspector.currentState();
+    if (msg.cmd === 'open') {
+      assert(state);
+      assert.strictEqual(typeof state.UUID, 'string');
+      assert.strictEqual(typeof state.toURL, 'function');
+      assert.strictEqual(typeof state.toURL(), 'string');
+      assert(state.toURL().length > 0, 'state.toURL() should return a url');
+    } else {
+      assert(!state);
+    }
+
+    process.send({ cmd: 'url', url: state.toURL() });
   });
 }

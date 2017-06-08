@@ -30,9 +30,11 @@ and flow control has been passed to the debugger client.
 
 Deactivate the inspector. Blocks until there are no active connections.
 
-### inspector.url()
+### inspector.currentState()
 
-Return the URL of the active inspector, or `undefined` if there is none.
+Return an `InspectorState` object that extends `URL` with two extra properties,
+a string `UUID`, and a method `toURL()`. This object represents the current
+state of the active inspector. If there is no active inspector returns null.
 
 ## Class: inspector.Session
 
