@@ -26,24 +26,39 @@ const values = [
 {
   // Test that the resolution value is passed as second argument to callback
   for (const value of values) {
+    // Test and `async function`
     async function asyncFn() {
       return await Promise.resolve(value);
     }
 
     const cbAsyncFn = callbackify(asyncFn);
-
     cbAsyncFn(common.mustCall((err, ret) => {
       assert.ifError(err);
       assert.strictEqual(ret, value);
     }));
 
+    // Test Promise factory
     function promiseFn() {
       return Promise.resolve(value);
     }
 
     const cbPromiseFn = callbackify(promiseFn);
-
     cbPromiseFn(common.mustCall((err, ret) => {
+      assert.ifError(err);
+      assert.strictEqual(ret, value);
+    }));
+
+    // Test Thenable
+    function thenableFn() {
+      return {
+        then(onRes, onRej) {
+          onRes(value);
+        }
+      };
+    }
+
+    const cbThenableFn = callbackify(thenableFn);
+    cbThenableFn(common.mustCall((err, ret) => {
       assert.ifError(err);
       assert.strictEqual(ret, value);
     }));
@@ -53,12 +68,12 @@ const values = [
 {
   // Test that rejection reason is passed as first argument to callback
   for (const value of values) {
+    // Test an `async function`
     async function asyncFn() {
       return await Promise.reject(value);
     }
 
     const cbAsyncFn = callbackify(asyncFn);
-
     cbAsyncFn(common.mustCall((err, ret) => {
       assert.strictEqual(ret, undefined);
       if (err instanceof Error) {
@@ -72,16 +87,39 @@ const values = [
         assert.strictEqual(err, value);
       }
     }));
-  }
 
-  for (const value of values) {
+    // test a Promise factory
     function promiseFn() {
       return Promise.reject(value);
     }
 
     const cbPromiseFn = callbackify(promiseFn);
-
     cbPromiseFn(common.mustCall((err, ret) => {
+      assert.strictEqual(ret, undefined);
+      if (err instanceof Error) {
+        if ('reason' in err) {
+          assert(!value);
+          assert.strictEqual(err.code, 'NULL_REJECTION');
+          assert.strictEqual(err.reason, value);
+        } else {
+          assert.strictEqual(String(value).endsWith(err.message), true);
+        }
+      } else {
+        assert.strictEqual(err, value);
+      }
+    }));
+
+    // Test Thenable
+    function thenableFn() {
+      return {
+        then(onRes, onRej) {
+          onRej(value);
+        }
+      };
+    }
+
+    const cbThenableFn = callbackify(thenableFn);
+    cbThenableFn(common.mustCall((err, ret) => {
       assert.strictEqual(ret, undefined);
       if (err instanceof Error) {
         if ('reason' in err) {
@@ -107,7 +145,6 @@ const values = [
     }
 
     const cbAsyncFn = callbackify(asyncFn);
-
     cbAsyncFn(value, common.mustCall((err, ret) => {
       assert.ifError(err);
       assert.strictEqual(ret, value);
@@ -119,7 +156,6 @@ const values = [
     }
 
     const cbPromiseFn = callbackify(promiseFn);
-
     cbPromiseFn(value, common.mustCall((err, ret) => {
       assert.ifError(err);
       assert.strictEqual(ret, value);
@@ -137,7 +173,6 @@ const values = [
       },
     };
     iAmThis.cbFn = callbackify(iAmThis.fn);
-
     iAmThis.cbFn(value, common.mustCall(function(err, ret) {
       assert.ifError(err);
       assert.strictEqual(ret, value);
@@ -151,7 +186,6 @@ const values = [
       },
     };
     iAmThat.cbFn = callbackify(iAmThat.fn);
-
     iAmThat.cbFn(value, common.mustCall(function(err, ret) {
       assert.ifError(err);
       assert.strictEqual(ret, value);
