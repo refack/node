@@ -76,11 +76,21 @@ void LowMemoryNotification();
 #define NO_RETURN
 #endif
 
+#ifdef _WIN32
+# ifndef BUILDING_NODE_EXTENSION
+#   define NODE_EXTERN __declspec(dllexport)
+# else
+#   define NODE_EXTERN __declspec(dllimport)
+# endif
+#else
+# define NODE_EXTERN /* nothing */
+#endif
+
 // The slightly odd function signature for Assert() is to ease
 // instruction cache pressure in calls from ASSERT and CHECK.
-NO_RETURN void Abort();
-NO_RETURN void Assert(const char* const (*args)[4]);
-void DumpBacktrace(FILE* fp);
+NODE_EXTERN NO_RETURN void Abort();
+NODE_EXTERN NO_RETURN void Assert(const char* const (*args)[4]);
+NODE_EXTERN void DumpBacktrace(FILE* fp);
 
 template <typename T> using remove_reference = std::remove_reference<T>;
 
