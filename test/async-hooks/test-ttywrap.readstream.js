@@ -17,8 +17,9 @@ const checkEndedOpts = { init: 1, before: 1, after: 1, destroy: 1 };
 
 // test code
 //
-// listen to stdout that should be non-blocking even on windows
-const ttyStream = new ReadStream(1);
+// listen to stdin except on Windows
+const targetFD = common.isWindows ? 1 : 0;
+const ttyStream = new ReadStream(targetFD);
 const activities = hooks.activitiesOfTypes('TTYWRAP');
 assert.strictEqual(activities.length, 1);
 const tty = activities[0];
