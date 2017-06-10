@@ -13,10 +13,10 @@ const { callbackify } = require('util');
     console.log(err.message);
   });
 
-  async function fn3() {
+  async function fn() {
     return await Promise.reject(sentinel);
   }
 
-  const cbFn = callbackify(fn3);
+  const cbFn = callbackify(fn);
   cbFn((err, ret) => assert.ifError(err));
 }

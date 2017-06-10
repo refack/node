@@ -18,12 +18,10 @@ added: REPLACEME
 * `original` {Function} An `async` function
 * Returns: {Function} a callback style function
 
-This method converts Promise returning API endpoints to ones that use callbacks.
-`callbackify` takes an `async` function (or a function that returns a Promise)
-and returns a function following the common Node.js callback style, i.e. taking
-a `(err, val) => ...` callback as the last argument. In the callback, the first
-argument will be the rejection reason (or `null` if the Promise resolved), and
-the second argument will be the resolved value.
+Takes an `async` function (or a function that returns a Promise) and returns a
+function following the Node.js error first callback style. In the callback, the
+first argument will be the rejection reason (or `null` if the Promise resolved),
+and the second argument will be the resolved value.
 
 For example:
 
@@ -41,7 +39,7 @@ callbackFunction((err, ret) => {
 });
 ```
 
-Will print something like:
+Will print:
 
 ```txt
 hello world
@@ -49,10 +47,9 @@ hello world
 
 *Note*:
 
-* Like with most callback style functions, the callback is executed in an
-async context (i.e. having a limited stacktrace). If the callback throws, the
-process will emit an [`'uncaughtException'`][] event, and if not handled will
-exit.
+* The callback is executed asynchronously, and will have a limited stack trace.
+If the callback throws, the process will emit an [`'uncaughtException'`][]
+event, and if not handled will exit.
 
 * Since `null` has a special meaning as the first argument to a callback, if a
 wrapped function rejects a `Promise` with a falsy value as a reason, the value
