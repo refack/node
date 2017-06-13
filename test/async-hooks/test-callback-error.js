@@ -1,64 +1,81 @@
 'use strict';
-
 const common = require('../common');
 const assert = require('assert');
 const spawnSync = require('child_process').spawnSync;
 const async_hooks = require('async_hooks');
 const initHooks = require('./init-hooks');
 
-switch (process.argv[2]) {
+const arg = process.argv[2];
+switch (arg) {
   case 'test_init_callback':
     initHooks({
-      oninit: common.mustCall(() => { throw new Error('test_init_callback'); })
+      oninit: common.mustCall(() => { throw new Error(arg); })
     }).enable();
+    async_hooks.emitInit(
+      async_hooks.executionAsyncId(),
+      `${arg}_type`,
+      async_hooks.triggerAsyncId()
+    );
+    return;
 
-    async_hooks.emitInit(async_hooks.executionAsyncId(),
-                         'test_init_callback_type',
-                         async_hooks.triggerAsyncId());
-    break;
   case 'test_callback':
     initHooks({
-      onbefore: common.mustCall(() => { throw new Error('test_callback'); })
+      onbefore: common.mustCall(() => { throw new Error(arg); })
     }).enable();
-
-    async_hooks.emitInit(async_hooks.executionAsyncId(), 'test_callback_type',
-                         async_hooks.triggerAsyncId());
+    async_hooks.emitInit(
+      async_hooks.executionAsyncId(),
+      `${arg}_type`,
+      async_hooks.triggerAsyncId()
+    );
     async_hooks.emitBefore(async_hooks.executionAsyncId());
-    break;
+    return;
+
   case 'test_callback_abort':
     initHooks({
-      oninit: common.mustCall(() => { throw new Error('test_callback_abort'); })
+      oninit: common.mustCall(() => { throw new Error(arg); })
     }).enable();
-
-    async_hooks.emitInit(async_hooks.executionAsyncId(), 'test_callback_abort',
-                         async_hooks.triggerAsyncId());
-    break;
+    async_hooks.emitInit(
+      async_hooks.executionAsyncId(),
+      `${arg}_type`,
+      async_hooks.triggerAsyncId()
+    );
+    return;
 }
 
-const c1 = spawnSync(`${process.execPath}`, [__filename, 'test_init_callback']);
-assert.strictEqual(c1.stderr.toString().split('\n')[0],
-                   'Error: test_init_callback');
-assert.strictEqual(c1.status, 1);
-
-const c2 = spawnSync(`${process.execPath}`, [__filename, 'test_callback']);
-assert.strictEqual(c2.stderr.toString().split('\n')[0], 'Error: test_callback');
-assert.strictEqual(c2.status, 1);
-
-const c3 = spawnSync(`${process.execPath}`, ['--abort-on-uncaught-exception',
-                                             __filename,
-                                             'test_callback_abort'],
-                     { timeout: 15 * 1000 });
-if (c3.error && c3.error.code === 'ETIMEDOUT') {
-  console.log('   ==== stdout ====  ');
-  console.log(c3.stdout.toString());
-  console.log('   ==== stderr ====  ');
-  console.log(c3.stderr.toString());
-  assert.fail(c3.error);
+// this part should run only for the master test
+assert.ok(!arg);
+{
+  const child = spawnSync(process.execPath, [__filename, 'test_init_callback']);
+  assert.ifError(child.error);
+  const test_init_first_line = child.stderr.toString().split(/[\r\n]+/g)[0];
+  assert.strictEqual(test_init_first_line, 'Error: test_init_callback');
+  assert.strictEqual(child.status, 1);
 }
-assert.strictEqual(c3.stdout.toString(), '');
 
-const stderrOutput = c3.stderr.toString()
-                       .trim()
-                       .split('\n')
-                       .map((s) => s.trim());
-assert.strictEqual(stderrOutput[0], 'Error: test_callback_abort');
+{
+  const child = spawnSync(process.execPath, [__filename, 'test_callback']);
+  assert.ifError(child.error);
+  const test_callback_first_line = child.stderr.toString().split(/[\r\n]+/g)[0];
+  assert.strictEqual(test_callback_first_line, 'Error: test_callback');
+  assert.strictEqual(child.status, 1);
+}
+
+{
+  const args = [
+    '--abort-on-uncaught-exception',
+    __filename,
+    'test_callback_abort'
+  ];
+  const child = spawnSync(process.execPath, args, { timeout: 15 * 1000 });
+  if (child.error && child.error.code === 'ETIMEDOUT') {
+    console.log('   ==== stdout ====  ');
+    console.log(child.stdout.toString());
+    console.log('   ==== stderr ====  ');
+    console.log(child.stderr.toString());
+    assert.fail(child.error);
+  }
+  assert.strictEqual(child.stdout.toString(), '');
+
+  const firstLineStderr = child.stderr.toString().split(/[\r\n]+/g)[0].trim();
+  assert.strictEqual(firstLineStderr, 'Error: test_callback_abort');
+}
