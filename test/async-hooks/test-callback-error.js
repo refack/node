@@ -66,6 +66,11 @@ assert.ok(!arg);
     __filename,
     'test_callback_abort'
   ];
+  // Timeout is set because this case is known to be problematic, probably
+  // because of the core dump generated because of the `abort()`, so
+  // stdout and stderr are logged for further analysis.
+  // Ref: https://github.com/nodejs/node/issues/13527
+  // Ref: https://github.com/nodejs/node/pull/13559
   const child = spawnSync(process.execPath, args, { timeout: 15 * 1000 });
   if (child.error && child.error.code === 'ETIMEDOUT') {
     console.log('   ==== stdout ====  ');
