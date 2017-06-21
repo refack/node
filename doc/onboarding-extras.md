@@ -29,6 +29,7 @@
 | `test/*` | @nodejs/testing |
 | `tools/eslint`, `.eslintrc` | @not-an-aardvark, @silverwind, @trott |
 | async_hooks | @nodejs/async_hooks for bugs/reviews (+ @nodejs/diagnostics for API) |
+| `*.gpy?` files | @nodejs/build and @nodejs/python |
 | performance | @nodejs/performance |
 | platform specific | @nodejs/platform-{aix,arm,freebsd,macos,ppc,smartos,s390,windows} |
 | python code | @nodejs/python |
