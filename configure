@@ -501,6 +501,7 @@ parser.add_option('-C',
     help=optparse.SUPPRESS_HELP)
 
 (options, args) = parser.parse_args()
+options.debug = True
 
 # Expand ~ in the install prefix now, it gets written to multiple files.
 options.prefix = os.path.expanduser(options.prefix or '')

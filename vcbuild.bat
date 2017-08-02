@@ -12,7 +12,7 @@ if /i "%1"=="--?" goto help
 if /i "%1"=="/?" goto help
 
 @rem Process arguments.
-set config=Release
+set config=Debug
 set target=Build
 set target_arch=x64
 set target_env=
@@ -52,7 +52,7 @@ set "common_test_suites=%js_test_suites% doctool addons addons-napi&set build_ad
 :next-arg
 if "%1"=="" goto args-done
 if /i "%1"=="debug"         set config=Debug&goto arg-ok
-if /i "%1"=="release"       set config=Release&goto arg-ok
+if /i "%1"=="release"       set config=Debug&goto arg-ok
 if /i "%1"=="clean"         set target=Clean&goto arg-ok
 if /i "%1"=="ia32"          set target_arch=x86&goto arg-ok
 if /i "%1"=="x86"           set target_arch=x86&goto arg-ok
@@ -119,7 +119,7 @@ goto next-arg
 :args-done
 
 if defined build_release (
-  set config=Release
+  set config=Debug
   set package=1
   set msi=1
   set licensertf=1
