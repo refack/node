@@ -554,7 +554,13 @@ parser.add_option('-C',
     dest='compile_commands_json',
     help=optparse.SUPPRESS_HELP)
 
-(options, args) = parser.parse_args()
+args = sys.argv[1:]
+if args[0] == '--reuse':
+  with open('.used_configure_flags') as f
+  args = f.readlines()
+else:
+  write('.used_configure_flags', '\n'.join(args)
+(options, args) = parser.parse_args(args)
 
 # Expand ~ in the install prefix now, it gets written to multiple files.
 options.prefix = os.path.expanduser(options.prefix or '')
