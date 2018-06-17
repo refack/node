@@ -2,6 +2,7 @@
 
 const runBenchmark = require('../common/benchmark');
 
+
 runBenchmark('buffers',
              [
                'aligned=true',
