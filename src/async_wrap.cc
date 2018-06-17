@@ -50,6 +50,10 @@ using v8::Value;
 
 using AsyncHooks = node::Environment::AsyncHooks;
 
+/* something */
+namespace node2 {
+}
+  
 namespace node {
 
 static const char* const provider_names[] = {
