@@ -258,20 +258,22 @@ goto build-doc
 if defined noprojgen goto skip-configure
 if defined projgen goto run-configure
 if not exist node.sln goto run-configure
-if not exist .used_configure_flags goto run-configure
-SETLOCAL EnableDelayedExpansion
-set /p prev_configure_flags=<.used_configure_flags
-if NOT !prev_configure_flags! == !configure_flags! ENDLOCAL && goto run-configure
-ENDLOCAL
+if not exist .gyp_configure_stamp goto run-configure
+where /R . /T *.gyp? > .tmp_gyp_configure
+echo %configure_flags% >> .tmp_gyp_configure
+fc .gyp_configure_stamp .tmp_gyp_configure > NUL
+if ERRORLEVEL 1 goto run-configure
 
 :skip-configure
-echo Reusing solution generated with %prev_configure_flags%
+del .tmp_gyp_configure
+echo Reusing solution generated with '%prev_configure_flags%'
 goto msbuild
 
 :run-configure
 @rem Generate the VS project.
 echo configure %configure_flags%
-echo %configure_flags%> .used_configure_flags
+where /R . /T *.gyp? > .gyp_configure_stamp
+echo %configure_flags% >> .gyp_configure_stamp
 python configure %configure_flags%
 if errorlevel 1 goto create-msvs-files-failed
 if not exist node.sln goto create-msvs-files-failed
