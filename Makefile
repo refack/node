@@ -115,7 +115,6 @@ out/Makefile: common.gypi deps/uv/uv.gyp deps/http_parser/http_parser.gyp \
               deps/zlib/zlib.gyp deps/v8/gypfiles/toolchain.gypi \
               deps/v8/gypfiles/features.gypi deps/v8/gypfiles/v8.gyp node.gyp \
               config.gypi
-	$(PYTHON) tools/gyp_node.py -f make
 
 config.gypi: configure
 	@if [ -x config.status ]; then \
@@ -283,20 +282,24 @@ test-only: all  ## For a quick test, does not run linter or build docs.
 	$(MAKE) jstest
 
 # Used by `make coverage-test`
+.PHONY: test-cov
 test-cov: all
 	# Build the addons before running the tests so the test results
 	# can be displayed together
 	$(MAKE) build-addons
 	$(MAKE) build-addons-napi
-	# $(MAKE) cctest
 	CI_SKIP_TESTS=core_line_numbers.js $(MAKE) jstest
 
+
+.PHONY: test-parallel
 test-parallel: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER) parallel
 
+.PHONY: test-valgrind
 test-valgrind: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER) --valgrind sequential parallel message
 
+.PHONY: test-check-deopts
 test-check-deopts: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER) --check-deopts parallel sequential
 
@@ -318,52 +321,6 @@ benchmark/napi/function_args/build/Release/binding.node: all \
 		--directory="$(shell pwd)/benchmark/napi/function_args" \
 		--nodedir="$(shell pwd)"
 
-DOCBUILDSTAMP_PREREQS = tools/doc/addon-verify.js doc/api/addons.md
-
-ifeq ($(OSTYPE),aix)
-DOCBUILDSTAMP_PREREQS := $(DOCBUILDSTAMP_PREREQS) out/$(BUILDTYPE)/node.exp
-endif
-
-node_use_openssl = $(shell $(call available-node,"-p" \
-		   "process.versions.openssl != undefined"))
-test/addons/.docbuildstamp: $(DOCBUILDSTAMP_PREREQS) tools/doc/node_modules
-ifeq ($(node_use_openssl),true)
-	$(RM) -r test/addons/??_*/
-	[ -x $(NODE) ] && $(NODE) $< || node $<
-	touch $@
-else
-	@echo "Skipping .docbuildstamp (no crypto)"
-endif
-
-ADDONS_BINDING_GYPS := \
-	$(filter-out test/addons/??_*/binding.gyp, \
-		$(wildcard test/addons/*/binding.gyp))
-
-ADDONS_BINDING_SOURCES := \
-	$(filter-out test/addons/??_*/*.cc, $(wildcard test/addons/*/*.cc)) \
-	$(filter-out test/addons/??_*/*.h, $(wildcard test/addons/*/*.h))
-
-ADDONS_PREREQS := config.gypi \
-	deps/npm/node_modules/node-gyp/package.json tools/build-addons.js \
-	deps/uv/include/*.h deps/v8/include/*.h \
-	src/node.h src/node_buffer.h src/node_object_wrap.h src/node_version.h
-
-define run_build_addons
-env npm_config_loglevel=$(LOGLEVEL) npm_config_nodedir="$$PWD" \
-  npm_config_python="$(PYTHON)" $(NODE) "$$PWD/tools/build-addons" \
-  "$$PWD/deps/npm/node_modules/node-gyp/bin/node-gyp.js" \
-  $1
-touch $2
-endef
-
-# Implicitly depends on $(NODE_EXE), see the build-addons rule for rationale.
-# Depends on node-gyp package.json so that build-addons is (re)executed when
-# node-gyp is updated as part of an npm update.
-test/addons/.buildstamp: $(ADDONS_PREREQS) \
-	$(ADDONS_BINDING_GYPS) $(ADDONS_BINDING_SOURCES) \
-	test/addons/.docbuildstamp
-	@$(call run_build_addons,"$$PWD/test/addons",$@)
-
 .PHONY: build-addons
 # .buildstamp needs $(NODE_EXE) but cannot depend on it
 # directly because it calls make recursively.  The parent make cannot know
@@ -371,22 +328,8 @@ test/addons/.buildstamp: $(ADDONS_PREREQS) \
 # .buildstamp is out of date and need a rebuild.
 # Just goes to show that recursive make really is harmful...
 # TODO(bnoordhuis) Force rebuild after gyp update.
-build-addons: | $(NODE_EXE) test/addons/.buildstamp
+build-addons: all test/addons/.buildstamp
 
-ADDONS_NAPI_BINDING_GYPS := \
-	$(filter-out test/addons-napi/??_*/binding.gyp, \
-		$(wildcard test/addons-napi/*/binding.gyp))
-
-ADDONS_NAPI_BINDING_SOURCES := \
-	$(filter-out test/addons-napi/??_*/*.c, $(wildcard test/addons-napi/*/*.c)) \
-	$(filter-out test/addons-napi/??_*/*.cc, $(wildcard test/addons-napi/*/*.cc)) \
-	$(filter-out test/addons-napi/??_*/*.h, $(wildcard test/addons-napi/*/*.h))
-
-# Implicitly depends on $(NODE_EXE), see the build-addons-napi rule for rationale.
-test/addons-napi/.buildstamp: $(ADDONS_PREREQS) \
-	$(ADDONS_NAPI_BINDING_GYPS) $(ADDONS_NAPI_BINDING_SOURCES) \
-	src/node_api.h src/node_api_types.h
-	@$(call run_build_addons,"$$PWD/test/addons-napi",$@)
 
 .PHONY: build-addons-napi
 # .buildstamp needs $(NODE_EXE) but cannot depend on it
@@ -395,7 +338,7 @@ test/addons-napi/.buildstamp: $(ADDONS_PREREQS) \
 # .buildstamp is out of date and need a rebuild.
 # Just goes to show that recursive make really is harmful...
 # TODO(bnoordhuis) Force rebuild after gyp or node-gyp update.
-build-addons-napi: | $(NODE_EXE) test/addons-napi/.buildstamp
+build-addons-napi: all test/addons-napi/.buildstamp
 
 .PHONY: clear-stalled
 clear-stalled:
@@ -406,14 +349,17 @@ clear-stalled:
 		echo $${PS_OUT} | xargs kill -9; \
 	fi
 
-test-build: | all build-addons build-addons-napi
+.PHONY: test-build
+test-build: all build-addons build-addons-napi
 
+.PHONY: test-build-addons-napi
 test-build-addons-napi: all build-addons-napi
 
 .PHONY: test-all
 test-all: test-build ## Run everything in test/.
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=debug,release
 
+.PHONY: test-all-valgrind
 test-all-valgrind: test-build
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=debug,release --valgrind
 
@@ -464,7 +410,7 @@ test-ci: | clear-stalled build-addons build-addons-napi doc-only
 # Related CI jobs: most CI tests, excluding node-test-commit-arm-fanned
 build-ci:
 	$(PYTHON) ./configure $(CONFIG_FLAGS)
-	$(MAKE)
+	$(MAKE) all
 
 .PHONY: run-ci
 # Run by CI tests, exceptions:
@@ -476,28 +422,36 @@ build-ci:
 run-ci: build-ci
 	$(MAKE) test-ci
 
+.PHONY: test-release
 test-release: test-build
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER)
 
+.PHONY: test-debug
 test-debug: test-build
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=debug
 
+.PHONY: test-message
 test-message: test-build
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) message
 
-test-simple: | cctest  # Depends on 'all'.
+.PHONY: test-simple
+test-simple: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) parallel sequential
 
+.PHONY: test-pummel
 test-pummel: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) pummel
 
+.PHONY: test-internet
 test-internet: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) internet
 
-test-node-inspect: $(NODE_EXE)
+.PHONY: test-node-inspect
+test-node-inspect: all
 	USE_EMBEDDED_NODE_INSPECT=1 $(NODE) tools/test-npm-package \
 		--install deps/node-inspect test
 
+.PHONY: test-tick-processor
 test-tick-processor: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) tick-processor
 
@@ -507,22 +461,25 @@ test-hash-seed: all
 	$(NODE) test/pummel/test-hash-seed.js
 
 .PHONY: test-doc
-test-doc: doc-only ## Builds, lints, and verifies the docs.
-	$(MAKE) lint
+test-doc: doc-only lint
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) $(CI_DOC)
 
+.PHONY: test-known-issues
 test-known-issues: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) known_issues
 
+
 # Related CI job: node-test-npm
-test-npm: $(NODE_EXE) ## Run the npm test suite on deps/npm.
+.PHONY: test-npm
+test-npm: all
 	$(NODE) tools/test-npm-package --install --logfile=test-npm.tap deps/npm test-node
 
-test-npm-publish: $(NODE_EXE)
+.PHONY: test-npm-publish
+test-npm-publish: all
 	npm_package_config_publishtest=true $(NODE) deps/npm/test/run.js
 
 .PHONY: test-addons-napi
-test-addons-napi: test-build-addons-napi
+test-addons-napi: all test-build-addons-napi
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER) addons-napi
 
 .PHONY: test-addons-napi-clean
@@ -531,7 +488,7 @@ test-addons-napi-clean:
 	$(RM) test/addons-napi/.buildstamp
 
 .PHONY: test-addons
-test-addons: test-build test-addons-napi
+test-addons: all test-build test-addons-napi
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER) addons
 
 .PHONY: test-addons-clean
@@ -541,14 +498,14 @@ test-addons-clean:
 	$(RM) test/addons/.buildstamp test/addons/.docbuildstamp
 	$(MAKE) test-addons-napi-clean
 
-test-async-hooks:
+.PHONY: test-async-hooks
+test-async-hooks: all
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER) async-hooks
 
-test-with-async-hooks:
-	$(MAKE) build-addons
-	$(MAKE) build-addons-napi
-	$(MAKE) cctest
-	NODE_TEST_WITH_ASYNC_HOOKS=1 $(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER) \
+.PHONY: test-with-async-hooks
+test-with-async-hooks: all cctest build-addons build-addons-napi
+	NODE_TEST_WITH_ASYNC_HOOKS=1 \
+	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER) \
 		$(CI_JS_SUITES) \
 		$(CI_NATIVE_SUITES)
 
@@ -590,25 +547,13 @@ test-v8 test-v8-intl test-v8-benchmarks test-v8-all:
 		"$ git clone https://github.com/nodejs/node.git"
 endif
 
-# Google Analytics ID used for tracking API docs page views, empty
-# DOCS_ANALYTICS means no tracking scripts will be included in the
-# generated .html files
-DOCS_ANALYTICS ?=
-
-apidoc_dirs = out/doc out/doc/api out/doc/api/assets
-apidoc_sources = $(wildcard doc/api/*.md)
-apidocs_html = $(addprefix out/,$(apidoc_sources:.md=.html))
-apidocs_json = $(addprefix out/,$(apidoc_sources:.md=.json))
-
-apiassets = $(subst api_assets,api/assets,$(addprefix out/,$(wildcard doc/api_assets/*)))
-
 .PHONY: doc-only
-doc-only: tools/doc/node_modules \
-	$(apidoc_dirs) $(apiassets)  ## Builds the docs with the local or the global Node.js binary.
+## Builds the docs with the local or the global Node.js binary.
+doc-only: tools/doc/node_modules $(apidoc_dirs) $(apiassets)  
 	@$(MAKE) out/doc/api/all.html out/doc/api/all.json
 
 .PHONY: doc
-doc: $(NODE_EXE) doc-only
+doc: all doc-only
 
 out/doc:
 	mkdir -p $@
@@ -892,6 +837,7 @@ $(PKG): release-only
 # Builds the macOS installer for releases.
 pkg: $(PKG)
 
+.PHONY: pkg-upload
 # Note: this is strictly for release builds on release machines only.
 pkg-upload: pkg
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)"
@@ -899,6 +845,7 @@ pkg-upload: pkg
 	scp -p $(TARNAME).pkg $(STAGINGSERVER):nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).pkg
 	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).pkg.done"
 
+.PHONY: $(TARBALL)
 $(TARBALL): release-only $(NODE_EXE) doc
 	git checkout-index -a -f --prefix=$(TARNAME)/
 	mkdir -p $(TARNAME)/doc/api
@@ -942,6 +889,7 @@ endif
 .PHONY: tar
 tar: $(TARBALL) ## Create a source tarball.
 
+.PHONY: tar-upload
 # Note: this is strictly for release builds on release machines only.
 tar-upload: tar
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)"
@@ -954,6 +902,7 @@ ifeq ($(XZ), 0)
 	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME).tar.xz.done"
 endif
 
+.PHONY: doc-upload
 # Note: this is strictly for release builds on release machines only.
 doc-upload: doc
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/docs/"
@@ -979,8 +928,10 @@ ifeq ($(XZ), 0)
 endif
 	$(RM) $(TARNAME)-headers.tar
 
+.PHONY: tar-headers
 tar-headers: $(TARBALL)-headers ## Build the node header tarball.
 
+.PHONY: tar-headers-upload
 tar-headers-upload: tar-headers
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)"
 	chmod 664 $(TARNAME)-headers.tar.gz
@@ -992,6 +943,7 @@ ifeq ($(XZ), 0)
 	ssh $(STAGINGSERVER) "touch nodejs/$(DISTTYPEDIR)/$(FULLVERSION)/$(TARNAME)-headers.tar.xz.done"
 endif
 
+.PHONY: $(BINARYTAR)
 $(BINARYTAR): release-only
 	$(RM) -r $(BINARYNAME)
 	$(RM) -r out/deps out/Release
@@ -1020,6 +972,7 @@ endif
 # This requires NODE_VERSION_IS_RELEASE defined as 1 in src/node_version.h.
 binary: $(BINARYTAR) ## Build release binary tarballs.
 
+.PHONY: binary-upload
 # Note: this is strictly for release builds on release machines only.
 binary-upload: binary
 	ssh $(STAGINGSERVER) "mkdir -p nodejs/$(DISTTYPEDIR)/$(FULLVERSION)"
@@ -1055,15 +1008,6 @@ lint-md-clean:
 	$(RM) -r tools/remark-cli/node_modules
 	$(RM) -r tools/remark-preset-lint-node/node_modules
 	$(RM) tools/.*mdlintstamp
-
-tools/remark-cli/node_modules: tools/remark-cli/package.json
-	@echo "Markdown linter: installing remark-cli into tools/"
-	@cd tools/remark-cli && $(call available-node,$(run-npm-ci))
-
-tools/remark-preset-lint-node/node_modules: \
-	tools/remark-preset-lint-node/package.json
-	@echo "Markdown linter: installing remark-preset-lint-node into tools/"
-	@cd tools/remark-preset-lint-node && $(call available-node,$(run-npm-ci))
 
 .PHONY: lint-md-build
 lint-md-build: tools/remark-cli/node_modules \
@@ -1106,8 +1050,6 @@ ifeq ($(node_use_openssl),true)
 else
 	@echo "Skipping Markdown linter on misc docs (no crypto)"
 endif
-
-tools/.mdlintstamp: tools/.miscmdlintstamp tools/.docmdlintstamp
 
 # Lints the markdown documents maintained by us in the codebase.
 lint-md: | tools/.mdlintstamp
@@ -1180,9 +1122,11 @@ LINT_CPP_FILES = $(filter-out $(LINT_CPP_EXCLUDE), $(wildcard \
 # and the actual filename is generated so it won't match header guards
 ADDON_DOC_LINT_FLAGS=-whitespace/ending_newline,-build/header_guard
 
+.PHONY: format-cpp-build
 format-cpp-build:
 	cd tools/clang-format && $(call available-node,$(run-npm-install))
 
+.PHONY: format-cpp-clean
 format-cpp-clean:
 	$(RM) -r tools/clang-format/node_modules
 
