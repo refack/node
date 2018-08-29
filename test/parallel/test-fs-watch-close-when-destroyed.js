@@ -8,6 +8,9 @@ const tmpdir = require('../common/tmpdir');
 const fs = require('fs');
 const path = require('path');
 
+if (common.isFSSensitiveCI)
+    common.skip('Skip FS intensive test on sensitive CI.');
+
 tmpdir.refresh();
 const root = path.join(tmpdir.path, 'watched-directory');
 fs.mkdirSync(root);

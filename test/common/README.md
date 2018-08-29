@@ -189,6 +189,11 @@ Platform check for Advanced Interactive eXecutive (AIX).
 
 Attempts to 'kill' `pid`
 
+### isFSSensitiveCI
+* [&lt;boolean>]
+
+Check for CI environments that are FS sensitive (e.g. Travis)
+
 ### isFreeBSD
 * [&lt;boolean>]
 

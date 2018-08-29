@@ -10,6 +10,9 @@ const fs = require('fs');
 if (!common.isMainThread)
   common.skip('Worker bootstrapping works differently -> different async IDs');
 
+if (common.isFSSensitiveCI)
+    common.skip('Skip FS intensive test on sensitive CI.');
+
 const hooks = initHooks();
 
 hooks.enable();

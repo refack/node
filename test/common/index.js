@@ -804,3 +804,9 @@ exports.runWithInvalidFD = function(func) {
 
   exports.printSkipMessage('Could not generate an invalid fd');
 };
+
+Object.defineProperty(exports, 'isFSSensitiveCI', {
+  get: function() {
+    return process.env['TRAVIS'] === 'true';
+  }
+});
