@@ -1,8 +1,8 @@
 {
     "protocol": {
         "path": "node_protocol.json",
-        "package": "src/node/inspector/protocol",
-        "output": "node/inspector/protocol",
+        "package": "src/inspector/node_protocol",
+        "output": "src/inspector/node_protocol",
         "namespace": ["node", "inspector", "protocol"],
         "options": [
             {
@@ -20,8 +20,8 @@
         "export_macro": "V8_EXPORT"
     },
     "lib": {
-        "package": "src/node/inspector/protocol",
-        "output": "node/inspector/protocol",
+        "package": "src/inspector/node_protocol",
+        "output": "src/inspector/node_protocol",
         "string_header": "inspector/node_string.h"
     }
 }
