@@ -1257,3 +1257,11 @@ endif
 lint-clean:
 	$(RM) tools/.*lintstamp
 	$(RM) .eslintcache
+
+
+INSPECTOR_PROTOCOL_PATH ?= deps/v8/3dparty/inspector_protocol
+
+.PHONY: generate-node-inspector-code
+generate-node-inspector-code:
+	$(PYTHON) $(INSPECTOR_PROTOCOL_PATH)/ConvertProtocolToJSON.py src/inspector/node_protocol.pdl src/inspector/node_protocol.json
+	$(PYTHON) $(INSPECTOR_PROTOCOL_PATH)/CodeGenerator.py --jinja_dir $(INSPECTOR_PROTOCOL_PATH)/.. --output_base . --config src/inspector/node_protocol_config.json
