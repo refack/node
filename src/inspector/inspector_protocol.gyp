@@ -1,22 +1,23 @@
 {
   'variables': {
-    'protocol_tool_path': '../../deps/v8/3dparty/inspector_protocol',
+    'protocol_tool_path': '../../deps/v8/third_party/inspector_protocol',
   },
   'targets': [
     {
-      'target_name': 'generate_concatenated_inspector_protocol',
+      'target_name': 'generate_concatenated_protocol',
       'type': 'none',
       'inputs': [
-        'deps/v8/src/inspector/js_protocol.pdl',
+        '../../deps/v8/src/inspector/js_protocol.pdl',
+        'node_protocol.json',
       ],
       'outputs': [
-        '<(SHARED_INTERMEDIATE_DIR)/node_protocol/v8_inspector_protocol_json.h',
+        '<(SHARED_INTERMEDIATE_DIR)/v8_inspector_protocol_json.h',
       ],
       'actions': [
         {
           'action_name': 'v8_inspector_convert_protocol_to_json',
           'inputs': [
-            'deps/v8/src/inspector/js_protocol.pdl',
+            '../../deps/v8/src/inspector/js_protocol.pdl',
           ],
           'outputs': [
             '<(SHARED_INTERMEDIATE_DIR)/js_protocol.json',
@@ -51,11 +52,11 @@
             '<(SHARED_INTERMEDIATE_DIR)/concatenated_protocol.json',
           ],
           'outputs': [
-            '<(SHARED_INTERMEDIATE_DIR)/node_protocol/v8_inspector_protocol_json.h',
+            '<(SHARED_INTERMEDIATE_DIR)/v8_inspector_protocol_json.h',
           ],
           'action': [
             'python',
-            'tools/compress_json.py',
+            '../../tools/compress_json.py',
             '<@(_inputs)',
             '<@(_outputs)',
           ],

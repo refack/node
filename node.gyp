@@ -507,14 +507,14 @@
             'src/inspector/main_thread_interface.h',
             'src/inspector/node_string.h',
             'src/inspector/tracing_agent.h',
-            '<@(node_inspector_generated_sources)'
+            'src/inspector/node_protocol/Forward.h',
+            'src/inspector/node_protocol/Protocol.cpp',
+            'src/inspector/node_protocol/Protocol.h',
+            'src/inspector/node_protocol/NodeTracing.cpp',
+            'src/inspector/node_protocol/NodeTracing.h',
           ],
           'dependencies': [
-            'node_protocol_generated_sources',
-            'generate_concatenated_inspector_protocol',
-          ],
-          'include_dirs': [
-            '<(SHARED_INTERMEDIATE_DIR)/node_protocol/', # for protocol
+            'src/inspector/inspector_protocol.gyp:generate_concatenated_protocol',
           ],
         }, {
           'defines': [ 'HAVE_INSPECTOR=0' ]
@@ -1041,10 +1041,5 @@
         },
       ]
     }], # end aix section
-    [ 'v8_enable_inspector==1', {
-      'includes': [
-        'src/inspector/inspector_protocol.gyp'
-      ],
-    }]
   ], # end conditions block
 }
