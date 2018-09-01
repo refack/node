@@ -507,15 +507,11 @@
             'src/inspector/main_thread_interface.h',
             'src/inspector/node_string.h',
             'src/inspector/tracing_agent.h',
-            'src/inspector/node_protocol/Forward.h',
-            'src/inspector/node_protocol/Protocol.cpp',
-            'src/inspector/node_protocol/Protocol.h',
-            'src/inspector/node_protocol/NodeTracing.cpp',
-            'src/inspector/node_protocol/NodeTracing.h',
+            '<@(node_inspector_generated_sources)'
           ],
           'dependencies': [
             'node_protocol_generated_sources',
-            'v8_inspector_compress_protocol_json',
+            'generate_concatenated_inspector_protocol',
           ],
           'include_dirs': [
             '<(SHARED_INTERMEDIATE_DIR)/node_protocol/', # for protocol
