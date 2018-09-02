@@ -259,7 +259,7 @@
     'msvs_settings': {
       'VCCLCompilerTool': {
         'StringPooling': 'true', # pool string literals
-        'DebugInformationFormat': 3, # Generate a PDB
+        'DebugInformationFormat': 1, # Embed debug symbols into .o files
         'WarningLevel': 3,
         'BufferSecurityCheck': 'true',
         'ExceptionHandling': 0, # /EHsc
@@ -306,7 +306,7 @@
         'SuppressStartupBanner': 'true',
       },
     },
-    'msvs_disabled_warnings': [4351, 4355, 4800],
+    'msvs_disabled_warnings': [4351, 4355, 4800, 4244],
     'conditions': [
       ['asan == 1 and OS != "mac"', {
         'cflags+': [
