@@ -487,33 +487,8 @@
           'product_name': 'node_base',
         }],
         [ 'v8_enable_inspector==1', {
-          'defines': [
-            'HAVE_INSPECTOR=1',
-          ],
-          'sources': [
-            'src/inspector_agent.cc',
-            'src/inspector_io.cc',
-            'src/inspector_js_api.cc',
-            'src/inspector_socket.cc',
-            'src/inspector_socket_server.cc',
-            'src/inspector/main_thread_interface.cc',
-            'src/inspector/node_string.cc',
-            'src/inspector/tracing_agent.cc',
-            'src/inspector_agent.h',
-            'src/inspector_io.h',
-            'src/inspector_socket.h',
-            'src/inspector_socket_server.h',
-            'src/inspector/main_thread_interface.h',
-            'src/inspector/node_string.h',
-            'src/inspector/tracing_agent.h',
-            'src/inspector/node_protocol/Forward.h',
-            'src/inspector/node_protocol/Protocol.cpp',
-            'src/inspector/node_protocol/Protocol.h',
-            'src/inspector/node_protocol/NodeTracing.cpp',
-            'src/inspector/node_protocol/NodeTracing.h',
-          ],
           'dependencies': [
-            'src/inspector/inspector_protocol.gyp:generate_concatenated_protocol',
+            'src/inspector/inspector_protocol.gyp:inspector',
           ],
         }, {
           'defines': [ 'HAVE_INSPECTOR=0' ]

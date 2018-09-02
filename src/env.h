@@ -26,7 +26,7 @@
 
 #include "aliased_buffer.h"
 #if HAVE_INSPECTOR
-#include "inspector_agent.h"
+#include "inspector/inspector_agent.h"
 #endif
 #include "handle_wrap.h"
 #include "req_wrap.h"

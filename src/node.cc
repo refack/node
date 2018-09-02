@@ -44,7 +44,7 @@
 #endif
 
 #if HAVE_INSPECTOR
-#include "inspector_io.h"
+#include "inspector/inspector_io.h"
 #endif
 
 #if defined HAVE_DTRACE || defined HAVE_ETW
