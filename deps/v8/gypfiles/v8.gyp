@@ -518,7 +518,6 @@
         'v8_libbase',
         'v8_libsampler',
         'v8_torque#host',
-        'inspector.gyp:protocol_generated_sources#target',
         'inspector.gyp:inspector_injected_script#target',
       ],
       'direct_dependent_settings': {
