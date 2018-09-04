@@ -625,7 +625,6 @@
         'v8_libbase',
         'v8_libsampler',
         'run_torque#host',
-        'inspector.gyp:protocol_generated_sources#target',
         'inspector.gyp:inspector_injected_script#target',
         'generate_bytecode_builtins_list#host',
       ],
