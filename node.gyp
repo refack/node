@@ -508,9 +508,13 @@
             'src/inspector/main_thread_interface.h',
             'src/inspector/node_string.h',
             'src/inspector/tracing_agent.h',
+            'src/inspector/node_protocol/Forward.h',
+            'src/inspector/node_protocol/Protocol.cpp',
+            'src/inspector/node_protocol/Protocol.h',
+            'src/inspector/node_protocol/NodeTracing.cpp',
+            'src/inspector/node_protocol/NodeTracing.h',
           ],
           'dependencies': [
-            'src/inspector/inspector_protocol.gyp:generate_concatenated_inspector_sources',
             'src/inspector/inspector_protocol.gyp:generate_concatenated_inspector_protocol',
           ],
         }, {
