@@ -4,7 +4,7 @@
 #include "inspector/main_thread_interface.h"
 #include "inspector/node_string.h"
 #include "inspector/tracing_agent.h"
-#include "node/inspector/protocol/Protocol.h"
+#include "inspector/node_protocol/Protocol.h"
 #include "node_internals.h"
 #include "v8-inspector.h"
 #include "v8-platform.h"

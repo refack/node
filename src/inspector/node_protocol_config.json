@@ -1,8 +1,8 @@
 {
     "protocol": {
         "path": "node_protocol.json",
-        "package": "src/node/inspector/protocol",
-        "output": "node/inspector/protocol",
+        "package": "inspector/node_protocol",
+        "output": "node_protocol",
         "namespace": ["node", "inspector", "protocol"],
         "options": [
             {
@@ -11,8 +11,8 @@
         ]
     },
     "exported": {
-        "package": "include/inspector",
-        "output": "../../include/inspector",
+        "package": "inspector/node_protocol",
+        "output": "node_protocol",
         "string_header": "v8-inspector.h",
         "string_in": "StringView",
         "string_out": "std::unique_ptr<StringBuffer>",
@@ -20,8 +20,8 @@
         "export_macro": "V8_EXPORT"
     },
     "lib": {
-        "package": "src/node/inspector/protocol",
-        "output": "node/inspector/protocol",
+        "package": "inspector/node_protocol",
+        "output": "node_protocol",
         "string_header": "inspector/node_string.h"
     }
 }

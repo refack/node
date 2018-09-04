@@ -1,5 +1,5 @@
 #include "node_string.h"
-#include "node/inspector/protocol/Protocol.h"
+#include "inspector/node_protocol/Protocol.h"
 
 #include <unicode/unistr.h>
 
