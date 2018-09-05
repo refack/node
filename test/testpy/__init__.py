@@ -27,9 +27,9 @@
 
 import test
 import os
-from os.path import join, dirname, exists, splitext
+from os.path import join, dirname, exists, splitext, relpath, pathsep
 import re
-import ast
+import fnmatch
 
 
 FLAGS_PATTERN = re.compile(r"//\s+Flags:(.*)")
@@ -133,8 +133,20 @@ class ParallelTestConfiguration(SimpleTestConfiguration):
                                                     additional)
 
   def ListTests(self, current_path, path, arch, mode):
-    result = super(ParallelTestConfiguration, self).ListTests(
-         current_path, path, arch, mode)
+    ls = []
+    for root, dirnames, filenames in os.walk(self.root):
+      filenames = fnmatch.filter(filenames, '*.js')
+      for filename in filenames:
+        rel = relpath(root, self.root)
+        p = current_path + rel.split(pathsep) + [filename]
+        ls.append(p)
+    result = []
+    for test in ls:
+      if self.Contains(path, test):
+        file_path = join(self.root, reduce(join, test[1:], ""))
+        test_name = test[:-1] + [splitext(test[-1])[0]]
+        result.append(SimpleTestCase(test_name, file_path, arch, mode,
+                                     self.context, self, self.additional_flags))
     for test in result:
       test.parallel = True
     return result
