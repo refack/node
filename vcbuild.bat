@@ -295,8 +295,8 @@ where /R . /T *.gyp? >> .gyp_configure_stamp
 if defined nobuild goto sign
 
 @rem Build the sln with msbuild.
-set "msbcpu=/m:2"
-if "%NUMBER_OF_PROCESSORS%"=="1" set "msbcpu=/m:1"
+set "msbcpu=/maxcpucount"
+if defined NUMBER_OF_PROCESSORS set "msbcpu=%msbcpu%:%NUMBER_OF_PROCESSORS%"
 set "msbplatform=Win32"
 if "%target_arch%"=="x64" set "msbplatform=x64"
 if "%target%"=="Build" if defined no_cctest set target=node

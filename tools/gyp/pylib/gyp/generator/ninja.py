@@ -2069,27 +2069,21 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params,
     # .c files. This should be handled by mspdbsrv, but rarely errors out with
     #   c1xx : fatal error C1033: cannot open program database
     # By making the rules target separate pdb files this might be avoided.
-    cc_command = ('ninja -t msvc -e $arch ' +
-                  '-- '
-                  '$cc /nologo /showIncludes /FC '
-                  '@$out.rsp /c $in /Fo$out /Fd$pdbname_c ')
-    cxx_command = ('ninja -t msvc -e $arch ' +
-                   '-- '
-                   '$cxx /nologo /showIncludes /FC '
-                   '@$out.rsp /c $in /Fo$out /Fd$pdbname_cc ')
+    cc_command = ('$cc /FC @$out.rsp /c $in ')
+    cxx_command = ('$cxx /FC @$out.rsp /c $in ')
     master_ninja.rule(
       'cc',
       description='CC $out',
       command=cc_command,
       rspfile='$out.rsp',
-      rspfile_content='$defines $includes $cflags $cflags_c',
+      rspfile_content='/nologo /showIncludes $defines $includes $cflags $cflags_c /Fo$out /Fd$pdbname_c',
       deps=deps)
     master_ninja.rule(
       'cxx',
       description='CXX $out',
       command=cxx_command,
       rspfile='$out.rsp',
-      rspfile_content='$defines $includes $cflags $cflags_cc',
+      rspfile_content='/nologo /showIncludes $defines $includes $cflags $cflags_cc /Fo$out /Fd$pdbname_cc',
       deps=deps)
     master_ninja.rule(
       'idl',
