@@ -1657,6 +1657,7 @@ def Main():
           'arch': vmArch,
           'type': get_env_type(vm, options.type, context),
         }
+        if context.verbose: print("Env for conditions: %s" % env)
         test_list = root.ListTests([], path, context, arch, mode)
         unclassified_tests += test_list
         (cases, unused_rules, _) = (
