@@ -223,7 +223,7 @@ let knownGlobals = [
   process,
   setImmediate,
   setInterval,
-  setTimeout
+  setTimeout,
 ];
 
 if (global.gc) {
@@ -280,7 +280,8 @@ process.on('exit', function() {
   }
 });
 
-const mustCallChecks = [];
+global.mustCallChecks = [];
+knownGlobals.push(mustCallChecks);
 
 function runCallChecks(exitCode) {
   if (exitCode !== 0) return;
@@ -402,11 +403,10 @@ function getCallSite(top) {
   return err.stack;
 }
 
-function mustNotCall(msg) {
+function mustNotCall(msg='function should not have been called') {
   const callSite = getCallSite(mustNotCall);
   return function mustNotCall() {
-    assert.fail(
-      `${msg || 'function should not have been called'} at ${callSite}`);
+    assert.fail(`${msg}\n at (${callSite})`);
   };
 }
 

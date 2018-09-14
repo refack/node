@@ -1,6 +1,5 @@
-'use strict';
-
 // Flags: --expose-internals
+'use strict';
 
 // Confirm that if a custom ArrayBufferAllocator does not define a zeroFill
 // property, that the buffer module will zero-fill when allocUnsafe() is called.
