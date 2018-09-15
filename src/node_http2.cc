@@ -2461,7 +2461,7 @@ void Http2Stream::Respond(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&stream, args.Holder());
 
   Local<Array> headers = args[0].As<Array>();
-  int options = args[1]->IntegerValue(context).ToChecked();
+  auto options = args[1]->IntegerValue(context).ToChecked();
 
   Headers list(isolate, context, headers);
 
@@ -2533,7 +2533,7 @@ void Http2Stream::PushPromise(const FunctionCallbackInfo<Value>& args) {
   ASSIGN_OR_RETURN_UNWRAP(&parent, args.Holder());
 
   Local<Array> headers = args[0].As<Array>();
-  int options = args[1]->IntegerValue(context).ToChecked();
+  auto options = args[1]->IntegerValue(context).ToChecked();
 
   Headers list(isolate, context, headers);
 

@@ -318,7 +318,9 @@
     #   drowns out other, more legitimate warnings.
     # - "C4244: conversion from 'type1' to 'type2', possible loss of data"
     #   Ususaly safe. Disable for `dep`, enable for `src`
-    'msvs_disabled_warnings': [4351, 4355, 4800, 4251, 4275, 4244, 4267],
+    'msvs_disabled_warnings': [4351, 4355, 4800, 4251, 4275, 4244, 4267, 4005, 4090, 4003, 4996, 4129
+#    4133, 4530, 4477, 4838, 4312
+    ],
     'conditions': [
       ['asan == 1 and OS != "mac"', {
         'cflags+': [
@@ -399,9 +401,9 @@
             'ldflags': [ '-m32' ],
           }],
           [ 'target_arch=="ppc64" and OS!="aix"', {
-	    'cflags': [ '-m64', '-mminimal-toc' ],
-	    'ldflags': [ '-m64' ],
-	   }],
+            'cflags': [ '-m64', '-mminimal-toc' ],
+            'ldflags': [ '-m64' ],
+          }],
           [ 'target_arch=="s390"', {
             'cflags': [ '-m31', '-march=z196' ],
             'ldflags': [ '-m31', '-march=z196' ],

@@ -199,10 +199,10 @@ void MemoryUsage(const FunctionCallbackInfo<Value>& args) {
   Local<ArrayBuffer> ab = array->Buffer();
   double* fields = static_cast<double*>(ab->GetContents().Data());
 
-  fields[0] = rss;
-  fields[1] = v8_heap_stats.total_heap_size();
-  fields[2] = v8_heap_stats.used_heap_size();
-  fields[3] = isolate->AdjustAmountOfExternalAllocatedMemory(0);
+  fields[0] = gsl::narrow<double>(rss);
+  fields[1] = gsl::narrow<double>(v8_heap_stats.total_heap_size());
+  fields[2] = gsl::narrow<double>(v8_heap_stats.used_heap_size());
+  fields[3] = gsl::narrow<double>(isolate->AdjustAmountOfExternalAllocatedMemory(0));
 }
 
 // Most of the time, it's best to use `console.error` to write

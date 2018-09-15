@@ -436,10 +436,10 @@ void DeserializerContext::ReadRawBytes(
   CHECK_GE(position, ctx->data_);
   CHECK_LE(position + length, ctx->data_ + ctx->length_);
 
-  const uint32_t offset = position - ctx->data_;
+  const std::ptrdiff_t offset = position - ctx->data_;
   CHECK_EQ(ctx->data_ + offset, position);
 
-  args.GetReturnValue().Set(offset);
+  args.GetReturnValue().Set(gsl::narrow<uint32_t>(offset));
 }
 
 void Initialize(Local<Object> target,

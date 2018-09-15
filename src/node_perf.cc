@@ -40,7 +40,7 @@ v8::GCType performance_last_gc_type_ = v8::GCType::kGCTypeAll;
 
 void performance_state::Mark(enum PerformanceMilestone milestone,
                              uint64_t ts) {
-  this->milestones[milestone] = ts;
+  this->milestones[milestone] = gsl::narrow<double>(ts);
   TRACE_EVENT_INSTANT_WITH_TIMESTAMP0(
       TRACING_CATEGORY_NODE1(bootstrap),
       GetPerformanceMilestoneName(milestone),
@@ -182,9 +182,7 @@ void Measure(const FunctionCallbackInfo<Value>& args) {
   Utf8Value startMark(env->isolate(), args[1]);
   Utf8Value endMark(env->isolate(), args[2]);
 
-  AliasedBuffer<double, v8::Float64Array>& milestones =
-      env->performance_state()->milestones;
-
+  const auto& milestones = env->performance_state()->milestones;
   uint64_t startTimestamp = timeOrigin;
   uint64_t start = GetPerformanceMark(env, *startMark);
   if (start != 0) {
@@ -192,14 +190,14 @@ void Measure(const FunctionCallbackInfo<Value>& args) {
   } else {
     PerformanceMilestone milestone = ToPerformanceMilestoneEnum(*startMark);
     if (milestone != NODE_PERFORMANCE_MILESTONE_INVALID)
-      startTimestamp = milestones[milestone];
+      startTimestamp = gsl::narrow<uint64_t>(milestones[milestone]);
   }
 
   uint64_t endTimestamp = GetPerformanceMark(env, *endMark);
   if (endTimestamp == 0) {
     PerformanceMilestone milestone = ToPerformanceMilestoneEnum(*endMark);
     if (milestone != NODE_PERFORMANCE_MILESTONE_INVALID)
-      endTimestamp = milestones[milestone];
+      endTimestamp = gsl::narrow<uint64_t>(milestones[milestone]);
   }
 
   if (endTimestamp < startTimestamp)
@@ -378,9 +376,9 @@ void Timerify(const FunctionCallbackInfo<Value>& args) {
   CHECK(args[0]->IsFunction());
   CHECK(args[1]->IsNumber());
   Local<Function> fn = args[0].As<Function>();
-  int length = args[1]->IntegerValue(context).ToChecked();
+  auto length = args[1]->IntegerValue(context).ToChecked();
   Local<Function> wrap =
-      Function::New(context, TimerFunctionCall, fn, length).ToLocalChecked();
+      Function::New(context, TimerFunctionCall, fn, gsl::narrow<int>(length)).ToLocalChecked();
   args.GetReturnValue().Set(wrap);
 }
 

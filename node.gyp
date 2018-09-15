@@ -238,6 +238,7 @@
       'include_dirs': [
         'src',
         'deps/v8/include',
+        'deps/gsl/include',
       ],
 
       # - "C4244: conversion from 'type1' to 'type2', possible loss of data"

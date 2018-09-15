@@ -220,7 +220,7 @@ const int8_t unbase64_table[256] =
   };
 
 
-static const int8_t unhex_table[256] =
+constexpr byte ascii_unhex_table[256] =
   { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -239,19 +239,17 @@ static const int8_t unhex_table[256] =
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
   };
 
-static inline unsigned unhex(uint8_t x) {
-  return unhex_table[x];
+constexpr byte unhex(char x) {
+  return ascii_unhex_table[x];
 }
 
 template <typename TypeName>
-static size_t hex_decode(char* buf,
-                         size_t len,
-                         const TypeName* src,
-                         const size_t srcLen) {
+constexpr static size_t hex_decode(gsl::span<char>(buf),
+                                   gsl::span<const char>(src)) {
   size_t i;
-  for (i = 0; i < len && i * 2 + 1 < srcLen; ++i) {
-    unsigned a = unhex(src[i * 2 + 0]);
-    unsigned b = unhex(src[i * 2 + 1]);
+  for (i = 0; i < buf.size && i * 2 + 1 < src.size; ++i) {
+    byte a = unhex(src[i * 2 + 0]);
+    byte b = unhex(src[i * 2 + 1]);
     if (!~a || !~b)
       return i;
     buf[i] = (a << 4) | b;
@@ -370,15 +368,17 @@ size_t StringBytes::Write(Isolate* isolate,
       *chars_written = nbytes;
       break;
 
-    case HEX:
-      if (str->IsExternalOneByte()) {
-        auto ext = str->GetExternalOneByteStringResource();
-        nbytes = hex_decode(buf, buflen, ext->data(), ext->length());
-      } else {
-        String::Value value(isolate, str);
-        nbytes = hex_decode(buf, buflen, *value, value.length());
+    case HEX: {
+        auto bufSpan = gsl::span(reinterpret_cast<byte*>(buf), buflen);
+        if (str->IsExternalOneByte()) {
+          auto ext = str->GetExternalOneByteStringResource();
+          nbytes = hex_decode(bufSpan, gsl::span<const char>(ext->data(), ext->length()));
+        } else {
+          String::Value value(isolate, str);
+          nbytes = hex_decode(bufSpan, gsl::span<const char>(*value, value.length()));
+        }
+        *chars_written = nbytes;
       }
-      *chars_written = nbytes;
       break;
 
     default:

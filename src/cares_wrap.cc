@@ -33,6 +33,7 @@
 #include <string.h>
 #include <vector>
 #include <unordered_set>
+#include <gsl/gsl>
 
 #ifdef __POSIX__
 # include <netdb.h>
@@ -1880,7 +1881,7 @@ void AfterGetAddrInfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
           continue;
 
         Local<String> s = OneByteString(env->isolate(), ip);
-        results->Set(n, s);
+        results->Set(gsl::narrow<uint32_t>(n), s);
         n++;
       }
     };
