@@ -95,6 +95,12 @@
 
     # Enable mitigations for executing untrusted code.
     'v8_untrusted_code_mitigations%': 'true',
+
+    'v8_enable_pointer_compression%': 'false',
+
+    'v8_deprecate_get_isolate%': 'false',
+
+    'v8_enable_embedded_builtins%': 'false',
   },
   'target_defaults': {
     'conditions': [
@@ -155,6 +161,19 @@
       ['v8_untrusted_code_mitigations=="false"', {
         'defines': ['DISABLE_UNTRUSTED_CODE_MITIGATIONS',],
       }],
+      ['v8_enable_pointer_compression=="true"', {
+        'defines': ['V8_COMPRESS_POINTERS',],
+      }],
+      ['v8_deprecate_get_isolate=="true"', {
+        'defines': ['DEPRECATE_GET_ISOLATE',],
+        'cflags': [ '-Wno-error=deprecated', ]
+      }],
+      ['v8_enable_embedded_builtins=="true"', {
+        'defines': [
+          'V8_EMBEDDED_BUILTINS',
+          'V8_EMBEDDED_BYTECODE_HANDLERS',
+        ],
+      }],
     ],  # conditions
     'configurations': {
       'DebugBaseCommon': {
@@ -183,5 +202,24 @@
       'V8_GYP_BUILD',
       'V8_TYPED_ARRAY_MAX_SIZE_IN_HEAP=<(v8_typed_array_max_size_in_heap)',
     ],  # defines
+    'msvs_disabled_warnings': [
+      4245,  # Conversion with signed/unsigned mismatch.
+      4267,  # Conversion with possible loss of data.
+      4324,  # Padding structure due to alignment.
+      4701,  # Potentially uninitialized local variable.
+      4702,  # Unreachable code.
+      4703,  # Potentially uninitialized local pointer variable.
+      4709,  # Comma operator within array index expr (bugged).
+      4714,  # Function marked forceinline not inlined.
+
+      # MSVC assumes that control can get past an exhaustive switch and then
+      # warns if there's no return there (see https://crbug.com/v8/7658)
+      4715,  # Not all control paths return a value.
+
+      4718,  # Recursive call has no side-effect.
+      4723,  # https://crbug.com/v8/7771
+      4724,  # https://crbug.com/v8/7771
+      4800,  # Forcing value to bool.
+    ],
   },  # target_defaults
 }

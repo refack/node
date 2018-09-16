@@ -13,7 +13,61 @@
     'v8_experimental_extra_library_files%': [],
     'mksnapshot_exec': '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)mksnapshot<(EXECUTABLE_SUFFIX)',
     'v8_os_page_size%': 0,
+    'torque_files': [
+      "../src/builtins/base.tq",
+      "../src/builtins/array.tq",
+      "../src/builtins/array-copywithin.tq",
+      "../src/builtins/array-foreach.tq",
+      "../src/builtins/array-lastindexof.tq",
+      "../src/builtins/array-reverse.tq",
+      "../src/builtins/array-splice.tq",
+      "../src/builtins/array-unshift.tq",
+      "../src/builtins/typed-array.tq",
+      "../src/builtins/data-view.tq",
+      "../test/torque/test-torque.tq",
+      "../third_party/v8/builtins/array-sort.tq",
+    ],
+    'torque_modules': [
+      "base",
+      "array",
+      "typed-array",
+      "data-view",
+      "test",
+    ],
+    # Since there is no foreach in GYP we manualy unroll the following:
+    # foreach(module, torque_modules) {
+    #   outputs += [
+    #     "$target_gen_dir/torque-generated/builtins-$module-from-dsl-gen.cc",
+    #     "$target_gen_dir/torque-generated/builtins-$module-from-dsl-gen.h",
+    #   ]
+    # }
+    'torque_outputs': [
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-base-from-dsl-gen.cc',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-base-from-dsl-gen.h',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-array-from-dsl-gen.cc',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-array-from-dsl-gen.h',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-typed-array-from-dsl-gen.cc',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-typed-array-from-dsl-gen.h',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-data-view-from-dsl-gen.cc',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-data-view-from-dsl-gen.h',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-test-from-dsl-gen.cc',
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-test-from-dsl-gen.h',
+    ],
+    'torque_generated_pure_headers': [
+      '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtin-definitions-from-dsl.h',
+    ],
   },
+  'conditions': [
+    ['v8_enable_embedded_builtins=="true"', {
+      'variables': {
+        'snapshot_embedded_builtins_src': '<(INTERMEDIATE_DIR)/embedded_default.cc',
+      },
+    },{
+      'variables': {
+        'snapshot_embedded_builtins_src': '../src/snapshot/embedded-empty.cc',
+      },
+    }],
+  ],
   'includes': ['toolchain.gypi', 'features.gypi', 'inspector.gypi'],
   'targets': [
     {
@@ -114,18 +168,19 @@
       'type': 'static_library',
       'dependencies': [
         'v8_initializers',
-        'v8_torque#host',
       ],
       'variables': {
         'optimize': 'max',
       },
-      'include_dirs+': [
+      'include_dirs': [
         '..',
         '../include/',
+        # This is for `gen/builtins-generated`
+        '<(SHARED_INTERMEDIATE_DIR)',
       ],
       'sources': [
         '../src/setup-isolate-full.cc',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtin-definitions-from-dsl.h',
+        '<@(torque_generated_pure_headers)',
       ],
       'conditions': [
         ['want_separate_host_toolset==1', {
@@ -146,12 +201,11 @@
       'type': 'static_library',
       'dependencies': [
         'v8_base',
-        'v8_torque#host',
       ],
        'variables': {
         'optimize': 'max',
       },
-      'include_dirs+': [
+      'include_dirs': [
         '..',
         '../include/',
       ],
@@ -226,14 +280,8 @@
         '../src/interpreter/interpreter-intrinsics-generator.h',
         '../src/interpreter/setup-interpreter-internal.cc',
         '../src/interpreter/setup-interpreter.h',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-array-from-dsl-gen.cc',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-array-from-dsl-gen.h',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-base-from-dsl-gen.cc',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-base-from-dsl-gen.h',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-typed-array-from-dsl-gen.cc',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-typed-array-from-dsl-gen.h',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-data-view-from-dsl-gen.cc',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-data-view-from-dsl-gen.h',
+        '<@(torque_outputs)',
+        '<@(torque_generated_pure_headers)',
       ],
       'conditions': [
         ['want_separate_host_toolset==1', {
@@ -326,12 +374,34 @@
             '<(icu_gyp_path):icuuc',
           ],
         }],
-
       ],
+      'variables': {
+        'embedded_builtins_outputs': '',
+        'mksnapshot_flags': [],
+        'conditions': [
+          ['v8_random_seed!=0', {
+            'mksnapshot_flags': ['--random-seed', '<(v8_random_seed)'],
+          }],
+          ['v8_vector_stores!=0', {
+            'mksnapshot_flags': ['--vector-stores'],
+          }],
+          # In this case we use `suffix = "_default"` for the template `embedded${suffix}.cc`
+          ['v8_enable_embedded_builtins=="true"', {
+            'embedded_builtins_output': '<(INTERMEDIATE_DIR)/embedded_default.cc',
+            'mksnapshot_flags':  ["--embedded_src", ">(embedded_builtins_output)",],
+            # if (invoker.embedded_variant != "") {
+            #   args += [
+            #     "--embedded_variant",
+            #     invoker.embedded_variant,
+            #   ]
+            # }
+          }]
+        ],
+      },
       'dependencies': [
         'v8_base',
       ],
-      'include_dirs+': [
+      'include_dirs': [
         '..',
         '<(DEPTH)',
       ],
@@ -340,8 +410,9 @@
         '<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc',
         '<(SHARED_INTERMEDIATE_DIR)/libraries.cc',
         '<(INTERMEDIATE_DIR)/snapshot.cc',
+        '>(embedded_builtins_outputs)',
         '../src/setup-isolate-deserialize.cc',
-        '../src/snapshot/embedded-empty.cc',
+        '<(snapshot_embedded_builtins_src)',
       ],
       'actions': [
         {
@@ -363,18 +434,8 @@
           ],
           'outputs': [
             '<(INTERMEDIATE_DIR)/snapshot.cc',
+            '>(embedded_builtins_output)'
           ],
-          'variables': {
-            'mksnapshot_flags': [],
-            'conditions': [
-              ['v8_random_seed!=0', {
-                'mksnapshot_flags': ['--random-seed', '<(v8_random_seed)'],
-              }],
-              ['v8_vector_stores!=0', {
-                'mksnapshot_flags': ['--vector-stores'],
-              }],
-            ],
-          },
           'action': [
             '<(mksnapshot_exec)',
             '<@(mksnapshot_flags)',
@@ -390,9 +451,8 @@
       'type': 'static_library',
       'dependencies': [
         'v8_base',
-        'v8_torque#host',
       ],
-      'include_dirs+': [
+      'include_dirs': [
         '..',
         '<(DEPTH)',
       ],
@@ -458,7 +518,7 @@
           'dependencies': [
             'v8_base',
           ],
-          'include_dirs+': [
+          'include_dirs': [
             '..',
             '<(DEPTH)',
           ],
@@ -467,6 +527,7 @@
             '../src/snapshot/embedded-empty.cc',
             '../src/snapshot/natives-external.cc',
             '../src/snapshot/snapshot-external.cc',
+            '<(snapshot_embedded_builtins_src)',
           ],
           'actions': [
             {
@@ -486,6 +547,18 @@
                   ['v8_os_page_size!=0', {
                     'mksnapshot_flags': ['--v8_os_page_size', '<(v8_os_page_size)'],
                   }],
+                  ['v8_enable_embedded_builtins="true"', {
+                    'embedded_builtins_outputs': [ "$target_gen_dir/embedded${suffix}.cc" ],
+                    'mksnapshot_flags':  ["--embedded_src", "$target_gen_dir/embedded${suffix}.cc",],
+                    # if (invoker.embedded_variant != "") {
+                    #   args += [
+                    #     "--embedded_variant",
+                    #     invoker.embedded_variant,
+                    #   ]
+                    # }
+                  }, {
+                    'embedded_builtins_outputs': [ "$target_gen_dir/embedded${suffix}.cc" ],
+                  }]
                 ],
               },
               'conditions': [
@@ -504,6 +577,7 @@
                     ['_toolset=="host"', {
                       'outputs': [
                         '<(PRODUCT_DIR)/snapshot_blob_host.bin',
+                        '<@(embedded_builtins_outputs)'
                       ],
                       'action': [
                         '<(mksnapshot_exec)',
@@ -528,6 +602,7 @@
                 }, {
                   'outputs': [
                     '<(PRODUCT_DIR)/snapshot_blob.bin',
+                    '<@(embedded_builtins_outputs)'
                   ],
                   'action': [
                     '<(mksnapshot_exec)',
@@ -549,23 +624,25 @@
       'dependencies': [
         'v8_libbase',
         'v8_libsampler',
-        'v8_torque#host',
+        'run_torque#host',
         'inspector.gyp:protocol_generated_sources#target',
         'inspector.gyp:inspector_injected_script#target',
+        'generate_bytecode_builtins_list#host',
       ],
       'direct_dependent_settings': {
-        'include_dirs+': ['<(SHARED_INTERMEDIATE_DIR)'],
+        'include_dirs': ['<(SHARED_INTERMEDIATE_DIR)'],
       },
       'objs': ['foo.o'],
       'variables': {
         'optimize': 'max',
       },
-      'include_dirs+': [
+      'include_dirs': [
         '..',
         '<(DEPTH)',
         '<(SHARED_INTERMEDIATE_DIR)'
       ],
       'sources': [
+        '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
         '<@(inspector_all_sources)',
         '../include//v8-inspector-protocol.h',
         '../include//v8-inspector.h',
@@ -1652,7 +1729,7 @@
         '../src/zone/zone-segment.h',
         '../src/zone/zone.cc',
         '../src/zone/zone.h',
-        '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtin-definitions-from-dsl.h',
+        '<@(torque_generated_pure_headers)',
       ],
       'conditions': [
         ['want_separate_host_toolset==1', {
@@ -2036,11 +2113,11 @@
       'variables': {
         'optimize': 'max',
       },
-      'include_dirs+': [
+      'include_dirs': [
         '..',
       ],
       'direct_dependent_settings': {
-        'include_dirs+': ['..'],
+        'include_dirs': ['..'],
       },
       'sources': [
         '../src/base/adapters.h',
@@ -2379,7 +2456,7 @@
       'dependencies': [
         'v8_libbase',
       ],
-      'include_dirs+': [
+      'include_dirs': [
         '..',
         '<(DEPTH)',
         '../include/',
@@ -2434,7 +2511,7 @@
       'dependencies': [
         'v8_libbase',
       ],
-      'include_dirs+': [
+      'include_dirs': [
         '..',
         '../include/',
       ],
@@ -2641,99 +2718,91 @@
       ],
     },
     {
-      'target_name': 'torque',
-      'type': 'executable',
+      'target_name': 'torque_base',
+      'type': '<(component)',
       'toolsets': ['host'],
-      'dependencies': ['v8_libbase'],
+      'dependencies': ['v8_libbase#host'],
       'defines!': [
         '_HAS_EXCEPTIONS=0',
         'BUILDING_V8_SHARED=1',
       ],
       # This is defined trough `configurations` for GYP+ninja compatibility
-      'configurations': {
-        'Debug': {
           'msvs_settings': {
             'VCCLCompilerTool': {
               'RuntimeTypeInfo': 'true',
               'ExceptionHandling': 1,
             },
-          }
-        },
-        'Release': {
-          'msvs_settings': {
-            'VCCLCompilerTool': {
-              'RuntimeTypeInfo': 'true',
-              'ExceptionHandling': 1,
-            },
-          }
-        },
-      },
+          },
       'sources': [
-        '../src/torque/ast.h',
-        '../src/torque/contextual.h',
-        '../src/torque/declarable.cc',
-        '../src/torque/declarable.h',
-        '../src/torque/declaration-visitor.cc',
-        '../src/torque/declaration-visitor.h',
-        '../src/torque/declarations.cc',
-        '../src/torque/declarations.h',
-        '../src/torque/earley-parser.cc',
-        '../src/torque/earley-parser.h',
-        '../src/torque/file-visitor.cc',
-        '../src/torque/file-visitor.h',
-        '../src/torque/global-context.h',
-        '../src/torque/implementation-visitor.cc',
-        '../src/torque/implementation-visitor.h',
-        '../src/torque/scope.cc',
-        '../src/torque/scope.h',
-        '../src/torque/source-positions.cc',
-        '../src/torque/source-positions.h',
-        '../src/torque/torque-parser.cc',
-        '../src/torque/torque-parser.h',
-        '../src/torque/torque.cc',
-        '../src/torque/type-oracle.cc',
-        '../src/torque/type-oracle.h',
-        '../src/torque/types.cc',
-        '../src/torque/types.h',
-        '../src/torque/utils.cc',
-        '../src/torque/utils.h',
+        "../src/torque/ast.h",
+        "../src/torque/contextual.h",
+        "../src/torque/declarable.cc",
+        "../src/torque/declarable.h",
+        "../src/torque/declaration-visitor.cc",
+        "../src/torque/declaration-visitor.h",
+        "../src/torque/declarations.cc",
+        "../src/torque/declarations.h",
+        "../src/torque/earley-parser.cc",
+        "../src/torque/earley-parser.h",
+        "../src/torque/file-visitor.cc",
+        "../src/torque/file-visitor.h",
+        "../src/torque/global-context.h",
+        "../src/torque/implementation-visitor.cc",
+        "../src/torque/implementation-visitor.h",
+        "../src/torque/scope.cc",
+        "../src/torque/scope.h",
+        "../src/torque/source-positions.cc",
+        "../src/torque/source-positions.h",
+        "../src/torque/torque-parser.cc",
+        "../src/torque/torque-parser.h",
+        "../src/torque/type-oracle.cc",
+        "../src/torque/type-oracle.h",
+        "../src/torque/types.cc",
+        "../src/torque/types.h",
+        "../src/torque/utils.cc",
+        "../src/torque/utils.h",
       ],
     },
     {
-      'target_name': 'v8_torque',
+      'target_name': 'torque',
+      'type': 'executable',
+      'toolsets': ['host'],
+      'dependencies': ['torque_base'],
+      'defines!': [
+        '_HAS_EXCEPTIONS=0',
+        'BUILDING_V8_SHARED=1',
+      ],
+      # This is defined trough `configurations` for GYP+ninja compatibility
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'RuntimeTypeInfo': 'true',
+              'ExceptionHandling': 1,
+            },
+          },
+      'include_dirs': ['..'],
+      'sources': [
+        "../src/torque/torque.cc",
+      ],
+    },
+    {
+      'target_name': 'run_torque',
       'type': 'none',
       'toolsets': ['host'],
-      'dependencies': ['torque#host'],
+      'dependencies': ['torque'],
       'direct_dependent_settings': {
-        'include_dirs+': ['<(SHARED_INTERMEDIATE_DIR)'],
+        'include_dirs': ['<(SHARED_INTERMEDIATE_DIR)'],
       },
       'actions': [
         {
-          'action_name': 'run_torque',
+          'action_name': 'run_torque_action',
           'inputs': [  # Order matters.
             '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
-            '../src/builtins/base.tq',
-            '../src/builtins/array.tq',
-            '../src/builtins/array-copywithin.tq',
-            '../src/builtins/array-foreach.tq',
-            '../src/builtins/array-lastindexof.tq',
-            '../src/builtins/array-reverse.tq',
-            '../src/builtins/array-splice.tq',
-            '../src/builtins/array-unshift.tq',
-            '../src/builtins/typed-array.tq',
-            '../src/builtins/data-view.tq',
-            '../third_party/v8/builtins/array-sort.tq',
+            '<@(torque_files)',
           ],
           'outputs': [
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtin-definitions-from-dsl.h',
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-array-from-dsl-gen.cc',
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-array-from-dsl-gen.h',
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-base-from-dsl-gen.cc',
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-base-from-dsl-gen.h',
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-typed-array-from-dsl-gen.cc',
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-typed-array-from-dsl-gen.h',
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-data-view-from-dsl-gen.cc',
-            '<(SHARED_INTERMEDIATE_DIR)/torque-generated/builtins-data-view-from-dsl-gen.h',
+            '<@(torque_outputs)',
+            '<@(torque_generated_pure_headers)',
+
           ],
           'action': ['<@(_inputs)', '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'],
         },
@@ -2776,23 +2845,23 @@
         ],
       },
       'actions': [
-          {
-            'action_name': 'gen-postmortem-metadata',
-            'inputs': [
-              '../tools//gen-postmortem-metadata.py',
-              '<@(heapobject_files)',
-            ],
-            'outputs': [
-              '<(SHARED_INTERMEDIATE_DIR)/debug-support.cc',
-            ],
-            'action': [
-              'python',
-              '../tools//gen-postmortem-metadata.py',
-              '<@(_outputs)',
-              '<@(heapobject_files)'
-            ]
-          }
-        ]
+        {
+          'action_name': 'gen-postmortem-metadata',
+          'inputs': [
+            '../tools//gen-postmortem-metadata.py',
+            '<@(heapobject_files)',
+          ],
+          'outputs': [
+            '<(SHARED_INTERMEDIATE_DIR)/debug-support.cc',
+          ],
+          'action': [
+            'python',
+            '../tools//gen-postmortem-metadata.py',
+            '<@(_outputs)',
+            '<@(heapobject_files)'
+          ],
+        },
+      ],
     },
     {
       'target_name': 'mksnapshot',
@@ -2804,7 +2873,7 @@
         'v8_libplatform',
         'v8_nosnapshot',
       ],
-      'include_dirs+': [
+      'include_dirs': [
         '..',
         '<(DEPTH)',
       ],
@@ -2870,6 +2939,52 @@
             }],
           ],
         },
+      ],
+    },
+    {
+      'target_name': 'generate_bytecode_builtins_list',
+      'type': 'none',
+      'toolsets': ['host'],
+      'dependencies': [
+        "bytecode_builtins_list_generator",
+      ],
+      'actions': [
+        {
+          'action_name': 'generate_bytecode_builtins_list_action',
+          'inputs': [
+            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)bytecode_builtins_list_generator<(EXECUTABLE_SUFFIX)',
+          ],
+          'outputs': [
+            '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
+          ],
+          'action': [
+            'python',
+            '../tools/run.py',
+            '<@(_inputs)',
+            '<@(_outputs)',
+          ],
+        },
+      ],
+    },
+    {
+      'target_name': 'bytecode_builtins_list_generator',
+      'type': 'executable',
+      'toolsets': ['host'],
+      'dependencies': [
+        "v8_libbase#host"
+      ],
+      'include_dirs': [".."],
+      'sources': [
+        "../src/builtins/generate-bytecodes-builtins-list.cc",
+        "../src/interpreter/bytecode-operands.cc",
+        "../src/interpreter/bytecode-operands.h",
+        "../src/interpreter/bytecodes.cc",
+        "../src/interpreter/bytecodes.h",
+      ],
+      'conditions': [
+        ['v8_enable_embedded_builtins=="true"', {
+          'defines': ["V8_EMBEDDED_BUILTINS"]
+        }],
       ],
     },
   ],

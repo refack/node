@@ -48,6 +48,13 @@
     # Don't use ICU data file (icudtl.dat) from V8, we use our own.
     'icu_use_data_file_flag%': 0,
 
+    'v8_enable_pointer_compression': 'false',
+
+    'v8_deprecate_get_isolate': 'false',
+
+    # New in V8 7.0
+    'v8_enable_embedded_builtins': 'true',
+
     'conditions': [
       ['GENERATOR=="ninja"', {
         'obj_dir': '<(PRODUCT_DIR)/obj',
