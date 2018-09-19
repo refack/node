@@ -408,7 +408,6 @@
       'sources': [
         '<(SHARED_INTERMEDIATE_DIR)/experimental-extras-libraries.cc',
         '<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc',
-        '<(SHARED_INTERMEDIATE_DIR)/libraries.cc',
         '<(INTERMEDIATE_DIR)/snapshot.cc',
         '>(embedded_builtins_outputs)',
         '../src/setup-isolate-deserialize.cc',
@@ -625,7 +624,6 @@
         'v8_libbase',
         'v8_libsampler',
         'torque#host',
-        'generate_bytecode_builtins_list#host',
         'bytecode_builtins_list_generator#host',
       ],
       'direct_dependent_settings': {
@@ -2044,7 +2042,58 @@
         ['v8_postmortem_support=="true"', {
           'sources': [
             '<(SHARED_INTERMEDIATE_DIR)/debug-support.cc',
-          ]
+          ],
+          'variables': {
+            'heapobject_files': [
+              '../src/objects.h',
+              '../src/objects-inl.h',
+              '../src/objects/allocation-site-inl.h',
+              '../src/objects/allocation-site.h',
+              '../src/objects/code-inl.h',
+              '../src/objects/code.h',
+              '../src/objects/data-handler.h',
+              '../src/objects/data-handler-inl.h',
+              '../src/objects/fixed-array-inl.h',
+              '../src/objects/fixed-array.h',
+              '../src/objects/js-array-inl.h',
+              '../src/objects/js-array.h',
+              '../src/objects/js-array-buffer-inl.h',
+              '../src/objects/js-array-buffer.h',
+              '../src/objects/js-regexp-inl.h',
+              '../src/objects/js-regexp.h',
+              '../src/objects/js-regexp-string-iterator-inl.h',
+              '../src/objects/js-regexp-string-iterator.h',
+              '../src/objects/map.h',
+              '../src/objects/map-inl.h',
+              '../src/objects/name.h',
+              '../src/objects/name-inl.h',
+              '../src/objects/scope-info.h',
+              '../src/objects/script.h',
+              '../src/objects/script-inl.h',
+              '../src/objects/shared-function-info.h',
+              '../src/objects/shared-function-info-inl.h',
+              '../src/objects/string.h',
+              '../src/objects/string-inl.h',
+            ],
+          },
+          'actions': [
+            {
+              'action_name': 'gen-postmortem-metadata',
+              'inputs': [
+                '../tools/gen-postmortem-metadata.py',
+                '<@(heapobject_files)',
+              ],
+              'outputs': [
+                '<(SHARED_INTERMEDIATE_DIR)/debug-support.cc',
+              ],
+              'action': [
+                'python',
+                '../tools/gen-postmortem-metadata.py',
+                '<@(_outputs)',
+                '<@(heapobject_files)'
+              ],
+            },
+          ],
         }],
         ['v8_enable_i18n_support==1', {
           'dependencies': [
@@ -2111,18 +2160,6 @@
       ],
       'actions': [
         {
-          'action_name': 'run_torque_action',
-          'inputs': [  # Order matters.
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
-            '<@(torque_files)',
-          ],
-          'outputs': [
-            '<@(torque_outputs)',
-            '<@(torque_generated_pure_headers)',
-          ],
-          'action': ['<@(_inputs)', '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'],
-        },
-        {
           'action_name': 'protocol_compatibility',
           'inputs': [
             '<(inspector_path)/js_protocol.json',
@@ -2175,19 +2212,34 @@
           ],
         },
         {
-         'action_name': 'generate_bytecode_builtins_list_action',
-         'inputs': [
-           '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)bytecode_builtins_list_generator<(EXECUTABLE_SUFFIX)',
-         ],
-         'outputs': [
-           '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
-         ],
-         'action': [
-           'python',
-           '../tools/run.py',
-           '<@(_inputs)',
-           '<@(_outputs)',
-         ],
+          'action_name': 'run_torque_action',
+          'inputs': [  # Order matters.
+            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
+            '<@(torque_files)',
+          ],
+          'outputs': [
+            '<@(torque_outputs)',
+            '<@(torque_generated_pure_headers)',
+          ],
+          'action': [
+            '<@(_inputs)',
+            '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'
+          ],
+        },
+        {
+          'action_name': 'generate_bytecode_builtins_list_action',
+          'inputs': [
+            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)bytecode_builtins_list_generator<(EXECUTABLE_SUFFIX)',
+          ],
+          'outputs': [
+            '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
+          ],
+          'action': [
+            'python',
+            '../tools/run.py',
+            '<@(_inputs)',
+            '<@(_outputs)',
+          ],
         },
       ],
     },
@@ -2676,7 +2728,11 @@
     },
     {
       'target_name': 'js2c',
-      'type': 'none',
+      'type': '<(component)',
+      'include_dirs': [
+        '..',
+        '<(DEPTH)',
+      ],
       'conditions': [
         ['want_separate_host_toolset==1', {
           'toolsets': ['host'],
@@ -2701,9 +2757,10 @@
           }],
         ],
       },
+      'sources': [ '<(SHARED_INTERMEDIATE_DIR)/libraries.cc' ],
       'actions': [
         {
-          'action_name': 'js2c',
+          'action_name': 'js2c_generate',
           'inputs': [
             '../tools//js2c.py',
             '<@(library_files)',
@@ -2711,7 +2768,7 @@
           'outputs': ['<(SHARED_INTERMEDIATE_DIR)/libraries.cc'],
           'action': [
             'python',
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<(SHARED_INTERMEDIATE_DIR)/libraries.cc',
             'CORE',
             '<@(library_files)',
@@ -2720,13 +2777,13 @@
         {
           'action_name': 'js2c_bin',
           'inputs': [
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<@(library_files)',
           ],
           'outputs': ['<@(libraries_bin_file)'],
           'action': [
             'python',
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<(SHARED_INTERMEDIATE_DIR)/libraries.cc',
             'CORE',
             '<@(library_files)',
@@ -2737,13 +2794,13 @@
         {
           'action_name': 'js2c_extras',
           'inputs': [
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<@(v8_extra_library_files)',
           ],
           'outputs': ['<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc'],
           'action': [
             'python',
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc',
             'EXTRAS',
             '<@(v8_extra_library_files)',
@@ -2752,13 +2809,13 @@
         {
           'action_name': 'js2c_extras_bin',
           'inputs': [
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<@(v8_extra_library_files)',
           ],
           'outputs': ['<@(libraries_extras_bin_file)'],
           'action': [
             'python',
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc',
             'EXTRAS',
             '<@(v8_extra_library_files)',
@@ -2769,7 +2826,7 @@
         {
           'action_name': 'js2c_experimental_extras',
           'inputs': [
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<@(v8_experimental_extra_library_files)',
           ],
           'outputs': [
@@ -2777,7 +2834,7 @@
           ],
           'action': [
             'python',
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<(SHARED_INTERMEDIATE_DIR)/experimental-extras-libraries.cc',
             'EXPERIMENTAL_EXTRAS',
             '<@(v8_experimental_extra_library_files)',
@@ -2786,13 +2843,13 @@
         {
           'action_name': 'js2c_experimental_extras_bin',
           'inputs': [
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<@(v8_experimental_extra_library_files)',
           ],
           'outputs': ['<@(libraries_experimental_extras_bin_file)'],
           'action': [
             'python',
-            '../tools//js2c.py',
+            '../tools/js2c.py',
             '<(SHARED_INTERMEDIATE_DIR)/experimental-extras-libraries.cc',
             'EXPERIMENTAL_EXTRAS',
             '<@(v8_experimental_extra_library_files)',
@@ -2812,12 +2869,12 @@
         'BUILDING_V8_SHARED=1',
       ],
       # This is defined trough `configurations` for GYP+ninja compatibility
-          'msvs_settings': {
-            'VCCLCompilerTool': {
-              'RuntimeTypeInfo': 'true',
-              'ExceptionHandling': 1,
-            },
-          },
+      'msvs_settings': {
+        'VCCLCompilerTool': {
+          'RuntimeTypeInfo': 'true',
+          'ExceptionHandling': 1,
+        },
+      },
       'sources': [
         "../src/torque/ast.h",
         "../src/torque/contextual.h",
@@ -2857,71 +2914,15 @@
         '_HAS_EXCEPTIONS=0',
         'BUILDING_V8_SHARED=1',
       ],
-      # This is defined trough `configurations` for GYP+ninja compatibility
-          'msvs_settings': {
-            'VCCLCompilerTool': {
-              'RuntimeTypeInfo': 'true',
-              'ExceptionHandling': 1,
-            },
-          },
+      'msvs_settings': {
+        'VCCLCompilerTool': {
+          'RuntimeTypeInfo': 'true',
+          'ExceptionHandling': 1,
+        },
+      },
       'include_dirs': ['..'],
       'sources': [
         "../src/torque/torque.cc",
-      ],
-    },
-    {
-      'target_name': 'postmortem-metadata',
-      'type': 'none',
-      'variables': {
-        'heapobject_files': [
-            '../src/objects.h',
-            '../src/objects-inl.h',
-            '../src/objects/allocation-site-inl.h',
-            '../src/objects/allocation-site.h',
-            '../src/objects/code-inl.h',
-            '../src/objects/code.h',
-            '../src/objects/data-handler.h',
-            '../src/objects/data-handler-inl.h',
-            '../src/objects/fixed-array-inl.h',
-            '../src/objects/fixed-array.h',
-            '../src/objects/js-array-inl.h',
-            '../src/objects/js-array.h',
-            '../src/objects/js-array-buffer-inl.h',
-            '../src/objects/js-array-buffer.h',
-            '../src/objects/js-regexp-inl.h',
-            '../src/objects/js-regexp.h',
-            '../src/objects/js-regexp-string-iterator-inl.h',
-            '../src/objects/js-regexp-string-iterator.h',
-            '../src/objects/map.h',
-            '../src/objects/map-inl.h',
-            '../src/objects/name.h',
-            '../src/objects/name-inl.h',
-            '../src/objects/scope-info.h',
-            '../src/objects/script.h',
-            '../src/objects/script-inl.h',
-            '../src/objects/shared-function-info.h',
-            '../src/objects/shared-function-info-inl.h',
-            '../src/objects/string.h',
-            '../src/objects/string-inl.h',
-        ],
-      },
-      'actions': [
-        {
-          'action_name': 'gen-postmortem-metadata',
-          'inputs': [
-            '../tools//gen-postmortem-metadata.py',
-            '<@(heapobject_files)',
-          ],
-          'outputs': [
-            '<(SHARED_INTERMEDIATE_DIR)/debug-support.cc',
-          ],
-          'action': [
-            'python',
-            '../tools//gen-postmortem-metadata.py',
-            '<@(_outputs)',
-            '<@(heapobject_files)'
-          ],
-        },
       ],
     },
     {
@@ -2964,14 +2965,14 @@
         {
           'action_name': 'v8_dump_build_config',
           'inputs': [
-            '../tools//testrunner/utils/dump_build_config_gyp.py',
+            '../tools/testrunner/utils/dump_build_config_gyp.py',
           ],
           'outputs': [
             '<(PRODUCT_DIR)/v8_build_config.json',
           ],
           'action': [
             'python',
-            '../tools//testrunner/utils/dump_build_config_gyp.py',
+            '../tools/testrunner/utils/dump_build_config_gyp.py',
             '<(PRODUCT_DIR)/v8_build_config.json',
             'dcheck_always_on=<(dcheck_always_on)',
             'is_asan=<(asan)',
@@ -3001,11 +3002,6 @@
           ],
         },
       ],
-    },
-    {
-      'target_name': 'generate_bytecode_builtins_list',
-      'type': 'none',
-      'toolsets': ['host'],
     },
     {
       'target_name': 'bytecode_builtins_list_generator',

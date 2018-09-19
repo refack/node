@@ -122,10 +122,6 @@
             ],
           },
         }],
-        # when building with GN, the v8_monolith target already includes postmortem metadata
-        [ 'build_v8_with_gn=="false"', {
-          'dependencies': [ 'deps/v8/gypfiles/v8.gyp:postmortem-metadata' ],
-        }],
       ],
     }],
     [ 'node_shared_zlib=="false"', {
