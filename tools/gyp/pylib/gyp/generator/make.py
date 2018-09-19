@@ -1756,10 +1756,9 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
       cmddigest = hashlib.sha1(command if command else self.target).hexdigest()
       intermediate = "%s.intermediate" % (cmddigest)
       self.WriteLn('%s: %s' % (' '.join(outputs), intermediate))
-      self.WriteLn('\t%s' % '@:');
+      self.WriteLn('\t%s' % '@:')
       self.WriteLn('%s: %s' % ('.INTERMEDIATE', intermediate))
-      self.WriteLn('%s: %s%s' %
-                   (intermediate, ' '.join(inputs), force_append))
+      self.WriteLn('%s: %s' % (intermediate, ' '.join(inputs)))
       actions.insert(0, '$(call do_cmd,touch)')
 
     if actions:
