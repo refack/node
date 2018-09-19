@@ -432,7 +432,7 @@
             '<(embedded_builtins_snapshot_src)'
           ],
           'action': [
-            '<(mksnapshot_exec)',
+            '<@(_inputs)',
             '<@(mksnapshot_flags)',
             '--startup_src', '<(INTERMEDIATE_DIR)/snapshot.cc',
             '<(embed_script)',
@@ -2781,7 +2781,7 @@
       'target_name': 'run_torque',
       'type': 'none',
       'toolsets': ['host'],
-      'dependencies': ['torque'],
+      'dependencies': ['torque#host'],
       'direct_dependent_settings': {
         'include_dirs': ['<(SHARED_INTERMEDIATE_DIR)'],
       },
@@ -2789,6 +2789,7 @@
         {
           'action_name': 'run_torque_action',
           'inputs': [  # Order matters.
+            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
             '<@(torque_files)',
           ],
           'outputs': [
@@ -2796,7 +2797,6 @@
             '<@(torque_generated_pure_headers)',
           ],
           'action': [
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
             '<@(_inputs)',
             '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'
           ],
