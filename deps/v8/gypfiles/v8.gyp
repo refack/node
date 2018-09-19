@@ -60,11 +60,11 @@
   'conditions': [
     ['v8_enable_embedded_builtins=="true"', {
       'variables': {
-        'snapshot_embedded_builtins_src': '<(INTERMEDIATE_DIR)/embedded_default.cc',
+        'embedded_builtins_snapshot_src': '<(INTERMEDIATE_DIR)/embedded_default.cc',
       },
     },{
       'variables': {
-        'snapshot_embedded_builtins_src': '../src/snapshot/embedded-empty.cc',
+        'embedded_builtins_snapshot_src': '../src/snapshot/embedded-empty.cc',
       },
     }],
   ],
@@ -376,7 +376,6 @@
         }],
       ],
       'variables': {
-        'embedded_builtins_outputs': '',
         'mksnapshot_flags': [],
         'conditions': [
           ['v8_random_seed!=0', {
@@ -385,16 +384,13 @@
           ['v8_vector_stores!=0', {
             'mksnapshot_flags': ['--vector-stores'],
           }],
-          # In this case we use `suffix = "_default"` for the template `embedded${suffix}.cc`
           ['v8_enable_embedded_builtins=="true"', {
-            'embedded_builtins_output': '<(INTERMEDIATE_DIR)/embedded_default.cc',
-            'mksnapshot_flags':  ["--embedded_src", ">(embedded_builtins_output)",],
-            # if (invoker.embedded_variant != "") {
-            #   args += [
-            #     "--embedded_variant",
-            #     invoker.embedded_variant,
-            #   ]
-            # }
+            # In this case we use `embedded_variant "Default"`
+            # and `suffix = ''` for the template `embedded${suffix}.cc`.
+            'mksnapshot_flags':  [
+              '--embedded_src', '<(embedded_builtins_snapshot_src)',
+              '--embedded_variant', 'Default',
+            ]
           }]
         ],
       },
@@ -410,9 +406,8 @@
         '<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc',
         '<(SHARED_INTERMEDIATE_DIR)/libraries.cc',
         '<(INTERMEDIATE_DIR)/snapshot.cc',
-        '>(embedded_builtins_outputs)',
         '../src/setup-isolate-deserialize.cc',
-        '<(snapshot_embedded_builtins_src)',
+        '<(embedded_builtins_snapshot_src)',
       ],
       'actions': [
         {
@@ -434,12 +429,12 @@
           ],
           'outputs': [
             '<(INTERMEDIATE_DIR)/snapshot.cc',
-            '>(embedded_builtins_output)'
+            '<(embedded_builtins_snapshot_src)'
           ],
           'action': [
             '<(mksnapshot_exec)',
             '<@(mksnapshot_flags)',
-            '--startup_src', '<@(INTERMEDIATE_DIR)/snapshot.cc',
+            '--startup_src', '<(INTERMEDIATE_DIR)/snapshot.cc',
             '<(embed_script)',
             '<(warmup_script)',
           ],
@@ -527,7 +522,7 @@
             '../src/snapshot/embedded-empty.cc',
             '../src/snapshot/natives-external.cc',
             '../src/snapshot/snapshot-external.cc',
-            '<(snapshot_embedded_builtins_src)',
+            '<(embedded_builtins_snapshot_src)',
           ],
           'actions': [
             {
@@ -548,17 +543,16 @@
                     'mksnapshot_flags': ['--v8_os_page_size', '<(v8_os_page_size)'],
                   }],
                   ['v8_enable_embedded_builtins="true"', {
-                    'embedded_builtins_outputs': [ "$target_gen_dir/embedded${suffix}.cc" ],
-                    'mksnapshot_flags':  ["--embedded_src", "$target_gen_dir/embedded${suffix}.cc",],
+                    # 'embedded_builtins_snapshot_src': [ "$target_gen_dir/embedded${suffix}.cc" ],
+                    # 'mksnapshot_flags':  ["--embedded_src", "$target_gen_dir/embedded${suffix}.cc",],
                     # if (invoker.embedded_variant != "") {
                     #   args += [
                     #     "--embedded_variant",
                     #     invoker.embedded_variant,
                     #   ]
                     # }
-                  }, {
-                    'embedded_builtins_outputs': [ "$target_gen_dir/embedded${suffix}.cc" ],
-                  }]
+                    },
+                  ],
                 ],
               },
               'conditions': [
@@ -577,7 +571,7 @@
                     ['_toolset=="host"', {
                       'outputs': [
                         '<(PRODUCT_DIR)/snapshot_blob_host.bin',
-                        '<@(embedded_builtins_outputs)'
+                        '<(embedded_builtins_snapshot_src)'
                       ],
                       'action': [
                         '<(mksnapshot_exec)',
@@ -602,7 +596,7 @@
                 }, {
                   'outputs': [
                     '<(PRODUCT_DIR)/snapshot_blob.bin',
-                    '<@(embedded_builtins_outputs)'
+                    '<(embedded_builtins_snapshot_src)'
                   ],
                   'action': [
                     '<(mksnapshot_exec)',
@@ -2726,12 +2720,12 @@
         'BUILDING_V8_SHARED=1',
       ],
       # This is defined trough `configurations` for GYP+ninja compatibility
-          'msvs_settings': {
-            'VCCLCompilerTool': {
-              'RuntimeTypeInfo': 'true',
-              'ExceptionHandling': 1,
-            },
-          },
+      'msvs_settings': {
+        'VCCLCompilerTool': {
+          'RuntimeTypeInfo': 'true',
+          'ExceptionHandling': 1,
+        },
+      },
       'sources': [
         "../src/torque/ast.h",
         "../src/torque/contextual.h",
@@ -2772,12 +2766,12 @@
         'BUILDING_V8_SHARED=1',
       ],
       # This is defined trough `configurations` for GYP+ninja compatibility
-          'msvs_settings': {
-            'VCCLCompilerTool': {
-              'RuntimeTypeInfo': 'true',
-              'ExceptionHandling': 1,
-            },
-          },
+      'msvs_settings': {
+        'VCCLCompilerTool': {
+          'RuntimeTypeInfo': 'true',
+          'ExceptionHandling': 1,
+        },
+      },
       'include_dirs': ['..'],
       'sources': [
         "../src/torque/torque.cc",
@@ -2795,15 +2789,17 @@
         {
           'action_name': 'run_torque_action',
           'inputs': [  # Order matters.
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
             '<@(torque_files)',
           ],
           'outputs': [
             '<@(torque_outputs)',
             '<@(torque_generated_pure_headers)',
-
           ],
-          'action': ['<@(_inputs)', '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'],
+          'action': [
+            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
+            '<@(_inputs)',
+            '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'
+          ],
         },
       ],
     },

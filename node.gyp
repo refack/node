@@ -612,7 +612,6 @@
           'process_outputs_as_sources': 0,
           'inputs': [
             '<@(library_files)',
-            './config.gypi',
             'tools/check_macros.py'
           ],
           'outputs': [
@@ -633,10 +632,9 @@
             }]
           ],
           'action': [
-            'python',
-            'tools/js2c.py',
+            'python', 'tools/js2c.py',
             '<@(_outputs)',
-            '<@(_inputs)',
+            '<@(_inputs)', 'config.gypi',
           ],
         },
       ],

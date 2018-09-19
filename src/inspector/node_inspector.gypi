@@ -79,7 +79,6 @@
     },
     {
       'action_name': 'node_protocol_generated_sources',
-      'process_outputs_as_sources': 0,
       'inputs': [
         '<(SHARED_INTERMEDIATE_DIR)/node_protocol_config.json',
         '<(SHARED_INTERMEDIATE_DIR)/node_protocol.json',
@@ -99,7 +98,6 @@
     },
     {
       'action_name': 'v8_inspector_convert_protocol_to_json',
-      'process_outputs_as_sources': 0,
       'inputs': [
         '<(SHARED_INTERMEDIATE_DIR)/js_protocol.pdl',
       ],
@@ -115,7 +113,6 @@
     },
     {
       'action_name': 'concatenate_protocols',
-      'process_outputs_as_sources': 0,
       'inputs': [
         '<(SHARED_INTERMEDIATE_DIR)/js_protocol.json',
         '<(SHARED_INTERMEDIATE_DIR)/node_protocol.json',
@@ -132,7 +129,6 @@
     },
     {
       'action_name': 'v8_inspector_compress_protocol_json',
-      'process_outputs_as_sources': 0,
       'inputs': [
         '<(SHARED_INTERMEDIATE_DIR)/concatenated_protocol.json',
       ],
