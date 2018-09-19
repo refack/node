@@ -624,9 +624,9 @@
       'dependencies': [
         'v8_libbase',
         'v8_libsampler',
-        'run_torque#host',
-        'inspector.gyp:inspector_injected_script#target',
+        'torque#host',
         'generate_bytecode_builtins_list#host',
+        'bytecode_builtins_list_generator#host',
       ],
       'direct_dependent_settings': {
         'include_dirs': ['<(SHARED_INTERMEDIATE_DIR)'],
@@ -634,6 +634,8 @@
       'objs': ['foo.o'],
       'variables': {
         'optimize': 'max',
+        'protocol_path': '../third_party/inspector_protocol',
+        'inspector_path': '../src/inspector',
       },
       'include_dirs': [
         '..',
@@ -2104,6 +2106,90 @@
           ],
         }],
       ],
+      'includes': [
+        '../third_party/inspector_protocol/inspector_protocol.gypi',
+      ],
+      'actions': [
+        {
+          'action_name': 'run_torque_action',
+          'inputs': [  # Order matters.
+            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
+            '<@(torque_files)',
+          ],
+          'outputs': [
+            '<@(torque_outputs)',
+            '<@(torque_generated_pure_headers)',
+          ],
+          'action': ['<@(_inputs)', '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'],
+        },
+        {
+          'action_name': 'protocol_compatibility',
+          'inputs': [
+            '<(inspector_path)/js_protocol.json',
+          ],
+          'outputs': [
+            '<@(SHARED_INTERMEDIATE_DIR)/src/js_protocol.stamp',
+          ],
+          'action': [
+            'python',
+            '<(protocol_path)/CheckProtocolCompatibility.py',
+            '--stamp', '<@(_outputs)',
+            '<(inspector_path)/js_protocol.json',
+          ],
+          'message': 'Checking inspector protocol compatibility',
+        },
+        {
+          'action_name': 'protocol_generated_sources',
+          'inputs': [
+            '<(inspector_path)/js_protocol.json',
+            '<(inspector_path)/inspector_protocol_config.json',
+            '<@(inspector_protocol_files)',
+          ],
+          'outputs': [
+            '<@(inspector_generated_sources)',
+          ],
+          'action': [
+            'python',
+            '<(protocol_path)/CodeGenerator.py',
+            '--jinja_dir', '../third_party',
+            '--output_base', '<(SHARED_INTERMEDIATE_DIR)/src/inspector',
+            '--config', '<(inspector_path)/inspector_protocol_config.json',
+          ],
+          'message': 'Generating inspector protocol sources from protocol json',
+        },
+        {
+          'action_name': 'convert_js_to_cpp_char_array',
+          'inputs': [
+            '<(inspector_path)/build/xxd.py',
+            '<(inspector_injected_script_source)',
+          ],
+          'outputs': [
+            '<(inspector_generated_injected_script)',
+          ],
+          'action': [
+            'python',
+            '<(inspector_path)/build/xxd.py',
+            'InjectedScriptSource_js',
+            '<(inspector_path)/injected-script-source.js',
+            '<@(_outputs)'
+          ],
+        },
+        {
+         'action_name': 'generate_bytecode_builtins_list_action',
+         'inputs': [
+           '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)bytecode_builtins_list_generator<(EXECUTABLE_SUFFIX)',
+         ],
+         'outputs': [
+           '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
+         ],
+         'action': [
+           'python',
+           '../tools/run.py',
+           '<@(_inputs)',
+           '<@(_outputs)',
+         ],
+        },
+      ],
     },
     {
       'target_name': 'v8_libbase',
@@ -2784,30 +2870,6 @@
       ],
     },
     {
-      'target_name': 'run_torque',
-      'type': 'none',
-      'toolsets': ['host'],
-      'dependencies': ['torque'],
-      'direct_dependent_settings': {
-        'include_dirs': ['<(SHARED_INTERMEDIATE_DIR)'],
-      },
-      'actions': [
-        {
-          'action_name': 'run_torque_action',
-          'inputs': [  # Order matters.
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
-            '<@(torque_files)',
-          ],
-          'outputs': [
-            '<@(torque_outputs)',
-            '<@(torque_generated_pure_headers)',
-
-          ],
-          'action': ['<@(_inputs)', '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'],
-        },
-      ],
-    },
-    {
       'target_name': 'postmortem-metadata',
       'type': 'none',
       'variables': {
@@ -2944,26 +3006,6 @@
       'target_name': 'generate_bytecode_builtins_list',
       'type': 'none',
       'toolsets': ['host'],
-      'dependencies': [
-        "bytecode_builtins_list_generator",
-      ],
-      'actions': [
-        {
-          'action_name': 'generate_bytecode_builtins_list_action',
-          'inputs': [
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)bytecode_builtins_list_generator<(EXECUTABLE_SUFFIX)',
-          ],
-          'outputs': [
-            '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
-          ],
-          'action': [
-            'python',
-            '../tools/run.py',
-            '<@(_inputs)',
-            '<@(_outputs)',
-          ],
-        },
-      ],
     },
     {
       'target_name': 'bytecode_builtins_list_generator',
