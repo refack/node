@@ -61,6 +61,15 @@
     '<(SHARED_INTERMEDIATE_DIR)',
     '<(SHARED_INTERMEDIATE_DIR)/src', # for inspector
   ],
+  'copies': [
+    {
+      'files': [
+        '<(node_inspector_path)/node_protocol_config.json',
+        '<(node_inspector_path)/node_protocol.pdl'
+      ],
+      'destination': '<(SHARED_INTERMEDIATE_DIR)',
+    }
+  ],
   'actions': [
     {
       'action_name': 'convert_node_protocol_to_json',
@@ -97,24 +106,9 @@
       'message': 'Generating node protocol sources from protocol json',
     },
     {
-      'action_name': 'v8_inspector_convert_protocol_to_json',
-      'inputs': [
-        '<(SHARED_INTERMEDIATE_DIR)/js_protocol.pdl',
-      ],
-      'outputs': [
-        '<(SHARED_INTERMEDIATE_DIR)/js_protocol.json',
-      ],
-      'action': [
-        'python',
-        'tools/inspector_protocol/ConvertProtocolToJSON.py',
-        '<@(_inputs)',
-        '<@(_outputs)',
-      ],
-    },
-    {
       'action_name': 'concatenate_protocols',
       'inputs': [
-        '<(SHARED_INTERMEDIATE_DIR)/js_protocol.json',
+        '../../deps/v8/src/inspector/js_protocol.json',
         '<(SHARED_INTERMEDIATE_DIR)/node_protocol.json',
       ],
       'outputs': [
