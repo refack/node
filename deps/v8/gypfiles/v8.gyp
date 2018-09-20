@@ -619,7 +619,7 @@
         'v8_libbase',
         'v8_libsampler',
         'run_torque#host',
-        'inspector.gyp:inspector_injected_script#target',
+        'inspector_injected_script#target',
         'generate_bytecode_builtins_list#host',
       ],
       'direct_dependent_settings': {
@@ -2780,6 +2780,8 @@
     {
       'target_name': 'run_torque',
       'type': 'none',
+      # Since this target generates header files, it needs to be a hard dependency.
+      'hard_dependency': 1,
       'toolsets': ['host'],
       'dependencies': ['torque#host'],
       'direct_dependent_settings': {
@@ -2937,8 +2939,31 @@
       ],
     },
     {
+      'target_name': 'bytecode_builtins_list_generator',
+      'type': 'executable',
+      'toolsets': ['host'],
+      'dependencies': [
+        "v8_libbase#host"
+      ],
+      'include_dirs': [".."],
+      'sources': [
+        "../src/builtins/generate-bytecodes-builtins-list.cc",
+        "../src/interpreter/bytecode-operands.cc",
+        "../src/interpreter/bytecode-operands.h",
+        "../src/interpreter/bytecodes.cc",
+        "../src/interpreter/bytecodes.h",
+      ],
+      'conditions': [
+        ['v8_enable_embedded_builtins=="true"', {
+          'defines': ["V8_EMBEDDED_BUILTINS"]
+        }],
+      ],
+    },
+    {
       'target_name': 'generate_bytecode_builtins_list',
       'type': 'none',
+      # Since this target generates header files, it needs to be a hard dependency.
+      'hard_dependency': 1,
       'toolsets': ['host'],
       'dependencies': [
         "bytecode_builtins_list_generator",
@@ -2959,27 +2984,6 @@
             '<@(_outputs)',
           ],
         },
-      ],
-    },
-    {
-      'target_name': 'bytecode_builtins_list_generator',
-      'type': 'executable',
-      'toolsets': ['host'],
-      'dependencies': [
-        "v8_libbase#host"
-      ],
-      'include_dirs': [".."],
-      'sources': [
-        "../src/builtins/generate-bytecodes-builtins-list.cc",
-        "../src/interpreter/bytecode-operands.cc",
-        "../src/interpreter/bytecode-operands.h",
-        "../src/interpreter/bytecodes.cc",
-        "../src/interpreter/bytecodes.h",
-      ],
-      'conditions': [
-        ['v8_enable_embedded_builtins=="true"', {
-          'defines': ["V8_EMBEDDED_BUILTINS"]
-        }],
       ],
     },
   ],

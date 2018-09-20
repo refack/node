@@ -24,6 +24,7 @@
     },
     'force_load%': '<(force_load)',
   },
+  'cflags': [ '-Wall', '-Wextra', '-Wno-unused-parameter', ],
   'conditions': [
     [ 'node_shared=="false"', {
       'msvs_settings': {
