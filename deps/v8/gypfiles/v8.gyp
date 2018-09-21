@@ -2069,7 +2069,7 @@
           ],
         }],
         ['v8_postmortem_support=="true"', {
-          'dependencies': [ 'postmortem-metadata' ],
+          'dependencies': [ 'postmortem-metadata#host' ],
           'sources': [
             '<(SHARED_INTERMEDIATE_DIR)/debug-support.cc',
           ],
@@ -2835,6 +2835,7 @@
     {
       'target_name': 'postmortem-metadata',
       'type': 'none',
+      'toolsets': ['host'],
       'variables': {
         'heapobject_files': [
             '../src/objects.h',
@@ -2942,7 +2943,6 @@
     {
       'target_name': 'generate_bytecode_builtins_list',
       'type': 'none',
-      # Since this target generates header files, it needs to be a hard dependency.
       'toolsets': ['host'],
       'dependencies': [
         "bytecode_builtins_list_generator",
