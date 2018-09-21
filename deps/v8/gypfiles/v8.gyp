@@ -72,8 +72,7 @@
   'targets': [
     {
       'target_name': 'v8',
-      'dependencies_traverse': 1,
-      'dependencies': ['v8_maybe_snapshot', 'v8_dump_build_config#target'],
+      'dependencies': [ 'v8_maybe_snapshot' ],
       'conditions': [
         ['want_separate_host_toolset==1', {
           'toolsets': ['host', 'target'],
@@ -114,11 +113,55 @@
         }],
       ],
       'direct_dependent_settings': {
-        'include_dirs': [
-          '../include/',
-        ],
+        'include_dirs': [ '../include/', ],
       },
-    },
+      'actions': [
+        {
+          'action_name': 'v8_dump_build_config',
+          'toolsets': ['target'],
+          'inputs': [
+            '../tools/testrunner/utils/dump_build_config_gyp.py',
+          ],
+          'outputs': [
+            '<(PRODUCT_DIR)/v8_build_config.json',
+          ],
+          'variables': {
+            'v8_dump_build_config_args': [
+              '<(PRODUCT_DIR)/v8_build_config.json',
+              'dcheck_always_on=<(dcheck_always_on)',
+              'is_asan=<(asan)',
+              'is_cfi=<(cfi_vptr)',
+              'is_component_build=<(component)',
+              'is_debug=<(CONFIGURATION_NAME)',
+              # Not available in gyp.
+              'is_gcov_coverage=0',
+              'is_msan=<(msan)',
+              'is_tsan=<(tsan)',
+              # Not available in gyp.
+              'is_ubsan_vptr=0',
+              'target_cpu=<(target_arch)',
+              'v8_enable_i18n_support=<(v8_enable_i18n_support)',
+              'v8_enable_verify_predictable=<(v8_enable_verify_predictable)',
+              'v8_target_cpu=<(v8_target_arch)',
+              'v8_use_snapshot=<(v8_use_snapshot)',
+            ]
+          },
+          'conditions': [
+            ['v8_target_arch=="mips" or v8_target_arch=="mipsel" \
+              or v8_target_arch=="mips64" or v8_target_arch=="mips64el"', {
+              'v8_dump_build_config_args':[
+                'mips_arch_variant=<(mips_arch_variant)',
+                'mips_use_msa=<(mips_use_msa)',
+              ],
+            }],
+          ],
+          'action': [
+            'python', '../tools/testrunner/utils/dump_build_config_gyp.py',
+            '<@(v8_dump_build_config_args)',
+          ],
+        },
+      ],
+    }, # v8
     {
       # This rule delegates to either v8_snapshot, v8_nosnapshot, or
       # v8_external_snapshot, depending on the current variables.
@@ -140,21 +183,9 @@
         }],
         ['v8_use_snapshot=="true" and v8_use_external_startup_data==1 and want_separate_host_toolset==0', {
           'dependencies': ['v8_base', 'v8_external_snapshot'],
-          'inputs': [ '<(PRODUCT_DIR)/snapshot_blob.bin', ],
         }],
         ['v8_use_snapshot=="true" and v8_use_external_startup_data==1 and want_separate_host_toolset==1', {
           'dependencies': ['v8_base', 'v8_external_snapshot'],
-          'target_conditions': [
-            ['_toolset=="host"', {
-              'inputs': [
-                '<(PRODUCT_DIR)/snapshot_blob_host.bin',
-              ],
-            }, {
-              'inputs': [
-                '<(PRODUCT_DIR)/snapshot_blob.bin',
-              ],
-            }],
-          ],
         }],
         ['want_separate_host_toolset==1', {
           'toolsets': ['host', 'target'],
@@ -162,7 +193,7 @@
           'toolsets': ['target'],
         }],
       ]
-    },
+    }, # v8_maybe_snapshot
     {
       'target_name': 'v8_init',
       'type': 'static_library',
@@ -195,7 +226,7 @@
           ],
         }],
       ],
-    },
+    }, # v8_init
     {
       'target_name': 'v8_initializers',
       'type': 'static_library',
@@ -340,7 +371,7 @@
           ],
         }],
       ],
-    },
+    }, # v8_initializers
     {
       'target_name': 'v8_snapshot',
       'type': 'static_library',
@@ -440,7 +471,7 @@
           ],
         },
       ],
-    },
+    }, # v8_snapshot
     {
       'target_name': 'v8_nosnapshot',
       'type': 'static_library',
@@ -478,7 +509,7 @@
           ],
         }],
       ]
-    },
+    }, # v8_nosnapshot
     {
       'target_name': 'v8_external_snapshot',
       'type': 'static_library',
@@ -611,14 +642,18 @@
           ],
         }],
       ],
-    },
+    }, # v8_external_snapshot
     {
       'target_name': 'v8_base',
       'type': 'static_library',
+      # Since this target is a static-library, but as a side effect it generates
+      # header files, it needs to be a hard dependency.
+      'hard_dependency': 1,
       'dependencies': [
         'v8_libbase',
         'v8_libsampler',
-        'run_torque#host',
+        # Code generators
+        'torque#host',
         'inspector_injected_script#target',
         'generate_bytecode_builtins_list#host',
       ],
@@ -2034,9 +2069,10 @@
           ],
         }],
         ['v8_postmortem_support=="true"', {
+          'dependencies': [ 'postmortem-metadata' ],
           'sources': [
             '<(SHARED_INTERMEDIATE_DIR)/debug-support.cc',
-          ]
+          ],
         }],
         ['v8_enable_i18n_support==1', {
           'dependencies': [
@@ -2098,7 +2134,24 @@
           ],
         }],
       ],
-    },
+      'actions': [
+        {
+          'action_name': 'run_torque_action',
+          'inputs': [  # Order matters.
+            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
+            '<@(torque_files)',
+          ],
+          'outputs': [
+            '<@(torque_outputs)',
+            '<@(torque_generated_pure_headers)',
+          ],
+          'action': [
+            '<@(_inputs)',
+            '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'
+          ],
+        },
+      ],
+    }, # v8_base
     {
       'target_name': 'v8_libbase',
       'type': '<(component)',
@@ -2439,7 +2492,7 @@
           }
         ],
       ],
-    },
+    }, # v8_libbase
     {
       'target_name': 'v8_libplatform',
       'type': '<(component)',
@@ -2494,7 +2547,7 @@
           '../include/',
         ],
       },
-    },
+    }, # v8_libplatform
     {
       'target_name': 'v8_libsampler',
       'type': 'static_library',
@@ -2524,11 +2577,16 @@
           '../include/',
         ],
       },
-    },
+    }, # v8_libsampler
     {
       'target_name': 'natives_blob',
       'type': 'none',
       'conditions': [
+        ['want_separate_host_toolset==1', {
+          'toolsets': ['host', 'target'],
+        }, {
+           'toolsets': ['target'],
+        }],
         [ 'v8_use_external_startup_data==1', {
           'conditions': [
             ['want_separate_host_toolset==1', {
@@ -2537,51 +2595,99 @@
               'dependencies': ['js2c'],
             }],
           ],
-          'actions': [{
-            'action_name': 'concatenate_natives_blob',
-            'inputs': [
-              '../tools//concatenate-files.py',
-              '<(SHARED_INTERMEDIATE_DIR)/libraries.bin',
-              '<(SHARED_INTERMEDIATE_DIR)/libraries-extras.bin',
-              '<(SHARED_INTERMEDIATE_DIR)/libraries-experimental-extras.bin',
-            ],
-            'conditions': [
-              ['want_separate_host_toolset==1', {
-                'target_conditions': [
-                  ['_toolset=="host"', {
-                    'outputs': [
-                      '<(PRODUCT_DIR)/natives_blob_host.bin',
-                    ],
-                    'action': [
-                      'python', '<@(_inputs)', '<(PRODUCT_DIR)/natives_blob_host.bin'
-                    ],
-                  }, {
-                    'outputs': [
-                      '<(PRODUCT_DIR)/natives_blob.bin',
-                    ],
-                    'action': [
-                      'python', '<@(_inputs)', '<(PRODUCT_DIR)/natives_blob.bin'
-                    ],
-                  }],
-                ],
-              }, {
-                'outputs': [
-                  '<(PRODUCT_DIR)/natives_blob.bin',
-                ],
-                'action': [
-                  'python', '<@(_inputs)', '<(PRODUCT_DIR)/natives_blob.bin'
-                ],
-              }],
-            ],
-          }],
-        }],
-        ['want_separate_host_toolset==1', {
-          'toolsets': ['host', 'target'],
-        }, {
-          'toolsets': ['target'],
+          'actions': [
+            {
+              'action_name': 'js2c_bin',
+              'inputs': [
+                '../tools//js2c.py',
+                '<@(library_files)',
+              ],
+              'outputs': ['<@(libraries_bin_file)'],
+              'action': [
+                'python',
+                '../tools//js2c.py',
+                '<(SHARED_INTERMEDIATE_DIR)/libraries.cc',
+                'CORE',
+                '<@(library_files)',
+                '--startup_blob', '<@(libraries_bin_file)',
+                '--nojs',
+              ],
+            },
+            {
+              'action_name': 'js2c_extras_bin',
+              'inputs': [
+                '../tools//js2c.py',
+                '<@(v8_extra_library_files)',
+              ],
+              'outputs': ['<@(libraries_extras_bin_file)'],
+              'action': [
+                'python',
+                '../tools//js2c.py',
+                '<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc',
+                'EXTRAS',
+                '<@(v8_extra_library_files)',
+                '--startup_blob', '<@(libraries_extras_bin_file)',
+                '--nojs',
+              ],
+            },
+            {
+              'action_name': 'js2c_experimental_extras_bin',
+              'inputs': [
+                '../tools//js2c.py',
+                '<@(v8_experimental_extra_library_files)',
+              ],
+              'outputs': ['<@(libraries_experimental_extras_bin_file)'],
+              'action': [
+                'python',
+                '../tools//js2c.py',
+                '<(SHARED_INTERMEDIATE_DIR)/experimental-extras-libraries.cc',
+                'EXPERIMENTAL_EXTRAS',
+                '<@(v8_experimental_extra_library_files)',
+                '--startup_blob', '<@(libraries_experimental_extras_bin_file)',
+                '--nojs',
+              ],
+            },
+            {
+              'action_name': 'concatenate_natives_blob',
+              'inputs': [
+                '../tools//concatenate-files.py',
+                '<(SHARED_INTERMEDIATE_DIR)/libraries.bin',
+                '<(SHARED_INTERMEDIATE_DIR)/libraries-extras.bin',
+                '<(SHARED_INTERMEDIATE_DIR)/libraries-experimental-extras.bin',
+              ],
+              'conditions': [
+                ['want_separate_host_toolset==1', {
+                  'target_conditions': [
+                    ['_toolset=="host"', {
+                      'outputs': [
+                        '<(PRODUCT_DIR)/natives_blob_host.bin',
+                      ],
+                      'action': [
+                        'python', '<@(_inputs)', '<(PRODUCT_DIR)/natives_blob_host.bin'
+                      ],
+                    }, {
+                      'outputs': [
+                        '<(PRODUCT_DIR)/natives_blob.bin',
+                      ],
+                      'action': [
+                        'python', '<@(_inputs)', '<(PRODUCT_DIR)/natives_blob.bin'
+                      ],
+                    }],
+                  ],
+                }, {
+                  'outputs': [
+                    '<(PRODUCT_DIR)/natives_blob.bin',
+                  ],
+                  'action': [
+                    'python', '<@(_inputs)', '<(PRODUCT_DIR)/natives_blob.bin'
+                  ],
+                }],
+              ],
+            },
+          ],
         }],
       ]
-    },
+    }, # natives_blob
     {
       'target_name': 'js2c',
       'type': 'none',
@@ -2625,24 +2731,7 @@
             '<@(library_files)',
           ],
         },
-        {
-          'action_name': 'js2c_bin',
-          'inputs': [
-            '../tools//js2c.py',
-            '<@(library_files)',
-          ],
-          'outputs': ['<@(libraries_bin_file)'],
-          'action': [
-            'python',
-            '../tools//js2c.py',
-            '<(SHARED_INTERMEDIATE_DIR)/libraries.cc',
-            'CORE',
-            '<@(library_files)',
-            '--startup_blob', '<@(libraries_bin_file)',
-            '--nojs',
-          ],
-        },
-        {
+       {
           'action_name': 'js2c_extras',
           'inputs': [
             '../tools//js2c.py',
@@ -2655,23 +2744,6 @@
             '<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc',
             'EXTRAS',
             '<@(v8_extra_library_files)',
-          ],
-        },
-        {
-          'action_name': 'js2c_extras_bin',
-          'inputs': [
-            '../tools//js2c.py',
-            '<@(v8_extra_library_files)',
-          ],
-          'outputs': ['<@(libraries_extras_bin_file)'],
-          'action': [
-            'python',
-            '../tools//js2c.py',
-            '<(SHARED_INTERMEDIATE_DIR)/extras-libraries.cc',
-            'EXTRAS',
-            '<@(v8_extra_library_files)',
-            '--startup_blob', '<@(libraries_extras_bin_file)',
-            '--nojs',
           ],
         },
         {
@@ -2691,25 +2763,8 @@
             '<@(v8_experimental_extra_library_files)',
           ],
         },
-        {
-          'action_name': 'js2c_experimental_extras_bin',
-          'inputs': [
-            '../tools//js2c.py',
-            '<@(v8_experimental_extra_library_files)',
-          ],
-          'outputs': ['<@(libraries_experimental_extras_bin_file)'],
-          'action': [
-            'python',
-            '../tools//js2c.py',
-            '<(SHARED_INTERMEDIATE_DIR)/experimental-extras-libraries.cc',
-            'EXPERIMENTAL_EXTRAS',
-            '<@(v8_experimental_extra_library_files)',
-            '--startup_blob', '<@(libraries_experimental_extras_bin_file)',
-            '--nojs',
-          ],
-        },
       ],
-    },
+    }, # js2c
     {
       'target_name': 'torque_base',
       'type': '<(component)',
@@ -2755,7 +2810,7 @@
         "../src/torque/utils.cc",
         "../src/torque/utils.h",
       ],
-    },
+    }, # torque_base
     {
       'target_name': 'torque',
       'type': 'executable',
@@ -2776,35 +2831,7 @@
       'sources': [
         "../src/torque/torque.cc",
       ],
-    },
-    {
-      'target_name': 'run_torque',
-      'type': 'none',
-      # Since this target generates header files, it needs to be a hard dependency.
-      'hard_dependency': 1,
-      'toolsets': ['host'],
-      'dependencies': ['torque#host'],
-      'direct_dependent_settings': {
-        'include_dirs': ['<(SHARED_INTERMEDIATE_DIR)'],
-      },
-      'actions': [
-        {
-          'action_name': 'run_torque_action',
-          'inputs': [  # Order matters.
-            '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)torque<(EXECUTABLE_SUFFIX)',
-            '<@(torque_files)',
-          ],
-          'outputs': [
-            '<@(torque_outputs)',
-            '<@(torque_generated_pure_headers)',
-          ],
-          'action': [
-            '<@(_inputs)',
-            '-o', '<(SHARED_INTERMEDIATE_DIR)/torque-generated'
-          ],
-        },
-      ],
-    },
+    }, # torque
     {
       'target_name': 'postmortem-metadata',
       'type': 'none',
@@ -2859,7 +2886,7 @@
           ],
         },
       ],
-    },
+    }, # postmortem-metadata
     {
       'target_name': 'mksnapshot',
       'type': 'executable',
@@ -2890,54 +2917,7 @@
           'toolsets': ['target'],
         }],
       ],
-    },
-    {
-      'target_name': 'v8_dump_build_config',
-      'type': 'none',
-      'variables': {
-      },
-      'actions': [
-        {
-          'action_name': 'v8_dump_build_config',
-          'inputs': [
-            '../tools//testrunner/utils/dump_build_config_gyp.py',
-          ],
-          'outputs': [
-            '<(PRODUCT_DIR)/v8_build_config.json',
-          ],
-          'action': [
-            'python',
-            '../tools//testrunner/utils/dump_build_config_gyp.py',
-            '<(PRODUCT_DIR)/v8_build_config.json',
-            'dcheck_always_on=<(dcheck_always_on)',
-            'is_asan=<(asan)',
-            'is_cfi=<(cfi_vptr)',
-            'is_component_build=<(component)',
-            'is_debug=<(CONFIGURATION_NAME)',
-            # Not available in gyp.
-            'is_gcov_coverage=0',
-            'is_msan=<(msan)',
-            'is_tsan=<(tsan)',
-            # Not available in gyp.
-            'is_ubsan_vptr=0',
-            'target_cpu=<(target_arch)',
-            'v8_enable_i18n_support=<(v8_enable_i18n_support)',
-            'v8_enable_verify_predictable=<(v8_enable_verify_predictable)',
-            'v8_target_cpu=<(v8_target_arch)',
-            'v8_use_snapshot=<(v8_use_snapshot)',
-          ],
-          'conditions': [
-            ['v8_target_arch=="mips" or v8_target_arch=="mipsel" \
-              or v8_target_arch=="mips64" or v8_target_arch=="mips64el"', {
-                'action':[
-                  'mips_arch_variant=<(mips_arch_variant)',
-                  'mips_use_msa=<(mips_use_msa)',
-                ],
-            }],
-          ],
-        },
-      ],
-    },
+    }, # mksnapshot
     {
       'target_name': 'bytecode_builtins_list_generator',
       'type': 'executable',
@@ -2958,12 +2938,11 @@
           'defines': ["V8_EMBEDDED_BUILTINS"]
         }],
       ],
-    },
+    }, # bytecode_builtins_list_generator
     {
       'target_name': 'generate_bytecode_builtins_list',
       'type': 'none',
       # Since this target generates header files, it needs to be a hard dependency.
-      'hard_dependency': 1,
       'toolsets': ['host'],
       'dependencies': [
         "bytecode_builtins_list_generator",
@@ -2985,6 +2964,6 @@
           ],
         },
       ],
-    },
+    }, # generate_bytecode_builtins_list
   ],
 }

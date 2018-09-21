@@ -97,8 +97,6 @@
     {
       'target_name': 'inspector_injected_script',
       'type': 'none',
-      # Since this target generates header files, it needs to be a hard dependency.
-      'hard_dependency': 1,
       'actions': [
         {
           'action_name': 'protocol_compatibility',
