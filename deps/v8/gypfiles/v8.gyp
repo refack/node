@@ -13,6 +13,7 @@
     'v8_experimental_extra_library_files%': [],
     'mksnapshot_exec': '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)mksnapshot<(EXECUTABLE_SUFFIX)',
     'v8_os_page_size%': 0,
+    'generate_bytecode_builtins_list_output' : '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
     'torque_files': [
       "../src/builtins/base.tq",
       "../src/builtins/array.tq",
@@ -199,6 +200,8 @@
       'type': 'static_library',
       'dependencies': [
         'v8_initializers',
+        # We need this transitive dependency, since it also does codegen.
+        'v8_base',
       ],
       'variables': {
         'optimize': 'max',
@@ -211,6 +214,7 @@
       ],
       'sources': [
         '../src/setup-isolate-full.cc',
+        '<(generate_bytecode_builtins_list_output)',
         '<@(torque_generated_pure_headers)',
       ],
       'conditions': [
@@ -670,7 +674,7 @@
         '<(SHARED_INTERMEDIATE_DIR)'
       ],
       'sources': [
-        '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
+        '<(generate_bytecode_builtins_list_output)',
         '<@(inspector_all_sources)',
         '../include//v8-inspector-protocol.h',
         '../include//v8-inspector.h',
@@ -2954,7 +2958,7 @@
             '<(PRODUCT_DIR)/<(EXECUTABLE_PREFIX)bytecode_builtins_list_generator<(EXECUTABLE_SUFFIX)',
           ],
           'outputs': [
-            '<(SHARED_INTERMEDIATE_DIR)/builtins-generated/bytecodes-builtins-list.h',
+            '<(generate_bytecode_builtins_list_output)',
           ],
           'action': [
             'python',
