@@ -59,13 +59,14 @@
     ],
   },
   'conditions': [
-    ['v8_enable_embedded_builtins=="true"', {
+    ['v8_enable_embedded_builtins=="false" or (OS=="aix") or (OS=="win" and (clang!=1 or v8_target_arch=="ia32"))', {
+      'variables': {
+        'v8_enable_embedded_builtins': 'false',
+        'embedded_builtins_snapshot_src': '../src/snapshot/embedded-empty.cc',
+      },
+    }, {
       'variables': {
         'embedded_builtins_snapshot_src': '<(INTERMEDIATE_DIR)/embedded_default.cc',
-      },
-    },{
-      'variables': {
-        'embedded_builtins_snapshot_src': '../src/snapshot/embedded-empty.cc',
       },
     }],
   ],
