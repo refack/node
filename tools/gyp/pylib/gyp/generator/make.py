@@ -360,10 +360,10 @@ endef
 # - quiet_cmd_foo is the brief-output summary of the command.
 
 quiet_cmd_cc = CC($(TOOLSET)) $@
-cmd_cc = $(CC.$(TOOLSET)) $< $(GYP_CFLAGS) $(DEPFLAGS) $(CFLAGS.$(TOOLSET)) -c -o $@
+cmd_cc = $(CC.$(TOOLSET)) -o $@ $< $(GYP_CFLAGS) $(DEPFLAGS) $(CFLAGS.$(TOOLSET)) -c
 
 quiet_cmd_cxx = CXX($(TOOLSET)) $@
-cmd_cxx = $(CXX.$(TOOLSET)) $< $(GYP_CXXFLAGS) $(DEPFLAGS) $(CXXFLAGS.$(TOOLSET)) -c -o $@
+cmd_cxx = $(CXX.$(TOOLSET)) -o $@ $< $(GYP_CXXFLAGS) $(DEPFLAGS) $(CXXFLAGS.$(TOOLSET)) -c
 %(extra_commands)s
 quiet_cmd_touch = TOUCH $@
 cmd_touch = touch $@
