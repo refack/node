@@ -884,6 +884,9 @@ class LiteralTestSuite(TestSuite):
     return result
 
   def GetTestStatus(self, context, sections, defs):
+    # Just read the test configuration from root_path/root.status.
+    root = TestConfiguration(context, self.root_path, 'root')
+    root.GetTestStatus(sections, defs)
     for tests_repos in self.tests_repos:
       tests_repos.GetTestStatus(context, sections, defs)
 
