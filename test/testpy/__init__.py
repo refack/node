@@ -37,7 +37,6 @@ FILES_PATTERN = re.compile(r"//\s+Files:(.*)")
 
 
 class SimpleTestCase(test.TestCase):
-
   def __init__(self, path, file, arch, mode, context, config, additional=None):
     super(SimpleTestCase, self).__init__(context, path, arch, mode)
     self.file = file
@@ -95,16 +94,11 @@ class SimpleTestCase(test.TestCase):
   def GetSource(self):
     return open(self.file).read()
 
+  def __repr__(self):
+    return '/'.join(self.path)
+
+
 class SimpleTestConfiguration(test.TestConfiguration):
-
-  def __init__(self, context, root, section, additional=None):
-    super(SimpleTestConfiguration, self).__init__(context, root)
-    self.section = section
-    if additional is not None:
-      self.additional_flags = additional
-    else:
-      self.additional_flags = []
-
   def Ls(self, path):
     return [f for f in os.listdir(path) if re.match('^test-.*\.m?js$', f)]
 
@@ -122,10 +116,6 @@ class SimpleTestConfiguration(test.TestConfiguration):
   def GetBuildRequirements(self):
     return ['sample', 'sample=shell']
 
-  def GetTestStatus(self, sections, defs):
-    status_file = join(self.root, '%s.status' % (self.section))
-    if exists(status_file):
-      test.ReadConfigurationInto(status_file, sections, defs)
 
 class ParallelTestConfiguration(SimpleTestConfiguration):
   def __init__(self, context, root, section, additional=None):

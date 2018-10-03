@@ -43,7 +43,7 @@ import utils
 import multiprocessing
 import errno
 import copy
-import ast
+from abc import ABCMeta, abstractmethod
 
 from os.path import join, dirname, abspath, basename, isdir, exists
 from datetime import datetime
@@ -51,6 +51,7 @@ from Queue import Queue, Empty
 
 logger = logging.getLogger('testrunner')
 skip_regex = re.compile(r'# SKIP\S*\s+(.*)', re.IGNORECASE)
+subsystem_regex = re.compile(r'^[a-zA-Z-]*$')
 
 VERBOSE = False
 
@@ -481,7 +482,8 @@ class CommandOutput(object):
     self.failed = None
 
 
-class TestCase(object):
+class TestCase:
+  __metaclass__ = ABCMeta
 
   def __init__(self, context, path, arch, mode):
     self.path = path
@@ -510,6 +512,10 @@ class TestCase(object):
   def GetSource(self):
     return "(no source available)"
 
+  @abstractmethod
+  def GetCommand(self):
+    raise NotImplemented()
+
   def RunCommand(self, command, env):
     full_command = self.context.processor(command)
     output = Execute(full_command,
@@ -534,6 +540,7 @@ class TestCase(object):
       # full, it'll die with a EAGAIN OSError. Ergo, put the tty back in
       # blocking mode before proceeding.
       if sys.platform != 'win32':
+        # noinspection PyUnresolvedReferences
         from fcntl import fcntl, F_GETFL, F_SETFL
         from os import O_NONBLOCK
         for fd in 0,1,2: fcntl(fd, F_SETFL, ~O_NONBLOCK & fcntl(fd, F_GETFL))
@@ -780,10 +787,11 @@ def CarCdr(path):
 
 
 class TestConfiguration(object):
-
-  def __init__(self, context, root):
+  def __init__(self, context, root, section, additional=None):
     self.context = context
     self.root = root
+    self.section = section
+    self.additional_flags = additional or []
 
   def Contains(self, path, file):
     if len(path) > len(file):
@@ -794,10 +802,13 @@ class TestConfiguration(object):
     return True
 
   def GetTestStatus(self, sections, defs):
-    pass
+    status_file = join(self.root, '%s.status' % (self.section))
+    if exists(status_file):
+      ReadConfigurationInto(status_file, sections, defs)
 
 
-class TestSuite(object):
+class TestSuite:
+  __metaclass__ = ABCMeta
 
   def __init__(self, name):
     self.name = name
@@ -807,7 +818,6 @@ class TestSuite(object):
 
 
 class TestRepository(TestSuite):
-
   def __init__(self, path):
     normalized_path = abspath(path)
     super(TestRepository, self).__init__(basename(normalized_path))
@@ -819,18 +829,18 @@ class TestRepository(TestSuite):
     if self.is_loaded:
       return self.config
     self.is_loaded = True
-    file = None
+    module_file = None
     try:
-      (file, pathname, description) = imp.find_module('testcfg', [ self.path ])
-      module = imp.load_module('testcfg', file, pathname, description)
+      (module_file, pathname, description) = imp.find_module('testcfg', [ self.path ])
+      module = imp.load_module('testcfg', module_file, pathname, description)
       self.config = module.GetConfiguration(context, self.path)
       if hasattr(self.config, 'additional_flags'):
         self.config.additional_flags += context.node_args
       else:
         self.config.additional_flags = context.node_args
     finally:
-      if file:
-        file.close()
+      if module_file:
+        module_file.close()
     return self.config
 
   def GetBuildRequirements(self, path, context):
@@ -849,32 +859,33 @@ class TestRepository(TestSuite):
 
 class LiteralTestSuite(TestSuite):
 
-  def __init__(self, tests):
+  def __init__(self, tests_repos, root_path):
     super(LiteralTestSuite, self).__init__('root')
-    self.tests = tests
+    self.tests_repos = tests_repos
+    self.root_path = root_path
 
   def GetBuildRequirements(self, path, context):
     (name, rest) = CarCdr(path)
     result = [ ]
-    for test in self.tests:
-      if not name or name.match(test.GetName()):
-        result += test.GetBuildRequirements(rest, context)
+    for tests_repos in self.tests_repos:
+      if not name or name.match(tests_repos.GetName()):
+        result += tests_repos.GetBuildRequirements(rest, context)
     return result
 
   def ListTests(self, current_path, path, context, arch, mode):
     (name, rest) = CarCdr(path)
     result = [ ]
-    for test in self.tests:
-      test_name = test.GetName()
+    for tests_repos in self.tests_repos:
+      test_name = tests_repos.GetName()
       if not name or name.match(test_name):
         full_path = current_path + [test_name]
-        test.AddTestsToList(result, full_path, path, context, arch, mode)
+        tests_repos.AddTestsToList(result, full_path, path, context, arch, mode)
     result.sort(cmp=lambda a, b: cmp(a.GetName(), b.GetName()))
     return result
 
   def GetTestStatus(self, context, sections, defs):
-    for test in self.tests:
-      test.GetTestStatus(context, sections, defs)
+    for tests_repos in self.tests_repos:
+      tests_repos.GetTestStatus(context, sections, defs)
 
 
 TIMEOUT_SCALEFACTOR = {
@@ -1224,13 +1235,14 @@ def ParseCondition(expr):
 
 
 class ClassifiedTest(object):
-
   def __init__(self, case, outcomes):
     self.case = case
     self.outcomes = outcomes
     self.parallel = self.case.parallel
     self.disable_core_files = self.case.disable_core_files
 
+  def __repr__(self):
+    return repr(self.case)
 
 class Configuration(object):
   """The parsed contents of a configuration file"""
@@ -1297,7 +1309,8 @@ class Rule(object):
 HEADER_PATTERN = re.compile(r'\[([^]]+)\]')
 RULE_PATTERN = re.compile(r'\s*([^: ]*)\s*:(.*)')
 DEF_PATTERN = re.compile(r'^def\s*(\w+)\s*=(.*)$')
-PREFIX_PATTERN = re.compile(r'^\s*prefix\s+([\w\_\.\-\/]+)$')
+#example 'prefix async-hooks'
+PREFIX_PATTERN = re.compile(r'^\s*prefix\s+([\w_.\-/]+)$')
 
 
 def ReadConfigurationInto(path, sections, defs):
@@ -1332,7 +1345,7 @@ def ReadConfigurationInto(path, sections, defs):
       continue
     prefix_match = PREFIX_PATTERN.match(line)
     if prefix_match:
-      prefix = SplitPath(prefix_match.group(1).strip())
+      prefix = SplitPath(prefix_match.group(1))
       continue
     raise Exception("Malformed line: '%s'." % line)
 
@@ -1362,8 +1375,7 @@ def BuildOptions():
       default=[], action="append")
   result.add_option("-t", "--timeout", help="Timeout in seconds",
       default=120, type="int")
-  result.add_option("--arch", help='The architecture to run tests for',
-      default='none')
+  result.add_option("--arch", help='The architecture to run tests for', default='none')
   result.add_option("--snapshot", help="Run the tests with snapshot turned on",
       default=False, action="store_true")
   result.add_option("--special-command", default=None)
@@ -1424,10 +1436,8 @@ def BuildOptions():
 def ProcessOptions(options):
   global VERBOSE
   VERBOSE = options.verbose
-  options.arch = options.arch.split(',')
-  options.mode = options.mode.split(',')
-  options.run = options.run.split(',')
   options.skip_tests = options.skip_tests.split(',')
+  options.run = options.run.split(',')
   if options.run == [""]:
     options.run = None
   elif len(options.run) != 2:
@@ -1480,17 +1490,24 @@ def PrintReport(cases):
 class Pattern(object):
 
   def __init__(self, pattern):
-    self.pattern = pattern
-    self.compiled = None
+    self.pattern = str(pattern)
+    self._pattern = str("^" + self.pattern.replace('*', '.*') + "$")
+    self.compiled = re.compile(self._pattern)
 
-  def match(self, str):
-    if not self.compiled:
-      pattern = "^" + self.pattern.replace('*', '.*') + "$"
-      self.compiled = re.compile(pattern)
-    return self.compiled.match(str)
+  def match(self, st):
+    return self.compiled.match(st)
 
   def __str__(self):
     return self.pattern
+
+  def __repr__(self):
+    return "'%s'" % self._pattern
+
+  def __hash__(self):
+    return hash(self._pattern)
+
+  def __eq__(self, other):
+    return hash(self) == hash(other)
 
 
 def SplitPath(s):
@@ -1556,11 +1573,10 @@ IGNORED_SUITES = [
 ]
 
 
-def ArgsToTestPaths(test_root, args, suites):
+def ArgsToTestPaths(args, suites):
   if len(args) == 0 or 'default' in args:
     def_suites = filter(lambda s: s not in IGNORED_SUITES, suites)
     args = filter(lambda a: a != 'default', args) + def_suites
-  subsystem_regex = re.compile(r'^[a-zA-Z-]*$')
   check = lambda arg: subsystem_regex.match(arg) and (arg not in suites)
   mapped_args = ["*/test*-%s-*" % arg if check(arg) else arg for arg in args]
   paths = [SplitPath(NormalizePath(a)) for a in mapped_args]
@@ -1599,8 +1615,8 @@ def Main():
   repositories = [TestRepository(join(workspace, 'test', name)) for name in suites]
   repositories += [TestRepository(a) for a in options.suite]
 
-  root = LiteralTestSuite(repositories)
-  paths = ArgsToTestPaths(test_root, args, suites)
+  root = LiteralTestSuite(repositories, test_root)
+  paths = ArgsToTestPaths(args, suites)
 
   # Check for --valgrind option. If enabled, we overwrite the special
   # command flag with a command that uses the run-valgrind.py script.
@@ -1649,42 +1665,43 @@ def Main():
   all_unused = [ ]
   unclassified_tests = [ ]
   globally_unused_rules = None
-  for path in paths:
-    for arch in options.arch:
-      for mode in options.mode:
-        vm = context.GetVm(arch, mode)
-        if not exists(vm):
-          print "Can't find shell executable: '%s'" % vm
-          continue
-        archEngineContext = Execute([vm, "-p", "process.arch"], context)
-        vmArch = archEngineContext.stdout.rstrip()
-        if archEngineContext.exit_code is not 0 or vmArch == "undefined":
-          print "Can't determine the arch of: '%s'" % vm
-          print archEngineContext.stderr.rstrip()
-          continue
-        env = {
-          'mode': mode,
-          'system': utils.GuessOS(),
-          'arch': vmArch,
-          'type': get_env_type(vm, options.type, context),
-        }
-        test_list = root.ListTests([], path, context, arch, mode)
-        unclassified_tests += test_list
-        (cases, unused_rules, _) = (
-            config.ClassifyTests(test_list, env))
-        if globally_unused_rules is None:
-          globally_unused_rules = set(unused_rules)
-        else:
-          globally_unused_rules = (
-              globally_unused_rules.intersection(unused_rules))
-        all_cases += cases
-        all_unused.append(unused_rules)
+  vm = context.GetVm(options.arch, options.mode)
+  if not exists(vm):
+    print("Can't find shell executable:'%s' arch:'%r' mode:'%r'"
+          % (vm, options.arch, options.mode))
+    return 1
+  archEngineContext = Execute([vm, "-p", "process.arch"], context)
+  vmArch = archEngineContext.stdout.rstrip()
+  if archEngineContext.exit_code is not 0 or vmArch == "undefined":
+    print("Can't determine the arch of: '%s'" % vm)
+    print(archEngineContext.stderr.rstrip())
+    return 1
 
   # We want to skip the inspector tests if node was built without the inspector.
-  has_inspector = Execute([vm,
-      "-p", "process.config.variables.v8_enable_inspector"], context)
+  has_inspector = Execute(
+    [vm, "-p", "process.config.variables.v8_enable_inspector"],
+    context
+  )
   if has_inspector.stdout.rstrip() == "0":
-      context.v8_enable_inspector = False
+    context.v8_enable_inspector = False
+
+  env = {
+    'mode': options.mode,
+    'system': utils.GuessOS(),
+    'arch': vmArch,
+    'type': get_env_type(vm, options.type, context),
+  }
+  for path in paths:
+    test_list = root.ListTests([], path, context, options.arch, options.mode)
+    unclassified_tests += test_list
+    (cases, unused_rules, _) = (config.ClassifyTests(test_list, env))
+    if globally_unused_rules is None:
+      globally_unused_rules = set(unused_rules)
+    else:
+      globally_unused_rules = (
+          globally_unused_rules.intersection(unused_rules))
+    all_cases += cases
+    all_unused.append(unused_rules)
 
   if options.cat:
     visited = set()
@@ -1710,23 +1727,23 @@ def Main():
       os.makedirs(tempdir)
     except OSError as exception:
       if exception.errno != errno.EEXIST:
-        print "Could not create the temporary directory", options.temp_dir
-        sys.exit(1)
+        print("Could not create the temporary directory " + options.temp_dir)
+        return 1
 
   if options.report:
     PrintReport(all_cases)
 
   result = None
-  def DoSkip(case):
+  def DoKeep(case):
     # A list of tests that should be skipped can be provided. This is
     # useful for tests that fail in some environments, e.g., under coverage.
     if options.skip_tests != [""]:
         if [ st for st in options.skip_tests if st in case.case.file ]:
-            return True
+            return False
     if SKIP in case.outcomes or SLOW in case.outcomes:
-      return True
-    return FLAKY in case.outcomes and options.flaky_tests == SKIP
-  cases_to_run = [ c for c in all_cases if not DoSkip(c) ]
+      return False
+    return not (FLAKY in case.outcomes and options.flaky_tests == SKIP)
+  cases_to_run = filter(DoKeep, all_cases)
   if options.run is not None:
     # Must ensure the list of tests is sorted before selecting, to avoid
     # silent errors if this file is changed to list the tests in a way that
@@ -1737,24 +1754,24 @@ def Main():
                                len(cases_to_run),
                                options.run[1]) ]
   if len(cases_to_run) == 0:
-    print "No tests to run."
+    print("No tests to run.")
     return 1
-  else:
-    try:
-      start = time.time()
-      if RunTestCases(cases_to_run, options.progress, options.j, options.flaky_tests):
-        result = 0
-      else:
-        result = 1
-      duration = time.time() - start
-    except KeyboardInterrupt:
-      print "Interrupted"
-      return 1
+
+  try:
+    start = time.time()
+    suite_res = RunTestCases(cases_to_run,
+                             options.progress,
+                             options.j,
+                             options.flaky_tests)
+    duration = time.time() - start
+  except KeyboardInterrupt:
+    print("Interrupted")
+    return 1
 
   if options.time:
     # Write the times to stderr to make it easy to separate from the
     # test output.
-    print
+    print()
     sys.stderr.write("--- Total time: %s ---\n" % FormatTime(duration))
     timed_tests = [ t.case for t in cases_to_run if not t.case.duration is None ]
     timed_tests.sort(lambda a, b: a.CompareTime(b))
@@ -1764,7 +1781,7 @@ def Main():
       sys.stderr.write("%4i (%s) %s\n" % (index, t, entry.GetLabel()))
       index += 1
 
-  return result
+  return 0 if suite_res else 1
 
 
 if __name__ == '__main__':
