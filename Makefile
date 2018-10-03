@@ -70,13 +70,14 @@ available-node = \
 		exit 1; \
 	fi;
 
-.PHONY: all
+.PHONY: all ci-all
 # BUILDTYPE=Debug builds both release and debug builds. If you want to compile
 # just the debug build, run `make -C out BUILDTYPE=Debug` instead.
 ifeq ($(BUILDTYPE),Release)
-all: $(NODE_EXE) ## Default target, builds node in out/Release/node.
+all ci-all: $(NODE_EXE) ## Default target, builds node in out/Release/node.
 else
 all: $(NODE_EXE) $(NODE_G_EXE)
+ci-all: $(NODE_G_EXE)
 endif
 
 .PHONY: help
@@ -471,7 +472,9 @@ test-ci: | clear-stalled build-addons build-addons-napi doc-only
 # Related CI jobs: most CI tests, excluding node-test-commit-arm-fanned
 build-ci:
 	$(PYTHON) ./configure --verbose $(CONFIG_FLAGS)
-	$(MAKE)
+	# Most lines look like `[ccache] g++ -o <$PWD/file.o> <file.cc> '-D...`
+	# so we cut them up till the first `'`, and trim out $PWD
+	$(MAKE) ci-all 2>&1 | tee make.log | sed -e "s/'.*//" -e "s|$(PWD)/||"
 
 .PHONY: run-ci
 # Run by CI tests, exceptions:
@@ -481,7 +484,7 @@ build-ci:
 # - node-test-commit-linux-coverage: where the build and the tests need
 #   to be instrumented, see `coverage`.
 run-ci: build-ci
-	$(MAKE) test-ci
+	$(MAKE) test-ci -j1
 
 test-release: test-build
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) --mode=$(BUILDTYPE_LOWER)
@@ -644,7 +647,7 @@ gen-api = tools/doc/generate.js --node-version=$(FULLVERSION) \
 		--apilinks=out/apilinks.json $< --output-directory=out/doc/api
 gen-apilink = tools/doc/apilinks.js $(wildcard lib/*.js) > $@
 
-out/apilinks.json: $(wildcard lib/*.js) tools/doc/apilinks.js
+out/apilinks.json: tools/doc/apilinks.js $(wildcard lib/*.js)
 	$(call available-node, $(gen-apilink))
 
 out/doc/api/%.json out/doc/api/%.html: doc/api/%.md tools/doc/generate.js \
