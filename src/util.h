@@ -38,6 +38,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace node {
 
@@ -239,7 +240,7 @@ inline v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
 
 // Used to be a macro, hence the uppercase name.
 template <int N>
-inline v8::Local<v8::String> FIXED_ONE_BYTE_STRING(
+constexpr v8::Local<v8::String> FIXED_ONE_BYTE_STRING(
     v8::Isolate* isolate,
     const char(&data)[N]) {
   return OneByteString(isolate, data, N - 1);
@@ -338,7 +339,7 @@ class MaybeStackBuffer {
     buf_[length] = T();
   }
 
-  // Make derefencing this object return nullptr.
+  // Make dereferencing this object return nullptr.
   // This method can be called multiple times throughout the lifetime of the
   // buffer, but once this has been called AllocateSufficientStorage() cannot
   // be used.
@@ -358,7 +359,7 @@ class MaybeStackBuffer {
     return buf_ == nullptr;
   }
 
-  // Release ownership of the malloc'd buffer.
+  // Release ownership of the malloc'ed buffer.
   // Note: This does not free the buffer.
   void Release() {
     CHECK(IsAllocated());
@@ -380,6 +381,10 @@ class MaybeStackBuffer {
     if (IsAllocated())
       free(buf_);
   }
+  MaybeStackBuffer(const MaybeStackBuffer&) = delete;
+  MaybeStackBuffer(const MaybeStackBuffer&&) = delete;
+  MaybeStackBuffer& operator=(const MaybeStackBuffer&) = delete;
+  MaybeStackBuffer& operator=(const MaybeStackBuffer&&) = delete;
 
  private:
   size_t length_;
@@ -423,36 +428,73 @@ template <typename T> inline void USE(T&&) {}
 struct OnScopeLeave {
   std::function<void()> fn_;
 
-  explicit OnScopeLeave(std::function<void()> fn) : fn_(fn) {}
+  explicit OnScopeLeave(std::function<void()> fn) : fn_(std::move(fn)) {}
   ~OnScopeLeave() { fn_(); }
+
+  OnScopeLeave(const OnScopeLeave&) = delete;
+  OnScopeLeave(const OnScopeLeave&&) = delete;
+  OnScopeLeave& operator=(const OnScopeLeave&) = delete;
+  OnScopeLeave& operator=(const OnScopeLeave&&) = delete;
 };
+
+
+template <class T>
+struct Mallocator {
+  typedef T value_type;
+  Mallocator() = default;
+  template <class U> constexpr Mallocator(const Mallocator<U>&) noexcept {}
+  [[nodiscard]] T* allocate(std::size_t n) {
+    if(n > std::size_t(-1) / sizeof(T)) throw std::bad_alloc();
+    if(auto p = static_cast<T*>(Malloc<T>(n*sizeof(T)))) return p;
+    throw std::bad_alloc();
+  }
+  void deallocate(T* p, std::size_t) noexcept { free(p); }
+};
+
+template <class T>
+struct D { // deleter
+  D() = default;
+  D(const D&) = default;
+  D(D&) = default;
+  D(D&&) = default;
+  void operator()(T* p) const {
+    free(p);
+  };
+};
+
+  template <class T>
+class MallocedArray: std::vector<T, Mallocator<T>> {
+  
+};
+template <class T>
+std::unique_ptr<T, D<T>>&& make_malloced_unique(size_t n) noexcept {
+  return new std::unique_ptr<T>(Malloc<T>(n*sizeof(T)));
+}
+
 
 // Simple RAII wrapper for contiguous data that uses malloc()/free().
 template <typename T>
 struct MallocedBuffer {
-  T* data;
+  std::unique_ptr<T> data;
   size_t size;
 
   T* release() {
-    T* ret = data;
-    data = nullptr;
-    return ret;
+    return data.release();
   }
 
-  inline bool is_empty() const { return data == nullptr; }
+  constexpr bool is_empty() const { return data == nullptr; }
+  constexpr size_t getSizeInBytes() const { return MultiplyWithOverflowCheck(sizeof(T), size); }
 
-  MallocedBuffer() : data(nullptr) {}
-  explicit MallocedBuffer(size_t size) : data(Malloc<T>(size)), size(size) {}
-  MallocedBuffer(char* data, size_t size) : data(data), size(size) {}
-  MallocedBuffer(MallocedBuffer&& other) : data(other.data), size(other.size) {
-    other.data = nullptr;
-  }
-  MallocedBuffer& operator=(MallocedBuffer&& other) {
-    this->~MallocedBuffer();
-    return *new(this) MallocedBuffer(std::move(other));
+  explicit MallocedBuffer(size_t size) noexcept : data(Malloc<T>(size)), size(size) {}
+  MallocedBuffer(MallocedBuffer&& other) noexcept : data(std::move(other.data)), size(other.size) {}
+  MallocedBuffer& operator=(MallocedBuffer&& other) noexcept {
+    data(std::move(other.data));
+    size = other.size;
+    other.size = 0;
+    return this;
   }
   ~MallocedBuffer() {
-    free(data);
+    free(data.release());
   }
   MallocedBuffer(const MallocedBuffer&) = delete;
   MallocedBuffer& operator=(const MallocedBuffer&) = delete;

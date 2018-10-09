@@ -323,7 +323,7 @@ MaybeLocal<Object> Copy(Isolate* isolate, const char* data, size_t length) {
 }
 
 
-MaybeLocal<Object> Copy(Environment* env, const char* data, size_t length) {
+MaybeLocal<Object> Copy(Environment* env, const void* const data, size_t length) {
   EscapableHandleScope scope(env->isolate());
 
   // V8 currently only allows a maximum Typed Array index of max Smi.
@@ -359,7 +359,7 @@ MaybeLocal<Object> Copy(Environment* env, const char* data, size_t length) {
 
 
 MaybeLocal<Object> New(Isolate* isolate,
-                       char* data,
+                       void* data,
                        size_t length,
                        FreeCallback callback,
                        void* hint) {

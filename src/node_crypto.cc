@@ -4176,7 +4176,12 @@ void DiffieHellman::ComputeSecret(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
   DiffieHellman* diffieHellman;
-  ASSIGN_OR_RETURN_UNWRAP(&diffieHellman, args.Holder());
+  do
+  {
+    const auto x = BaseObject::FromJSObject(args.Holder());
+    diffieHellman = dynamic_cast<DiffieHellman*>(x);
+    if (diffieHellman == nullptr) return;
+  } while (0);
 
   if (!diffieHellman->initialised_) {
     return ThrowCryptoError(env, ERR_get_error(), "Not initialized");
@@ -4188,33 +4193,28 @@ void DiffieHellman::ComputeSecret(const FunctionCallbackInfo<Value>& args) {
     return THROW_ERR_MISSING_ARGS(
         env, "Other party's public key argument is mandatory");
   }
-
+  
   THROW_AND_RETURN_IF_NOT_BUFFER(env, args[0], "Other party's public key");
-  BignumPointer key(BN_bin2bn(
+  BignumPointer key{BN_bin2bn(
       reinterpret_cast<unsigned char*>(Buffer::Data(args[0])),
       Buffer::Length(args[0]),
-      0));
+      nullptr)};
 
-  MallocedBuffer<char> data(DH_size(diffieHellman->dh_.get()));
+  DH* dh = diffieHellman->dh_.get();
+  const size_t key_buffer_size = DH_size(dh);
+  auto key_buffer = make_malloced_unique<byte>(key_buffer_size);
 
-  int size = DH_compute_key(reinterpret_cast<unsigned char*>(data.data),
-                            key.get(),
-                            diffieHellman->dh_.get());
-
-  if (size == -1) {
-    int checkResult;
-    int checked;
-
-    checked = DH_check_pub_key(diffieHellman->dh_.get(),
-                               key.get(),
-                               &checkResult);
+  const int ret = DH_compute_key(key_buffer.get(), key.get(), dh);
+  if (ret == -1) {
+    int check_result;
+    const int checked = DH_check_pub_key(dh, key.get(), &check_result);
 
     if (!checked) {
       return ThrowCryptoError(env, ERR_get_error(), "Invalid Key");
-    } else if (checkResult) {
-      if (checkResult & DH_CHECK_PUBKEY_TOO_SMALL) {
+    } else if (check_result) {
+      if (check_result & DH_CHECK_PUBKEY_TOO_SMALL) {
         return env->ThrowError("Supplied key is too small");
-      } else if (checkResult & DH_CHECK_PUBKEY_TOO_LARGE) {
+      } else if (check_result & DH_CHECK_PUBKEY_TOO_LARGE) {
         return env->ThrowError("Supplied key is too large");
       } else {
         return env->ThrowError("Invalid key");
@@ -4225,22 +4225,26 @@ void DiffieHellman::ComputeSecret(const FunctionCallbackInfo<Value>& args) {
 
     UNREACHABLE();
   }
-
-  CHECK_GE(size, 0);
+  CHECK_GE(ret, 0);
+  const size_t retSize{ret};
 
   // DH_size returns number of bytes in a prime number
   // DH_compute_key returns number of bytes in a remainder of exponent, which
   // may have less bytes than a prime number. Therefore add 0-padding to the
   // allocated buffer.
-  if (static_cast<size_t>(size) != data.size) {
-    CHECK_GT(data.size, static_cast<size_t>(size));
-    memmove(data.data + data.size - size, data.data, size);
-    memset(data.data, 0, data.size - size);
+  if (key_buffer_size != retSize) {
+    CHECK_GT(key_buffer_size, retSize);
+    const ptrdiff_t offset = key_buffer_size - retSize;
+    memmove(key_buffer.get() + offset, key_buffer.get(), retSize);
+    memset(key_buffer.get(), 0, offset);
   }
 
-  args.GetReturnValue().Set(
-      Buffer::New(env->isolate(), data.release(), data.size).ToLocalChecked());
+  args.GetReturnValue().Set(Buffer::New(
+                              env->isolate(),
+                              reinterpret_cast<char*>(key_buffer.release()),
+                              key_buffer_size).ToLocalChecked());
 }
+
 
 void DiffieHellman::SetKey(const v8::FunctionCallbackInfo<Value>& args,
                            int (*set_field)(DH*, BIGNUM*), const char* what) {

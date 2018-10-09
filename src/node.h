@@ -60,7 +60,16 @@
 # define SIGKILL         9
 #endif
 
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include "v8.h"  // NOLINT(build/include_order)
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
+#pragma warning(pop)
 #include "v8-platform.h"  // NOLINT(build/include_order)
 #include "node_version.h"  // NODE_MODULE_VERSION
 
