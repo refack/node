@@ -29,7 +29,7 @@
     'openssl_fips%': '',
 
     # Default to -O0 for debug builds.
-    'v8_optimized_debug%': 0,
+    'v8_optimized_debug%': 1,
 
     # Reset this number to 0 on major V8 upgrades.
     # Increment by one for each non-official patch applied to deps/v8.
