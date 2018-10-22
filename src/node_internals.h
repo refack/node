@@ -41,6 +41,8 @@
 #include <string>
 #include <vector>
 
+#include <gsl/gsl_util>
+
 // Custom constants used by both node_constants.cc and node_zlib.cc
 #define Z_MIN_WINDOWBITS 8
 #define Z_MAX_WINDOWBITS 15
@@ -323,7 +325,7 @@ v8::Local<v8::Value> FillStatsArray(AliasedBuffer<NativeT, V8T>* fields_ptr,
 #else
   fields[offset + 6] = 0;
 #endif
-  fields[offset + 7] = s->st_ino;
+  fields[offset + 7] = gsl::narrow<NativeT>(s->st_ino);
   fields[offset + 8] = s->st_size;
 #if defined(__POSIX__)
   fields[offset + 9] = s->st_blocks;
