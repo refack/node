@@ -244,9 +244,29 @@
       ],
 
       # - "C4244: conversion from 'type1' to 'type2', possible loss of data"
-      #   Ususaly safe. Disable for `dep`, enable for `src`
+      #   Disabled for `/deps/`, so re-enable for `/src/`.
       'msvs_disabled_warnings!': [4244],
-
+      'configurations': {
+        'Release': {
+          'msvs_settings': {
+            'conditions': [
+              ['node_with_ltcg=="true"', {
+                'VCLinkerTool': {
+                  'OptimizeReferences': 2, # /OPT:REF
+                  'EnableCOMDATFolding': 2, # /OPT:ICF
+                  'AdditionalOptions': [
+                    '/LTCG:INCREMENTAL', # incremental link-time code generation
+                  ]
+                }
+              }, {
+                'VCLinkerTool': {
+                  'LinkIncremental': 2 # enable incremental linking
+                },
+              }],
+            ]
+          },
+        },
+      },
       'conditions': [
         [ 'node_intermediate_lib_type=="static_library" and node_shared=="true" and OS=="aix"', {
           # For AIX, shared lib is linked by static lib and .exp. In the

@@ -151,9 +151,6 @@
             'OmitFramePointers': 'false',
             'BasicRuntimeChecks': 3, # /RTC1
             'MultiProcessorCompilation': 'true',
-            'AdditionalOptions': [
-              '/bigobj', # prevent error C1128 in VS2015
-            ],
           },
           'VCLinkerTool': {
             'LinkIncremental': 2, # enable incremental linking
@@ -229,12 +226,7 @@
                 ]
               },
               'VCLinkerTool': {
-                'OptimizeReferences': 2, # /OPT:REF
-                'EnableCOMDATFolding': 2, # /OPT:ICF
                 'LinkIncremental': 1, # disable incremental linking
-                'AdditionalOptions': [
-                  '/LTCG:INCREMENTAL', # incremental link-time code generation
-                ]
               }
             }
           }, {
@@ -258,8 +250,6 @@
             'EnableIntrinsicFunctions': 'true',
             'RuntimeTypeInfo': 'false',
             'MultiProcessorCompilation': 'true',
-            'AdditionalOptions': [
-            ],
           }
         }
       }
