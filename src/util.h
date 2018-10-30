@@ -192,7 +192,7 @@ constexpr uintptr_t OffsetOf(Inner Outer::*field) {
 // The helper is for doing safe downcasts from base types to derived types.
 template <typename Inner, typename Outer>
 class ContainerOfHelper {
-public:
+ public:
   ContainerOfHelper(Inner Outer::* field, Inner* pointer)
     : pointer_(
                reinterpret_cast<Outer*>(
@@ -203,7 +203,7 @@ public:
   constexpr operator TypeName*() const {
     return static_cast<TypeName*>(pointer_);
   }
-private:
+ private:
   Outer* const pointer_;
 };
 
