@@ -264,7 +264,7 @@ v8::Local<v8::String> OneByteString(v8::Isolate* isolate,
 
 // Used to be a macro, hence the uppercase name.
 template <int N>
-#if __cpp_constexpr < 201304
+#if __cpp_constexpr < 201603
 inline v8::Local<v8::String> FIXED_ONE_BYTE_STRING(
 #else
 constexpr v8::Local<v8::String> FIXED_ONE_BYTE_STRING(
