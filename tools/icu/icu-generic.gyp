@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
 {
   'variables': {
     'icu_src_derb': [
@@ -14,9 +15,92 @@
   'includes': [ '../../icu_config.gypi' ],
   'targets': [
     {
+      # a target for additional uconfig defines, target only
+      'target_name': 'icu_uconfig_target',
+      'type': 'none',
+      'toolsets': [ 'target' ],
+      'direct_dependent_settings': {
+        'defines': []
+      },
+    },
+    {
+      # a target to hold uconfig defines.
+      # for now these are hard coded, but could be defined.
+      'target_name': 'icu_uconfig',
+      'type': 'none',
+      'toolsets': [ 'host', 'target' ],
+      'direct_dependent_settings': {
+        'defines': [
+          'UCONFIG_NO_SERVICE=1',
+          'U_ENABLE_DYLOAD=0',
+          'U_STATIC_IMPLEMENTATION=1',
+          'U_HAVE_STD_STRING=1',
+          # TODO(srl295): reenable following pending
+          # https://code.google.com/p/v8/issues/detail?id=3345
+          # (saves some space)
+          'UCONFIG_NO_BREAK_ITERATION=0',
+        ],
+      }
+    },
+    {
+      # a target to hold common settings.
+      # make any target that is ICU implementation depend on this.
+      'target_name': 'icu_implementation',
+      'toolsets': [ 'host', 'target' ],
+      'type': 'none',
+      'direct_dependent_settings': {
+        'conditions': [
+          [ 'os_posix == 1 and OS != "mac" and OS != "ios"', {
+            'cflags': [ '-Wno-deprecated-declarations', '-Wno-strict-aliasing' ],
+            'cflags_cc': [ '-frtti' ],
+            'cflags_cc!': [ '-fno-rtti' ],
+          }],
+          [ 'OS == "mac" or OS == "ios"', {
+            'xcode_settings': {'GCC_ENABLE_CPP_RTTI': 'YES' },
+          }],
+          [ 'OS == "win"', {
+            'msvs_settings': {
+              'VCCLCompilerTool': {'RuntimeTypeInfo': 'true'},
+            }
+          }],
+        ],
+        'msvs_settings': {
+          'VCCLCompilerTool': {
+            'RuntimeTypeInfo': 'true',
+            'ExceptionHandling': '1',
+            'AdditionalOptions': [ '/source-charset:utf-8' ],
+          },
+        },
+        'configurations': {
+          # TODO: why does this need to be redefined for Release and Debug?
+          # Maybe this should be pushed into common.gypi with an "if v8 i18n"?
+          'Release': {
+            'msvs_settings': {
+              'VCCLCompilerTool': {
+                'RuntimeTypeInfo': 'true',
+                'ExceptionHandling': '1',
+              },
+            },
+          },
+          'Debug': {
+            'msvs_settings': {
+              'VCCLCompilerTool': {
+                'RuntimeTypeInfo': 'true',
+                'ExceptionHandling': '1',
+              },
+            },
+          },
+        },
+        'defines': [
+          'U_ATTRIBUTE_DEPRECATED=',
+          '_CRT_SECURE_NO_DEPRECATE=',
+          'U_STATIC_IMPLEMENTATION=1',
+        ],
+      },
+    },
+    {
       'target_name': 'icui18n',
       'toolsets': [ 'target', 'host' ],
-      'includes': [ 'common.gypi' ],
       'conditions' : [
         ['_toolset=="target"', {
           'type': '<(library)',
@@ -103,13 +187,13 @@
           'defines': [
             'U_I18N_IMPLEMENTATION=1',
           ],
-          'dependencies': [ 'icuucx', ],
+          'dependencies': [ 'icuucx', 'icu_implementation', 'icu_uconfig', 'icu_uconfig_target' ],
           'direct_dependent_settings': {
             'include_dirs': [
               '<(icu_path)/source/i18n',
             ],
           },
-          'export_dependent_settings': [ 'icuucx', ],
+          'export_dependent_settings': [ 'icuucx', 'icu_uconfig_target' ],
         }],
         ['_toolset=="host"', {
           'type': 'none',
@@ -117,13 +201,12 @@
           'export_dependent_settings': [ 'icutools' ],
         }],
       ],
-    }, # icui18n
+    },
     # This exports actual ICU data
     {
       'target_name': 'icudata',
       'type': '<(library)',
       'toolsets': [ 'target' ],
-      'includes': [ 'common.gypi' ],
       'conditions': [
         [ 'OS == "win"', {
           'conditions': [
@@ -190,7 +273,7 @@
             [ 'icu_small == "false"', {
               # full data - just build the full data file, then we are done.
               'sources': [ '<(SHARED_INTERMEDIATE_DIR)/icudt<(icu_ver_major)_dat.c' ],
-              'dependencies': [ 'genccode#host', 'icupkg#host', ],
+              'dependencies': [ 'genccode#host', 'icupkg#host', 'icu_implementation#host', 'icu_uconfig' ],
               'include_dirs': [
                 '<(icu_path)/source/common',
               ],
@@ -230,7 +313,8 @@
             }, { # icu_small == true ( and OS != win )
               # link against stub data (as primary data)
               # then, use icupkg and genccode to rebuild small data
-              'dependencies': [ 'icustubdata', 'genccode#host', 'icupkg#host', 'genrb#host', 'iculslocs#host', ],
+              'dependencies': [ 'icustubdata', 'genccode#host', 'icupkg#host', 'genrb#host', 'iculslocs#host',
+                               'icu_implementation', 'icu_uconfig' ],
               'export_dependent_settings': [ 'icustubdata' ],
               'actions': [
                 {
@@ -282,14 +366,14 @@
       'target_name': 'icustubdata',
       'type': '<(library)',
       'toolsets': [ 'target' ],
-      'includes': [ 'common.gypi' ],
+      'dependencies': [ 'icu_implementation' ],
       'sources': [
         '<@(icu_src_stubdata)'
       ],
       'include_dirs': [
         '<(icu_path)/source/common',
       ],
-    }, # icudata
+    },
     # this target is for v8 consumption.
     # it is icuuc + stubdata
     # it is only built for target
@@ -297,7 +381,6 @@
       'target_name': 'icuuc',
       'type': 'none',
       'toolsets': [ 'target', 'host' ],
-      'includes': [ 'common.gypi' ],
       'conditions' : [
         ['_toolset=="host"', {
           'dependencies': [ 'icutools' ],
@@ -308,13 +391,13 @@
           'export_dependent_settings': [ 'icuucx', 'icudata' ],
         }],
       ],
-    }, # icuuc
+    },
     # This is the 'real' icuuc.
     {
       'target_name': 'icuucx',
       'type': '<(library)',
+      'dependencies': [ 'icu_implementation', 'icu_uconfig', 'icu_uconfig_target' ],
       'toolsets': [ 'target' ],
-      'includes': [ 'common.gypi' ],
       'sources': [
         '<@(icu_src_common)',
       ],
@@ -362,6 +445,7 @@
         'U_COMMON_IMPLEMENTATION=1',
       ],
       'cflags_c': ['-std=c99'],
+      'export_dependent_settings': [ 'icu_uconfig', 'icu_uconfig_target' ],
       'direct_dependent_settings': {
         'include_dirs': [
           '<(icu_path)/source/common',
@@ -374,15 +458,13 @@
           }],
         ],
       },
-    }, # 'icuucx'
+    },
     # tools library. This builds all of ICU together.
     {
       'target_name': 'icutools',
       'type': '<(library)',
       'toolsets': [ 'host' ],
-      'includes': [ 'common.gypi' ],
-      # warning C4477: 'sprintf' : format string '%lu' requires an argument of type 'unsigned long'
-      'msvs_disabled_warnings': [4477],
+      'dependencies': [ 'icu_implementation', 'icu_uconfig' ],
       'sources': [
         '<@(icu_src_tools)',
         '<@(icu_src_common)',
@@ -427,15 +509,15 @@
           }],
         ],
       },
-    }, # icutools
+      'export_dependent_settings': [ 'icu_uconfig' ],
+    },
     # This tool is needed to rebuild .res files from .txt,
     # or to build index (res_index.txt) files for small-icu
     {
       'target_name': 'genrb',
       'type': 'executable',
       'toolsets': [ 'host' ],
-      'includes': [ 'common.gypi' ],
-      'dependencies': [ 'icutools', ],
+      'dependencies': [ 'icutools' ],
       'sources': [
         '<@(icu_src_genrb)'
       ],
@@ -445,44 +527,40 @@
         '<@(icu_src_derb)',
         'no-op.cc',
       ],
-    }, # genrb
+    },
     # This tool is used to rebuild res_index.res manifests
     {
       'target_name': 'iculslocs',
       'toolsets': [ 'host' ],
       'type': 'executable',
-      'includes': [ 'common.gypi' ],
-      'dependencies': [ 'icutools', ],
+      'dependencies': [ 'icutools' ],
       'sources': [
         'iculslocs.cc',
         'no-op.cc',
       ],
-    }, # iculslocs
+    },
     # This tool is used to package, unpackage, repackage .dat files
     # and convert endianesses
     {
       'target_name': 'icupkg',
       'toolsets': [ 'host' ],
       'type': 'executable',
-      'includes': [ 'common.gypi' ],
-      'dependencies': [ 'icutools', ],
+      'dependencies': [ 'icutools' ],
       'sources': [
         '<@(icu_src_icupkg)',
         'no-op.cc',
       ],
-    }, # icupkg
+    },
     # this is used to convert .dat directly into .obj
     {
       'target_name': 'genccode',
-      'type': 'executable',
       'toolsets': [ 'host' ],
-      'includes': [ 'common.gypi' ],
-      'dependencies': [ 'icutools', ],
+      'type': 'executable',
+      'dependencies': [ 'icutools' ],
       'sources': [
         '<@(icu_src_genccode)',
         'no-op.cc',
       ],
-    }, # genccode
+    },
   ],
 }
-
