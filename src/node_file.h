@@ -192,25 +192,41 @@ constexpr uint64_t ToNative(uv_timespec_t ts) {
 #undef constexpr  // end N3652 bug workaround
 
 template <typename NativeT, typename V8T>
-constexpr void FillStatsArray(AliasedBuffer<NativeT, V8T>* fields,
-                              const uv_stat_t* s, const size_t offset = 0) {
-  fields->SetValue(offset + 0, gsl::narrow_cast<NativeT>(s->st_dev));
-  fields->SetValue(offset + 1, gsl::narrow_cast<NativeT>(s->st_mode));
-  fields->SetValue(offset + 2, gsl::narrow_cast<NativeT>(s->st_nlink));
-  fields->SetValue(offset + 3, gsl::narrow_cast<NativeT>(s->st_uid));
-  fields->SetValue(offset + 4, gsl::narrow_cast<NativeT>(s->st_gid));
-  fields->SetValue(offset + 5, gsl::narrow_cast<NativeT>(s->st_rdev));
+void FillStatsArray(AliasedBuffer<NativeT, V8T>* fields,
+                    const uv_stat_t* s, const size_t offset = 0) {
+  NativeT st_dev = gsl::narrow_cast<NativeT>(s->st_dev);
+  CHECK_EQ(s->st_dev, st_dev);
+  fields->SetValue(offset + 0, st_dev);
+  NativeT st_mode = gsl::narrow_cast<NativeT>(s->st_mode);
+  CHECK_EQ(s->st_mode, st_mode);
+  fields->SetValue(offset + 1, st_mode);
+  NativeT st_nlink = gsl::narrow_cast<NativeT>(s->st_nlink);
+  CHECK_EQ(s->st_nlink, st_nlink);
+  fields->SetValue(offset + 2, st_nlink);
+  NativeT st_uid = gsl::narrow_cast<NativeT>(s->st_uid);
+  CHECK_EQ(s->st_uid, st_uid);
+  fields->SetValue(offset + 3, st_uid);
+  NativeT st_gid = gsl::narrow_cast<NativeT>(s->st_gid);
+  CHECK_EQ(s->st_gid, st_gid);
+  fields->SetValue(offset + 4, st_gid);
+  NativeT st_rdev = gsl::narrow_cast<NativeT>(s->st_rdev);
+  CHECK_EQ(s->st_rdev, st_rdev);
+  fields->SetValue(offset + 5, st_rdev);
+  NativeT st_ino = gsl::narrow_cast<NativeT>(s->st_ino);
+  CHECK_EQ(s->st_ino, st_ino);
+  fields->SetValue(offset + 7, st_ino);
+  NativeT st_size = gsl::narrow_cast<NativeT>(s->st_size);
+  CHECK_EQ(s->st_size, st_size);
+  fields->SetValue(offset + 8, st_size);
 #if defined(__POSIX__)
-  fields->SetValue(offset + 6, gsl::narrow_cast<NativeT>(s->st_blksize));
-  // Using the noop `narrow_cast` since this overflows.
-  fields->SetValue(offset + 7, gsl::narrow_cast<NativeT>(s->st_ino));
-  fields->SetValue(offset + 8, gsl::narrow_cast<NativeT>(s->st_size));
-  fields->SetValue(offset + 9, gsl::narrow_cast<NativeT>(s->st_blocks));
+  NativeT st_blksize = gsl::narrow_cast<NativeT>(s->st_blksize);
+  CHECK_EQ(s->st_blksize, st_blksize);
+  fields->SetValue(offset + 6, st_blksize);
+  NativeT st_blocks = gsl::narrow_cast<NativeT>(s->st_blocks);
+  CHECK_EQ(s->st_blocks, st_blocks);
+  fields->SetValue(offset + 9, st_blocks);
 #else
   fields->SetValue(offset + 6, 0);
-  // Using the noop `narrow_cast` since this overflows.
-  fields->SetValue(offset + 7, gsl::narrow_cast<NativeT>(s->st_ino));
-  fields->SetValue(offset + 8, gsl::narrow_cast<NativeT>(s->st_size));
   fields->SetValue(offset + 9, 0);
 #endif
 
