@@ -51,6 +51,16 @@ void EnvironmentOptions::CheckOptions(std::vector<std::string>* errors) {
 
 namespace options_parser {
 
+#if HAVE_INSPECTOR
+DebugOptionsParser DebugOptionsParser::instance;
+#endif  // HAVE_INSPECTOR
+
+EnvironmentOptionsParser EnvironmentOptionsParser::instance;
+
+PerIsolateOptionsParser PerIsolateOptionsParser::instance;
+
+PerProcessOptionsParser PerProcessOptionsParser::instance;
+
 // XXX: If you add an option here, please also add it to doc/node.1 and
 // doc/api/cli.md
 // TODO(addaleax): Make that unnecessary.
@@ -86,10 +96,6 @@ DebugOptionsParser::DebugOptionsParser() {
   Implies("--debug-brk", "--debug");
   AddAlias("--debug-brk=", { "--inspect-port", "--debug-brk" });
 }
-
-#if HAVE_INSPECTOR
-DebugOptionsParser DebugOptionsParser::instance;
-#endif  // HAVE_INSPECTOR
 
 EnvironmentOptionsParser::EnvironmentOptionsParser() {
   AddOption("--experimental-modules",
@@ -218,8 +224,6 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
 #endif  // HAVE_INSPECTOR
 }
 
-EnvironmentOptionsParser EnvironmentOptionsParser::instance;
-
 PerIsolateOptionsParser::PerIsolateOptionsParser() {
   AddOption("--track-heap-objects",
             "track heap object allocations for heap snapshots",
@@ -240,8 +244,6 @@ PerIsolateOptionsParser::PerIsolateOptionsParser() {
   Insert(&EnvironmentOptionsParser::instance,
          &PerIsolateOptions::get_per_env_options);
 }
-
-PerIsolateOptionsParser PerIsolateOptionsParser::instance;
 
 PerProcessOptionsParser::PerProcessOptionsParser() {
   AddOption("--title",
@@ -344,8 +346,6 @@ PerProcessOptionsParser::PerProcessOptionsParser() {
   Insert(&PerIsolateOptionsParser::instance,
          &PerProcessOptions::get_per_isolate_options);
 }
-
-PerProcessOptionsParser PerProcessOptionsParser::instance;
 
 inline std::string RemoveBrackets(const std::string& host) {
   if (!host.empty() && host.front() == '[' && host.back() == ']')
