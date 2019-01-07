@@ -187,6 +187,7 @@
             ],
           },
           'VCLinkerTool': {
+            'Profile': 'true',
             'LinkIncremental': 2, # enable incremental linking
           },
         },
@@ -254,18 +255,9 @@
               'VCCLCompilerTool': {
                 'WholeProgramOptimization': 'true' # /GL, whole program optimization, needed for LTCG
               },
-              'VCLibrarianTool': {
-                'AdditionalOptions': [
-                  '/LTCG:INCREMENTAL', # link time code generation
-                ]
-              },
               'VCLinkerTool': {
                 'OptimizeReferences': 2, # /OPT:REF
                 'EnableCOMDATFolding': 2, # /OPT:ICF
-                'LinkIncremental': 1, # disable incremental linking
-                'AdditionalOptions': [
-                  '/LTCG:INCREMENTAL', # incremental link-time code generation
-                ]
               }
             }
           }, {
@@ -289,8 +281,6 @@
             'EnableIntrinsicFunctions': 'true',
             'RuntimeTypeInfo': 'false',
             'MultiProcessorCompilation': 'true',
-            'AdditionalOptions': [
-            ],
           }
         }
       }
@@ -321,19 +311,9 @@
         'conditions': [
           ['target_arch=="ia32"', {
             'TargetMachine' : 1, # /MACHINE:X86
-            'target_conditions': [
-              ['_type=="executable"', {
-                'AdditionalOptions': [ '/SubSystem:Console,"5.01"' ],
-              }],
-            ],
           }],
           ['target_arch=="x64"', {
             'TargetMachine' : 17, # /MACHINE:AMD64
-            'target_conditions': [
-              ['_type=="executable"', {
-                'AdditionalOptions': [ '/SubSystem:Console,"5.02"' ],
-              }],
-            ],
           }],
         ],
         'GenerateDebugInformation': 'true',

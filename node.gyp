@@ -272,6 +272,7 @@
           },
           'msvs_settings': {
             'VCLinkerTool': {
+              'Profile': 'true',
               'AdditionalOptions': [
                 '/WHOLEARCHIVE:<(node_core_target_name)<(STATIC_LIB_SUFFIX)',
               ],
