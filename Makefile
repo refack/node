@@ -197,7 +197,9 @@ coverage-clean:
 # For C++ coverage reporting, this needs to be run in conjunction with configure
 #  --coverage.  html coverage reports will be created under coverage/
 # Related CI job: node-test-commit-linux-coverage
-coverage: coverage-test ## Run the tests and generate a coverage report.
+coverage:  # Run the tests and generate a coverage report.
+	$(MAKE) coverage-build
+	$(MAKE) coverage-test
 
 .PHONY: coverage-build
 coverage-build: all
@@ -218,7 +220,9 @@ coverage-build: all
 	$(MAKE)
 
 .PHONY: coverage-test
-coverage-test: coverage-build
+# Implicitly dependant on the node binary built with '--coverage'.
+coverage-test:
+	$(NODE) -p "process.exit(!process.config.variables.coverage)"
 	$(RM) -r out/$(BUILDTYPE)/.coverage
 	$(RM) -r .cov_tmp
 	$(RM) out/$(BUILDTYPE)/obj.target/node/gen/*.gcda
