@@ -7,15 +7,18 @@ const { performance } = require('perf_hooks');
 if (!common.isMainThread)
   common.skip('bootstrapping workers works differently');
 
+const ONE_SEC = 1000
+const FIFTEEN_SEC = 15 * ONE_SEC;
+
 assert(performance);
 assert(performance.nodeTiming);
 assert.strictEqual(typeof performance.timeOrigin, 'number');
 // Use a fairly large epsilon value, since we can only guarantee that the node
 // process started up in 15 seconds.
-assert(Math.abs(performance.timeOrigin - Date.now()) < 15000);
+assert(Math.abs(performance.timeOrigin - Date.now()) < FIFTEEN_SEC);
 
 const inited = performance.now();
-assert(inited < 15000);
+assert(inited < FIFTEEN_SEC);
 
 {
   // Should work without throwing any errors
@@ -77,8 +80,9 @@ function checkDelay(cb) {
 }
 
 function getTime() {
-  const ts = process.hrtime();
-  return Math.ceil((ts[0] * 1e3) + (ts[1] / 1e6));
+  const [secs, nanos] = process.hrtime();
+  const milis = (secs * 1e3) + (nanos / 1e6)
+  return Math.ceil(milis);
 }
 
 function checkNodeTiming(props) {
@@ -88,7 +92,7 @@ function checkNodeTiming(props) {
     if (props[prop].around !== undefined) {
       assert.strictEqual(typeof performance.nodeTiming[prop], 'number');
       const delta = performance.nodeTiming[prop] - props[prop].around;
-      const delay = 1000 + timeoutDelay;
+      const delay = ONE_SEC + timeoutDelay;
       assert(
         Math.abs(delta) < delay,
         `${prop}: ${Math.abs(delta)} >= ${delay}`
@@ -128,7 +132,7 @@ checkDelay(() => {
       loopStart: { around: inited },
       loopExit: -1
     });
-  }, 1000);
+  }, ONE_SEC);
 });
 
 process.on('exit', () => {
