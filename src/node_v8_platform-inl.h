@@ -87,7 +87,7 @@ struct V8Platform {
     controller->AddTraceStateObserver(trace_state_observer_.get());
     tracing_file_writer_ = tracing_agent_->DefaultHandle();
     // Only start the tracing agent if we enabled any tracing categories.
-    if (!per_process::cli_options->trace_event_categories.empty()) {
+    if (!per_process::cli_options.trace_event_categories.empty()) {
       StartTracingAgent();
     }
     // Tracing must be initialized before platform threads are created.
@@ -119,14 +119,14 @@ struct V8Platform {
     // before.
     if (tracing_file_writer_.IsDefaultHandle()) {
       std::vector<std::string> categories =
-          SplitString(per_process::cli_options->trace_event_categories, ',');
+          SplitString(per_process::cli_options.trace_event_categories, ',');
 
       tracing_file_writer_ = tracing_agent_->AddClient(
           std::set<std::string>(std::make_move_iterator(categories.begin()),
                                 std::make_move_iterator(categories.end())),
           std::unique_ptr<tracing::AsyncTraceWriter>(
               new tracing::NodeTraceWriter(
-                  per_process::cli_options->trace_event_file_pattern)),
+                  per_process::cli_options.trace_event_file_pattern)),
           tracing::Agent::kUseDefaultCategories);
     }
   }

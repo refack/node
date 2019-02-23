@@ -58,7 +58,7 @@ namespace node {
 namespace {
 
 inline void* BufferMalloc(size_t length) {
-  return per_process::cli_options->zero_fill_all_buffers ?
+  return per_process::cli_options.zero_fill_all_buffers ?
              node::UncheckedCalloc(length) :
              node::UncheckedMalloc(length);
 }

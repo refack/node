@@ -269,9 +269,9 @@ static void WriteNodeReport(Isolate* isolate,
   writer.json_keyvalue("processId", pid);
 
   // Report out the command line.
-  if (!node::per_process::cli_options->cmdline.empty()) {
+  if (!node::per_process::cli_options.cmdline.empty()) {
     writer.json_arraystart("commandLine");
-    for (std::string arg : node::per_process::cli_options->cmdline) {
+    for (std::string arg : node::per_process::cli_options.cmdline) {
       writer.json_element(arg);
     }
     writer.json_arrayend();

@@ -69,7 +69,7 @@ static void OnMessage(Local<Message> message, Local<Value> error) {
 }
 
 void* ArrayBufferAllocator::Allocate(size_t size) {
-  if (zero_fill_field_ || per_process::cli_options->zero_fill_all_buffers)
+  if (zero_fill_field_ || per_process::cli_options.zero_fill_all_buffers)
     return UncheckedCalloc(size);
   else
     return UncheckedMalloc(size);

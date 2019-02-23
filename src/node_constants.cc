@@ -1237,7 +1237,7 @@ void DefineCryptoConstants(Local<Object> target) {
   NODE_DEFINE_STRING_CONSTANT(
       target,
       "defaultCipherList",
-      per_process::cli_options->tls_cipher_list.c_str());
+      per_process::cli_options.tls_cipher_list.c_str());
 
   NODE_DEFINE_CONSTANT(target, TLS1_VERSION);
   NODE_DEFINE_CONSTANT(target, TLS1_1_VERSION);

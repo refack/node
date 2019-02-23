@@ -83,7 +83,7 @@ IsolateData::IsolateData(Isolate* isolate,
     platform_->RegisterIsolate(isolate_, event_loop);
 
   options_.reset(
-      new PerIsolateOptions(*(per_process::cli_options->per_isolate)));
+      new PerIsolateOptions(*(per_process::cli_options.per_isolate)));
 
   // Create string and private symbol properties as internalized one byte
   // strings after the platform is properly initialized.

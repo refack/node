@@ -20,7 +20,7 @@ namespace node {
 
 namespace per_process {
 Mutex cli_options_mutex;
-std::shared_ptr<PerProcessOptions> cli_options{new PerProcessOptions()};
+static PerProcessOptions cli_options{};
 }  // namespace per_process
 
 void DebugOptions::CheckOptions(std::vector<std::string>* errors) {
@@ -113,19 +113,19 @@ void EnvironmentOptions::CheckOptions(std::vector<std::string>* errors) {
 
 namespace options_parser {
 
-// Explicitly access the singelton instances in their dependancy order.
-// This was moved here to workaround a compiler bug.
-// Refs: https://github.com/nodejs/node/issues/25593
+class DebugOptionsParser : public OptionsParser<DebugOptions> {
+ public:
+  DebugOptionsParser();
 
-#if HAVE_INSPECTOR
-const DebugOptionsParser DebugOptionsParser::instance;
-#endif  // HAVE_INSPECTOR
+  static const DebugOptionsParser instance;
+};
 
-const EnvironmentOptionsParser EnvironmentOptionsParser::instance;
+class EnvironmentOptionsParser : public OptionsParser<EnvironmentOptions> {
+ public:
+  EnvironmentOptionsParser();
 
-const PerIsolateOptionsParser PerIsolateOptionsParser::instance;
-
-const PerProcessOptionsParser PerProcessOptionsParser::instance;
+  static const EnvironmentOptionsParser instance;
+};
 
 // XXX: If you add an option here, please also add it to doc/node.1 and
 // doc/api/cli.md
@@ -353,7 +353,6 @@ PerIsolateOptionsParser::PerIsolateOptionsParser() {
             &PerIsolateOptions::report_directory,
             kAllowedInEnvironment);
 #endif  // NODE_REPORT
-
   Insert(&EnvironmentOptionsParser::instance,
          &PerIsolateOptions::get_per_env_options);
 }
@@ -518,13 +517,13 @@ void GetOptions(const FunctionCallbackInfo<Value>& args) {
   // Temporarily act as if the current Environment's/IsolateData's options were
   // the default options, i.e. like they are the ones we'd access for global
   // options parsing, so that all options are available from the main parser.
-  auto original_per_isolate = per_process::cli_options->per_isolate;
-  per_process::cli_options->per_isolate = env->isolate_data()->options();
-  auto original_per_env = per_process::cli_options->per_isolate->per_env;
-  per_process::cli_options->per_isolate->per_env = env->options();
+  auto original_per_isolate = per_process::cli_options.per_isolate;
+  per_process::cli_options.per_isolate = env->isolate_data()->options();
+  auto original_per_env = per_process::cli_options.per_isolate->per_env;
+  per_process::cli_options.per_isolate->per_env = env->options();
   OnScopeLeave on_scope_leave([&]() {
-    per_process::cli_options->per_isolate->per_env = original_per_env;
-    per_process::cli_options->per_isolate = original_per_isolate;
+    per_process::cli_options.per_isolate->per_env = original_per_env;
+    per_process::cli_options.per_isolate = original_per_isolate;
   });
 
   const auto& parser = PerProcessOptionsParser::instance;
@@ -534,7 +533,7 @@ void GetOptions(const FunctionCallbackInfo<Value>& args) {
     Local<Value> value;
     const auto& option_info = item.second;
     auto field = option_info.field;
-    PerProcessOptions* opts = per_process::cli_options.get();
+    PerProcessOptions* opts = &per_process::cli_options;
     switch (option_info.type) {
       case kNoOp:
       case kV8Option:
@@ -649,6 +648,168 @@ void Initialize(Local<Object> target,
   NODE_DEFINE_CONSTANT(types, kStringList);
   target->Set(context, FIXED_ONE_BYTE_STRING(isolate, "types"), types)
       .FromJust();
+}
+
+template <typename Options>
+void OptionsParser<Options>::Parse(
+    std::vector<std::string>* const orig_args,
+    std::vector<std::string>* const exec_args,
+    std::vector<std::string>* const v8_args,
+    Options* const options,
+    OptionEnvvarSettings required_env_settings,
+    std::vector<std::string>* const errors) {
+  ArgsInfo args(orig_args, exec_args);
+
+  // The first entry is the process name. Make sure it ends up in the V8 argv,
+  // since V8::SetFlagsFromCommandLine() expects that to hold true for that
+  // array as well.
+  if (v8_args->empty())
+    v8_args->push_back(args.program_name());
+
+  while (!args.empty() && errors->empty()) {
+    if (args.first().size() <= 1 || args.first()[0] != '-') break;
+
+    // We know that we're either going to consume this
+    // argument or fail completely.
+    const std::string arg = args.pop_first();
+
+    if (arg == "--") {
+      if (required_env_settings == kAllowedInEnvironment)
+        errors->push_back(NotAllowedInEnvErr("--"));
+      break;
+    }
+
+    // Only allow --foo=bar notation for options starting with double dashes.
+    // (E.g. -e=a is not allowed as shorthand for --eval=a, which would
+    // otherwise be the result of alias expansion.)
+    const std::string::size_type equals_index =
+        arg[0] == '-' && arg[1] == '-' ? arg.find('=') : std::string::npos;
+    std::string name =
+      equals_index == std::string::npos ? arg : arg.substr(0, equals_index);
+
+    // Store the 'original name' of the argument. This name differs from
+    // 'name' in that it contains a possible '=' sign and is not affected
+    // by alias expansion.
+    std::string original_name = name;
+    if (equals_index != std::string::npos)
+      original_name += '=';
+
+    // Normalize by replacing `_` with `-` in options.
+    for (std::string::size_type i = 2; i < name.size(); ++i) {
+      if (name[i] == '_')
+        name[i] = '-';
+    }
+
+    {
+      auto it = aliases_.end();
+      // Expand aliases:
+      // - If `name` can be found in `aliases_`.
+      // - If `name` + '=' can be found in `aliases_`.
+      // - If `name` + " <arg>" can be found in `aliases_`, and we have
+      //   a subsequent argument that does not start with '-' itself.
+      while ((it = aliases_.find(name)) != aliases_.end() ||
+             (equals_index != std::string::npos &&
+              (it = aliases_.find(name + '=')) != aliases_.end()) ||
+             (!args.empty() &&
+                 !args.first().empty() &&
+                 args.first()[0] != '-' &&
+              (it = aliases_.find(name + " <arg>")) != aliases_.end())) {
+        const std::string prev_name = std::move(name);
+        const std::vector<std::string>& expansion = it->second;
+
+        // Use the first entry in the expansion as the new 'name'.
+        name = expansion.front();
+
+        if (expansion.size() > 1) {
+          // The other arguments, if any, are going to be handled later.
+          args.synthetic_args.insert(
+              args.synthetic_args.begin(),
+              expansion.begin() + 1,
+              expansion.end());
+        }
+
+        if (name == prev_name) break;
+      }
+    }
+
+    auto it = options_.find(name);
+
+    if ((it == options_.end() ||
+         it->second.env_setting == kDisallowedInEnvironment) &&
+        required_env_settings == kAllowedInEnvironment) {
+      errors->push_back(NotAllowedInEnvErr(original_name));
+      break;
+    }
+
+    if (it == options_.end()) {
+      v8_args->push_back(arg);
+      continue;
+    }
+
+    {
+      auto implications = implications_.equal_range(name);
+      for (auto it = implications.first; it != implications.second; ++it) {
+        *it->second.target_field->template Lookup<bool>(options) =
+            it->second.target_value;
+      }
+    }
+
+    const OptionInfo& info = it->second;
+    std::string value;
+    if (info.type != kBoolean && info.type != kNoOp && info.type != kV8Option) {
+      if (equals_index != std::string::npos) {
+        value = arg.substr(equals_index + 1);
+        if (value.empty()) {
+        missing_argument:
+          errors->push_back(RequiresArgumentErr(original_name));
+          break;
+        }
+      } else {
+        if (args.empty())
+          goto missing_argument;
+
+        value = args.pop_first();
+
+        if (!value.empty() && value[0] == '-') {
+          goto missing_argument;
+        } else {
+          if (!value.empty() && value[0] == '\\' && value[1] == '-')
+            value = value.substr(1);  // Treat \- as escaping an -.
+        }
+      }
+    }
+
+    switch (info.type) {
+      case kBoolean:
+        *Lookup<bool>(info.field, options) = true;
+        break;
+      case kInteger:
+        *Lookup<int64_t>(info.field, options) = std::atoll(value.c_str());
+        break;
+      case kUInteger:
+        *Lookup<uint64_t>(info.field, options) = std::stoull(value.c_str());
+        break;
+      case kString:
+        *Lookup<std::string>(info.field, options) = value;
+        break;
+      case kStringList:
+        Lookup<std::vector<std::string>>(info.field, options)
+            ->emplace_back(std::move(value));
+        break;
+      case kHostPort:
+        Lookup<HostPort>(info.field, options)
+            ->Update(SplitHostPort(value, errors));
+        break;
+      case kNoOp:
+        break;
+      case kV8Option:
+        v8_args->push_back(arg);
+        break;
+      default:
+        UNREACHABLE();
+    }
+  }
+  options->CheckOptions(errors);
 }
 
 }  // namespace options_parser

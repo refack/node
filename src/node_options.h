@@ -309,12 +309,12 @@ class OptionsParser {
   //
   // If `*error` is set, the result of the parsing should be discarded and the
   // contents of any of the argument vectors should be considered undefined.
-  virtual void Parse(std::vector<std::string>* const args,
+  static void Parse(std::vector<std::string>* const args,
                      std::vector<std::string>* const exec_args,
                      std::vector<std::string>* const v8_args,
                      Options* const options,
                      OptionEnvvarSettings required_env_settings,
-                     std::vector<std::string>* const errors) const;
+                     std::vector<std::string>* const errors);
 
  private:
   // We support the wide variety of different option types by remembering
@@ -395,31 +395,17 @@ class OptionsParser {
   friend void GetOptions(const v8::FunctionCallbackInfo<v8::Value>& args);
 };
 
-class DebugOptionsParser : public OptionsParser<DebugOptions> {
- public:
-  DebugOptionsParser();
-
-  static const DebugOptionsParser instance;
-};
-
-class EnvironmentOptionsParser : public OptionsParser<EnvironmentOptions> {
- public:
-  EnvironmentOptionsParser();
-
-  static const EnvironmentOptionsParser instance;
-};
-
 class PerIsolateOptionsParser : public OptionsParser<PerIsolateOptions> {
- public:
   PerIsolateOptionsParser();
 
+ public:
   static const PerIsolateOptionsParser instance;
 };
 
 class PerProcessOptionsParser : public OptionsParser<PerProcessOptions> {
- public:
   PerProcessOptionsParser();
 
+ public:
   static const PerProcessOptionsParser instance;
 };
 
@@ -428,7 +414,7 @@ class PerProcessOptionsParser : public OptionsParser<PerProcessOptions> {
 namespace per_process {
 
 extern Mutex cli_options_mutex;
-extern std::shared_ptr<PerProcessOptions> cli_options;
+extern PerProcessOptions cli_options;
 
 }  // namespace per_process
 }  // namespace node

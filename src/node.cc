@@ -28,7 +28,7 @@
 #include "node_internals.h"
 #include "node_metadata.h"
 #include "node_native_module.h"
-#include "node_options-inl.h"
+#include "node_options.h"
 #include "node_perf.h"
 #include "node_platform.h"
 #include "node_process.h"
@@ -387,12 +387,12 @@ MaybeLocal<Value> StartMainThreadExecution(Environment* env) {
     return StartExecution(env, "internal/main/inspect");
   }
 
-  if (per_process::cli_options->print_help) {
+  if (per_process::cli_options.print_help) {
     env->set_execution_mode(Environment::ExecutionMode::kPrintHelp);
     return StartExecution(env, "internal/main/print_help");
   }
 
-  if (per_process::cli_options->print_bash_completion) {
+  if (per_process::cli_options.print_bash_completion) {
     env->set_execution_mode(Environment::ExecutionMode::kPrintBashCompletion);
     return StartExecution(env, "internal/main/print_bash_completion");
   }
@@ -550,14 +550,14 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
       args,
       exec_args,
       &v8_args,
-      per_process::cli_options.get(),
+      &per_process::cli_options,
       is_env ? kAllowedInEnvironment : kDisallowedInEnvironment,
       errors);
 
   if (!errors->empty()) return 9;
 
   std::string revert_error;
-  for (const std::string& cve : per_process::cli_options->security_reverts) {
+  for (const std::string& cve : per_process::cli_options.security_reverts) {
     Revert(cve.c_str(), &revert_error);
     if (!revert_error.empty()) {
       errors->emplace_back(std::move(revert_error));
@@ -565,7 +565,7 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
     }
   }
 
-  auto env_opts = per_process::cli_options->per_isolate->per_env;
+  auto env_opts = per_process::cli_options.per_isolate->per_env;
   if (std::find(v8_args.begin(), v8_args.end(),
                 "--abort-on-uncaught-exception") != v8_args.end() ||
       std::find(v8_args.begin(), v8_args.end(),
@@ -620,7 +620,7 @@ int Init(std::vector<std::string>* argv,
 #ifdef NODE_REPORT
   // Cache the original command line to be
   // used in diagnostic reports.
-  per_process::cli_options->cmdline = *argv;
+  per_process::cli_options.cmdline = *argv;
 #endif  //  NODE_REPORT
 
 #if defined(NODE_V8_OPTIONS)
@@ -631,7 +631,7 @@ int Init(std::vector<std::string>* argv,
 #endif
 
   std::shared_ptr<EnvironmentOptions> default_env_options =
-      per_process::cli_options->per_isolate->per_env;
+      per_process::cli_options.per_isolate->per_env;
   {
     std::string text;
     default_env_options->pending_deprecation =
@@ -660,7 +660,7 @@ int Init(std::vector<std::string>* argv,
   }
 
 #if HAVE_OPENSSL
-  std::string* openssl_config = &per_process::cli_options->openssl_config;
+  std::string* openssl_config = &per_process::cli_options.openssl_config;
   if (openssl_config->empty()) {
     credentials::SafeGetenv("OPENSSL_CONF", openssl_config);
   }
@@ -683,17 +683,17 @@ int Init(std::vector<std::string>* argv,
   if (exit_code != 0) return exit_code;
 
   // Set the process.title immediately after processing argv if --title is set.
-  if (!per_process::cli_options->title.empty())
-    uv_set_process_title(per_process::cli_options->title.c_str());
+  if (!per_process::cli_options.title.empty())
+    uv_set_process_title(per_process::cli_options.title.c_str());
 
 #if defined(NODE_HAVE_I18N_SUPPORT)
   // If the parameter isn't given, use the env variable.
-  if (per_process::cli_options->icu_data_dir.empty())
+  if (per_process::cli_options.icu_data_dir.empty())
     credentials::SafeGetenv("NODE_ICU_DATA",
-                            &per_process::cli_options->icu_data_dir);
+                            &per_process::cli_options.icu_data_dir);
   // Initialize ICU.
   // If icu_data_dir is empty here, it will load the 'minimal' data.
-  if (!i18n::InitializeICUDirectory(per_process::cli_options->icu_data_dir)) {
+  if (!i18n::InitializeICUDirectory(per_process::cli_options.icu_data_dir)) {
     errors->push_back("could not initialize ICU "
                       "(check NODE_ICU_DATA or --icu-data-dir parameters)\n");
     return 9;
@@ -725,12 +725,12 @@ void Init(int* argc,
     fprintf(stderr, "%s: %s\n", argv_.at(0).c_str(), error.c_str());
   if (exit_code != 0) exit(exit_code);
 
-  if (per_process::cli_options->print_version) {
+  if (per_process::cli_options.print_version) {
     printf("%s\n", NODE_VERSION);
     exit(0);
   }
 
-  if (per_process::cli_options->print_v8_help) {
+  if (per_process::cli_options.print_v8_help) {
     V8::SetFlagsFromString("--help", 6);  // Doesn't return.
     UNREACHABLE();
   }
@@ -849,12 +849,12 @@ inline int Start(uv_loop_t* event_loop,
   if (isolate == nullptr)
     return 12;  // Signal internal error.
 
-  if (per_process::cli_options->print_version) {
+  if (per_process::cli_options.print_version) {
     printf("%s\n", NODE_VERSION);
     return 0;
   }
 
-  if (per_process::cli_options->print_v8_help) {
+  if (per_process::cli_options.print_v8_help) {
     V8::SetFlagsFromString("--help", 6);  // Doesn't return.
     UNREACHABLE();
   }
@@ -930,7 +930,7 @@ int Start(int argc, char** argv) {
   V8::SetEntropySource(crypto::EntropySource);
 #endif  // HAVE_OPENSSL
 
-  InitializeV8Platform(per_process::cli_options->v8_thread_pool_size);
+  InitializeV8Platform(per_process::cli_options.v8_thread_pool_size);
   V8::Initialize();
   performance::performance_v8_start = PERFORMANCE_NOW();
   per_process::v8_initialized = true;
