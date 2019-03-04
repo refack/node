@@ -148,7 +148,7 @@ class FSReqCallback : public FSReqBase {
   DISALLOW_COPY_AND_ASSIGN(FSReqCallback);
 };
 
-// Wordaround a GCC4.9 bug that C++14 N3652 was not implemented
+// Workaround a GCC4.9 bug that C++14 N3652 was not implemented
 // Refs: https://www.gnu.org/software/gcc/projects/cxx-status.html#cxx14
 // Refs: https://isocpp.org/files/papers/N3652.html
 #if __cpp_constexpr < 201304
@@ -167,22 +167,26 @@ constexpr NativeT ToNative(uv_timespec_t ts) {
 template <>
 constexpr double ToNative(uv_timespec_t ts) {
   // We need to do a static_cast since the original FS values are ulong.
-  /* NOLINTNEXTLINE(runtime/int) */
+  // NOLINTNEXTLINE(runtime/int)
   const auto u_sec = static_cast<unsigned long>(ts.tv_sec);
   const double full_sec = u_sec * 1000.0;
-  /* NOLINTNEXTLINE(runtime/int) */
+  // NOLINTNEXTLINE(runtime/int)
   const auto u_nsec = static_cast<unsigned long>(ts.tv_nsec);
-  const double full_nsec = u_nsec / 1000'000.0;
+  // Since we only need millisecond resolution, first we do integer division
+  // to truncate the remainder, then do floating point division to get
+  // fractional seconds as a `double`.
+  // Refs: https://github.com/nodejs/node/issues/24593
+  const double full_nsec = (u_nsec / 1000UL) / 1000.0;
   return full_sec + full_nsec;
 }
 
 template <>
 constexpr uint64_t ToNative(uv_timespec_t ts) {
   // We need to do a static_cast since the original FS values are ulong.
-  /* NOLINTNEXTLINE(runtime/int) */
+  // NOLINTNEXTLINE(runtime/int)
   const auto u_sec = static_cast<unsigned long>(ts.tv_sec);
   const auto full_sec = static_cast<uint64_t>(u_sec) * 1000UL;
-  /* NOLINTNEXTLINE(runtime/int) */
+  // NOLINTNEXTLINE(runtime/int)
   const auto u_nsec = static_cast<unsigned long>(ts.tv_nsec);
   const auto full_nsec = static_cast<uint64_t>(u_nsec) / 1000'000UL;
   return full_sec + full_nsec;
@@ -211,19 +215,12 @@ constexpr void FillStatsArray(AliasedBuffer<NativeT, V8T>* fields,
 }
 
 inline Local<Value> FillGlobalStatsArray(Environment* env,
-                                         const bool use_bigint,
                                          const uv_stat_t* s,
                                          const bool second = false) {
   const ptrdiff_t offset = second ? kFsStatsFieldsNumber : 0;
-  if (use_bigint) {
-    auto* const arr = env->fs_stats_field_bigint_array();
-    FillStatsArray(arr, s, offset);
-    return arr->GetJSArray();
-  } else {
-    auto* const arr = env->fs_stats_field_array();
-    FillStatsArray(arr, s, offset);
-    return arr->GetJSArray();
-  }
+  auto* const arr = env->fs_stats_field_bigint_array();
+  FillStatsArray(arr, s, offset);
+  return arr->GetJSArray();
 }
 
 template <typename NativeT = double, typename V8T = v8::Float64Array>

@@ -80,10 +80,10 @@ void StatWatcher::Callback(uv_fs_poll_t* handle,
   HandleScope handle_scope(env->isolate());
   Context::Scope context_scope(env->context());
 
-  Local<Value> arr = fs::FillGlobalStatsArray(env, wrap->use_bigint_, curr);
-  USE(fs::FillGlobalStatsArray(env, wrap->use_bigint_, prev, true));
+  Local<Value> arr = fs::FillGlobalStatsArray(env, curr);
+  Local<Value> arr2 = fs::FillGlobalStatsArray(env, prev, true);
 
-  Local<Value> argv[2] = { Integer::New(env->isolate(), status), arr };
+  Local<Value> argv[3] = { Integer::New(env->isolate(), status), arr, arr2 };
   wrap->MakeCallback(env->onchange_string(), arraysize(argv), argv);
 }
 

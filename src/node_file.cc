@@ -448,7 +448,7 @@ void FSReqCallback::Reject(Local<Value> reject) {
 }
 
 void FSReqCallback::ResolveStat(const uv_stat_t* stat) {
-  Resolve(FillGlobalStatsArray(env(), use_bigint(), stat));
+  Resolve(FillGlobalStatsArray(env(), stat));
 }
 
 void FSReqCallback::Resolve(Local<Value> value) {
@@ -923,7 +923,7 @@ static void Stat(const FunctionCallbackInfo<Value>& args) {
       return;  // error info is in ctx
     }
 
-    Local<Value> arr = FillGlobalStatsArray(env, use_bigint,
+    Local<Value> arr = FillGlobalStatsArray(env,
         static_cast<const uv_stat_t*>(req_wrap_sync.req.ptr));
     args.GetReturnValue().Set(arr);
   }
@@ -954,7 +954,7 @@ static void LStat(const FunctionCallbackInfo<Value>& args) {
       return;  // error info is in ctx
     }
 
-    Local<Value> arr = FillGlobalStatsArray(env, use_bigint,
+    Local<Value> arr = FillGlobalStatsArray(env,
         static_cast<const uv_stat_t*>(req_wrap_sync.req.ptr));
     args.GetReturnValue().Set(arr);
   }
@@ -984,7 +984,7 @@ static void FStat(const FunctionCallbackInfo<Value>& args) {
       return;  // error info is in ctx
     }
 
-    Local<Value> arr = FillGlobalStatsArray(env, use_bigint,
+    Local<Value> arr = FillGlobalStatsArray(env,
         static_cast<const uv_stat_t*>(req_wrap_sync.req.ptr));
     args.GetReturnValue().Set(arr);
   }
@@ -2181,10 +2181,6 @@ void Initialize(Local<Object> target,
   target->Set(context,
               FIXED_ONE_BYTE_STRING(isolate, "statValues"),
               env->fs_stats_field_array()->GetJSArray()).FromJust();
-
-  target->Set(context,
-              FIXED_ONE_BYTE_STRING(isolate, "bigintStatValues"),
-              env->fs_stats_field_bigint_array()->GetJSArray()).FromJust();
 
   StatWatcher::Initialize(env, target);
 
