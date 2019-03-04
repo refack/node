@@ -45,11 +45,11 @@ except NameError:
 
 def ToCArray(elements, step=10):
   slices = (elements[i:i+step] for i in xrange(0, len(elements), step))
-  slices = map(lambda s: ','.join(str(x) for x in s), slices)
+  slices = [','.join(str(x) for x in s) for s in slices]
   return ',\n'.join(slices)
 
 def ReadFile(filename):
-  file = open(filename, "rt")
+  file = open(filename, "rt", encoding='utf-8')
   try:
     lines = file.read()
   finally:
@@ -159,14 +159,14 @@ def ReadMacros(lines):
       macro_match = MACRO_PATTERN.match(line)
       if macro_match:
         name = macro_match.group(1)
-        args = map(string.strip, macro_match.group(2).split(','))
+        args = [s.strip() for s in macro_match.group(2).split(',')]
         body = macro_match.group(3).strip()
         macros[name] = TextMacro(args, body)
       else:
         python_match = PYTHON_MACRO_PATTERN.match(line)
         if python_match:
           name = python_match.group(1)
-          args = map(string.strip, python_match.group(2).split(','))
+          args = [s.strip() for s in python_match.group(2).split(',')]
           body = python_match.group(3).strip()
           fun = eval("lambda " + ",".join(args) + ': ' + body)
           macros[name] = PythonMacro(args, fun)
@@ -236,12 +236,12 @@ def JS2C(source, target):
   def GetDefinition(var, source):
     # Treat non-ASCII as UTF-8 and convert it to UTF-16.
     if any(ord(c) > 127 for c in source):
-      source = map(ord, source.decode('utf-8').encode('utf-16be'))
+      source = source.encode('utf-16be')
       source = [source[i] * 256 + source[i+1] for i in xrange(0, len(source), 2)]
       source = ToCArray(source)
       return TWO_BYTE_STRING.format(var=var, data=source)
     else:
-      source = ToCArray(map(ord, source), step=20)
+      source = ToCArray([ord(s) for s in source], step=20)
       return ONE_BYTE_STRING.format(var=var, data=source)
 
   def AddModule(module, source):
