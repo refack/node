@@ -135,5 +135,12 @@
         'message': 'Generating inspector protocol sources from protocol json',
       },
     ],
+    'conditions': [
+      ['want_separate_host_toolset==1', {
+        'toolsets': ['host'],
+      }, {
+        'toolsets': ['target'],
+      }],
+    ],
   }],
 }
