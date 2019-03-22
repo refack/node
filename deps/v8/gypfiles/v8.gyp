@@ -525,6 +525,7 @@
         'GCC_GENERATE_DEBUGGING_SYMBOLS': 'NO',
       },
       'include_dirs': [
+        '<(generate_bytecode_output_root)',
         '<(torque_output_root)',
       ],
       'conditions': [
