@@ -99,7 +99,7 @@
       '<(torque_output_root)/torque-generated/class-definitions-from-dsl.h',
     ],
   },
-  'includes': ['toolchain.gypi', 'features.gypi', 'v8_external_snapshot.gypi', 'inspector.gypi' ],
+  'includes': ['toolchain.gypi', 'features.gypi', 'v8_external_snapshot.gypi'],
   'targets': [
     {
       'target_name': 'v8',
@@ -568,10 +568,10 @@
       # Since this target is a static-library, but as a side effect it generates
       # header files, it needs to be a hard dependency.
       'hard_dependency': 1,
+      'includes': [ 'inspector.gypi' ],
       'dependencies': [
         'v8_libbase',
         'v8_libsampler',
-        'v8_inspector',
         # Code generators that only need to be build for the host.
         'torque#host',
         'generate_bytecode_builtins_list#host',

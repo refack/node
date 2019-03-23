@@ -83,20 +83,12 @@
       '../src/inspector/wasm-translation.h',
     ]
   },
-  'targets': [{
-    'target_name': 'v8_inspector',
-    'type': 'static_library',
     'includes': [
       '../third_party/inspector_protocol/inspector_protocol.gypi',
     ],
     'include_dirs': [
       '<(inspector_generated_output_root)',
     ],
-    'direct_dependent_settings': {
-      'include_dirs': [
-        '<(inspector_generated_output_root)',
-      ],
-    },
     'actions': [
       {
         'action_name': 'protocol_compatibility',
@@ -135,12 +127,4 @@
         'message': 'Generating inspector protocol sources from protocol json',
       },
     ],
-    'conditions': [
-      ['want_separate_host_toolset==1', {
-        'toolsets': ['host', 'target'],
-      }, {
-        'toolsets': ['target'],
-      }],
-    ],
-  }],
 }
