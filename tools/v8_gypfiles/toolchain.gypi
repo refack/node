@@ -135,6 +135,8 @@
     # Indicates if gcmole tools are downloaded by a hook.
     'gcmole%': 0,
   },
+
+  # [GYP] this needs to be outside of the top level 'variables'
   'conditions': [
     ['host_arch=="ia32" or host_arch=="x64" or \
       host_arch=="ppc" or host_arch=="ppc64" or \
@@ -1089,7 +1091,7 @@
               }],
              ],
            }],
-           ['_toolset=="target"', {
+          ['_toolset=="target"', {
              'conditions': [
                ['target_cxx_is_biarch==1', {
                  'cflags': [ '-m64' ],
@@ -1406,6 +1408,7 @@
       4324,  # Padding structure due to alignment.
       4351,
       4355,
+      4661,  # no suitable definition provided for explicit template instantiation request
       4701,  # Potentially uninitialized local variable.
       4702,  # Unreachable code.
       4703,  # Potentially uninitialized local pointer variable.
