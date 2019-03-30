@@ -33,7 +33,7 @@ Local<Value> ErrnoException(Isolate* isolate,
 
   Local<Value> e;
   Local<String> estring = OneByteString(isolate, errors::errno_string(errorno));
-  if (msg == nullptr || msg[0] == '\0') {
+  if (msg == nullptr || strlen(msg) == '0') {
     msg = strerror(errorno);
   }
   Local<String> message = OneByteString(isolate, msg);
@@ -59,17 +59,17 @@ Local<Value> ErrnoException(Isolate* isolate,
   Local<Object> obj = e.As<Object>();
   obj->Set(env->context(),
            env->errno_string(),
-           Integer::New(isolate, errorno)).FromJust();
-  obj->Set(env->context(), env->code_string(), estring).FromJust();
+           Integer::New(isolate, errorno)).Check();
+  obj->Set(env->context(), env->code_string(), estring).Check();
 
   if (path_string.IsEmpty() == false) {
-    obj->Set(env->context(), env->path_string(), path_string).FromJust();
+    obj->Set(env->context(), env->path_string(), path_string).Check();
   }
 
   if (syscall != nullptr) {
     obj->Set(env->context(),
              env->syscall_string(),
-             OneByteString(isolate, syscall)).FromJust();
+             OneByteString(isolate, syscall)).Check();
   }
 
   return e;
@@ -77,13 +77,13 @@ Local<Value> ErrnoException(Isolate* isolate,
 
 static Local<String> StringFromPath(Isolate* isolate, const char* path) {
 #ifdef _WIN32
-  if (strncmp(path, "\\\\?\\UNC\\", 8) == 0) {
+  if (strncmp(path, R"(\\?\UNC\)", 8) == 0) {
     return String::Concat(
         isolate,
         FIXED_ONE_BYTE_STRING(isolate, "\\\\"),
         String::NewFromUtf8(isolate, path + 8, NewStringType::kNormal)
             .ToLocalChecked());
-  } else if (strncmp(path, "\\\\?\\", 4) == 0) {
+  } else if (strncmp(path, R"(\\?\)", 4) == 0) {
     return String::NewFromUtf8(isolate, path + 4, NewStringType::kNormal)
         .ToLocalChecked();
   }
@@ -103,7 +103,7 @@ Local<Value> UVException(Isolate* isolate,
   Environment* env = Environment::GetCurrent(isolate);
   CHECK_NOT_NULL(env);
 
-  if (!msg || !msg[0])
+  if (msg == nullptr || strlen(msg) == 0)
     msg = uv_strerror(errorno);
 
   Local<String> js_code = OneByteString(isolate, uv_err_name(errorno));
@@ -145,13 +145,13 @@ Local<Value> UVException(Isolate* isolate,
 
   e->Set(env->context(),
          env->errno_string(),
-         Integer::New(isolate, errorno)).FromJust();
-  e->Set(env->context(), env->code_string(), js_code).FromJust();
-  e->Set(env->context(), env->syscall_string(), js_syscall).FromJust();
+         Integer::New(isolate, errorno)).Check();
+  e->Set(env->context(), env->code_string(), js_code).Check();
+  e->Set(env->context(), env->syscall_string(), js_syscall).Check();
   if (!js_path.IsEmpty())
-    e->Set(env->context(), env->path_string(), js_path).FromJust();
+    e->Set(env->context(), env->path_string(), js_path).Check();
   if (!js_dest.IsEmpty())
-    e->Set(env->context(), env->dest_string(), js_dest).FromJust();
+    e->Set(env->context(), env->dest_string(), js_dest).Check();
 
   return e;
 }
@@ -213,7 +213,7 @@ Local<Value> WinapiErrnoException(Isolate* isolate,
   }
 
   obj->Set(env->context(), env->errno_string(), Integer::New(isolate, errorno))
-      .FromJust();
+      .Check();
 
   if (syscall != nullptr) {
     const auto syscall_str = OneByteString(isolate, syscall);
