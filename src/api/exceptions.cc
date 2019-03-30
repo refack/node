@@ -8,6 +8,7 @@
 #include "v8.h"
 
 #include <cstring>
+#include <string>
 
 namespace node {
 
@@ -158,28 +159,27 @@ Local<Value> UVException(Isolate* isolate,
 #ifdef _WIN32
 // Does about the same as strerror(),
 // but supports all windows error messages
-static const char* winapi_strerror(const int errorno, bool* must_free) {
-  char* errmsg = nullptr;
+static std::string winapi_strerror(const int errorno) {
+  LPSTR msg = nullptr;
+  // Because the 5th argument can be a simple IN parameter it's type is LPSTR,
+  // but if FORMAT_MESSAGE_ALLOCATE_BUFFER, it's needs to be a double pointer.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  const auto msg_p = reinterpret_cast<LPSTR>(&msg);
+  const DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER |
+    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+  DWORD i = FormatMessage(flags, nullptr, errorno, 0, msg_p, 0, nullptr);
 
-  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-      FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, errorno,
-      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&errmsg, 0, nullptr);
-
-  if (errmsg) {
-    *must_free = true;
-
-    // Remove trailing newlines
-    for (int i = strlen(errmsg) - 1;
-        i >= 0 && (errmsg[i] == '\n' || errmsg[i] == '\r'); i--) {
-      errmsg[i] = '\0';
-    }
-
-    return errmsg;
-  } else {
+  if (msg == nullptr || i <= 0) {
     // FormatMessage failed
-    *must_free = false;
     return "Unknown error";
   }
+  // Remove trailing newlines
+  for (; i >= 0 && (msg[i] == '\n' || msg[i] == '\r'); i--) {
+    msg[i] = '\0';
+  }
+  const std::string ret{msg};
+  LocalFree(msg);
+  return ret;
 }
 
 
@@ -190,51 +190,37 @@ Local<Value> WinapiErrnoException(Isolate* isolate,
                                   const char* path) {
   Environment* env = Environment::GetCurrent(isolate);
   CHECK_NOT_NULL(env);
-  Local<Value> e;
-  bool must_free = false;
-  if (!msg || !msg[0]) {
-    msg = winapi_strerror(errorno, &must_free);
-  }
-  Local<String> message = OneByteString(isolate, msg);
-
-  if (path) {
-    Local<String> cons1 =
-        String::Concat(isolate, message, FIXED_ONE_BYTE_STRING(isolate, " '"));
-    Local<String> cons2 = String::Concat(
-        isolate,
-        cons1,
-        String::NewFromUtf8(isolate, path, NewStringType::kNormal)
-            .ToLocalChecked());
-    Local<String> cons3 =
-        String::Concat(isolate, cons2, FIXED_ONE_BYTE_STRING(isolate, "'"));
-    e = Exception::Error(cons3);
+  std::string message;
+  if (msg != nullptr && strlen(msg)) {
+    message = msg;
   } else {
-    e = Exception::Error(message);
+    message = winapi_strerror(errorno);
+  }
+   
+
+  Local<Object> obj;
+  if (path != nullptr) {
+    const std::string formatted = message + " '" + path + "'";
+    const Local<String> msg_v8str = OneByteString(isolate, formatted.data());
+    const auto path_v8str =
+      String::NewFromUtf8(isolate, path, NewStringType::kNormal)
+        .ToLocalChecked();
+    obj = Exception::Error(msg_v8str).As<Object>();
+    obj->Set(env->context(), env->path_string(), path_v8str).Check();
+  } else {
+    const Local<String> msg_v8str = OneByteString(isolate, message.data());
+    obj = Exception::Error(msg_v8str).As<Object>();
   }
 
-  Local<Object> obj = e.As<Object>();
   obj->Set(env->context(), env->errno_string(), Integer::New(isolate, errorno))
       .FromJust();
 
-  if (path != nullptr) {
-    obj->Set(env->context(),
-             env->path_string(),
-             String::NewFromUtf8(isolate, path, NewStringType::kNormal)
-                 .ToLocalChecked())
-        .FromJust();
-  }
-
   if (syscall != nullptr) {
-    obj->Set(env->context(),
-             env->syscall_string(),
-             OneByteString(isolate, syscall))
-        .FromJust();
+    const auto syscall_str = OneByteString(isolate, syscall);
+    obj->Set(env->context(), env->syscall_string(), syscall_str).Check();
   }
 
-  if (must_free)
-    LocalFree((HLOCAL)msg);
-
-  return e;
+  return obj.As<Exception>();
 }
 #endif
 
