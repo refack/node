@@ -131,7 +131,10 @@ class CompilationUnitQueues {
       queues_[task_id].next_steal_task_id_ = next_task_id(task_id);
     }
     for (auto& atomic_counter : num_units_) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wbraced-scalar-init"
       atomic_counter = ATOMIC_VAR_INIT(0);
+#pragma GCC diagnostic pop
     }
   }
 
